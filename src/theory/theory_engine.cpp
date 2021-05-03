@@ -447,7 +447,7 @@ void TheoryEngine::check(Theory::Effort effort) {
       // make conflict clauses. 
       // const LogicInfo& logicInfo = d_qstate.getLogicInfo();
       Valuation val(this);
-      std::vector<Node> lst;
+      std::vector<TNode> lst;
       for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
       {
         // if (!logicInfo.isTheoryEnabled(theoryId))
@@ -460,33 +460,53 @@ void TheoryEngine::check(Theory::Effort effort) {
              it != it_end;
              ++it)
         {
-          Node a = (*it).d_assertion; 
-          std::cout << a << std::endl;
-          if (!expr::hasSubtermKind(kind::SKOLEM, a) && !expr::hasSubtermKind(kind::BOOLEAN_TERM_VARIABLE, a)) {
-          if (val.isDecision(a)) {
-            lst.push_back(a);
+          TNode a = (*it).d_assertion;
+          if (!expr::hasSubtermKind(kind::SKOLEM, a) &&
+              !expr::hasSubtermKind(kind::BOOLEAN_TERM_VARIABLE, a) &&
+              val.isSatLiteral(a)) {
+              if (val.isDecision(a)) {
+                  std::cout << a << std::endl;
+                lst.push_back(a);
           }
           }
-          // conflict(trustnode, theoryId);
-          // setHasTerm((*it).d_assertion);
         }
       }
 
-      // NodeBuilder nb(kind::AND);
-      // make a trustnode of everything in lst and call conflict.
-      // for (auto d : lst) {          
-        // nb << d;
-      // }
+      if (!lst.empty())
+      {
+      Node c = *lst.begin();
+      if (lst.size() > 1)
+      {
 
-    NodeManager * nm = NodeManager::currentNM();  
-    Node c = nm->mkAnd(lst);
+          NodeBuilder nb(kind::AND);
+          // make a trustnode of everything in lst and call conflict.
+          for (auto d : lst) {
+              nb << d;
+          }
+          c = nb.constructNode();
+      }
+      NodeBuilder nb2(kind::NOT);
+      nb2 << c;
+      Node l = nb2.constructNode();
 
-    TrustNode tc = TrustNode::mkTrustConflict(c);
+      /*
+      NodeManager * nm = NodeManager::currentNM();
+      Node c = nm->mkNot(*lst.begin());
+    if (lst.size() > 1)
+    {
+        c = nm->mkAnd(lst);
+        c = nm->mkNot(c);
+    }
+      */
 
-    std::cout << tc << std::endl;
-      // Node c = (Node)nb;
-      conflict(tc, THEORY_FIRST);
-
+    TrustNode tl = TrustNode::mkTrustLemma(l);
+    //std::cout << lst.size() << std::endl;
+    std::cout << tl << std::endl;
+    // Node c = (Node)nb;
+    //conflict(tc, THEORY_BUILTIN);
+    lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
+    return;
+    }
     }
 
     // Check until done
