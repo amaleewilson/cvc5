@@ -14,7 +14,7 @@
  */
 
 #include "theory/theory_engine.h"
-
+#include "expr/node_algorithm.h"
 #include <sstream>
 
 #include "base/map_util.h"
@@ -444,6 +444,49 @@ void TheoryEngine::check(Theory::Effort effort) {
         d_relManager->resetRound();
       }
       d_tc->resetRound();
+      // make conflict clauses. 
+      // const LogicInfo& logicInfo = d_qstate.getLogicInfo();
+      Valuation val(this);
+      std::vector<Node> lst;
+      for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
+      {
+        // if (!logicInfo.isTheoryEnabled(theoryId))
+        // {
+          // continue;
+        // }
+        for (context::CDList<Assertion>::const_iterator
+                 it = val.factsBegin(theoryId),
+                 it_end = val.factsEnd(theoryId);
+             it != it_end;
+             ++it)
+        {
+          Node a = (*it).d_assertion; 
+          std::cout << a << std::endl;
+          if (!expr::hasSubtermKind(kind::SKOLEM, a) && !expr::hasSubtermKind(kind::BOOLEAN_TERM_VARIABLE, a)) {
+          if (val.isDecision(a)) {
+            lst.push_back(a);
+          }
+          }
+          // conflict(trustnode, theoryId);
+          // setHasTerm((*it).d_assertion);
+        }
+      }
+
+      // NodeBuilder nb(kind::AND);
+      // make a trustnode of everything in lst and call conflict.
+      // for (auto d : lst) {          
+        // nb << d;
+      // }
+
+    NodeManager * nm = NodeManager::currentNM();  
+    Node c = nm->mkAnd(lst);
+
+    TrustNode tc = TrustNode::mkTrustConflict(c);
+
+    std::cout << tc << std::endl;
+      // Node c = (Node)nb;
+      conflict(tc, THEORY_FIRST);
+
     }
 
     // Check until done
