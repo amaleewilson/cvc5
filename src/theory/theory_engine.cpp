@@ -247,7 +247,9 @@ TheoryEngine::TheoryEngine(context::Context* context,
       d_resourceManager(rm),
       d_inPreregister(false),
       d_factsAsserted(context, false),
-      d_attr_handle()
+      d_attr_handle(),
+      d_numPartition(0),
+      d_asertedPartitions()
 {
   for(TheoryId theoryId = theory::THEORY_FIRST; theoryId != theory::THEORY_LAST;
       ++ theoryId)
@@ -447,9 +449,53 @@ void TheoryEngine::check(Theory::Effort effort) {
       // make conflict clauses. 
       // const LogicInfo& logicInfo = d_qstate.getLogicInfo();
 
-      // if (options::computePartion() > 0){
-        // std::cout << "caught the option " << options::computePartition() << std::endl;
-      // }
+      if (options::computePartition() > 0){
+        std::cout << "caught the option " << options::computePartition() << std::endl;
+      }
+      int numPartitions = options::computePartition();
+      Assert(numPartitions > 1);
+
+      /*
+     x1 = 1
+     x2 > 2
+     lemma a: !(x1 = 1 /\ x2 > 2)
+
+     x1 = 2
+     x2 < 2
+     lemma b: !(x1 = 2 /\ x2 < 2)
+
+     !(a /\ b)
+
+     a \/ b \/ (-a \/ -b)
+      */
+
+      if ( d_numPartition == numPartitions - 1 )
+      {
+          // Dump and assert the negation of the previous cubes
+          Node c = *d_asertedPartitions.begin();
+          if (d_asertedPartitions.size() > 1)
+          {
+              NodeBuilder nb(kind::AND);
+              // make a trustnode of everything in lst and call conflict.
+              for (const auto d : d_asertedPartitions) {
+                  nb << d;
+              }
+                  c = nb.constructNode();
+              }
+          NodeBuilder nb2(kind::NOT);
+          nb2 << c;
+          Node l = nb2.constructNode();
+
+          TrustNode tl = TrustNode::mkTrustLemma(l);
+          //std::cout << lst.size() << std::endl;
+          std::cout << "last partition:" << tl << std::endl;
+          // Node c = (Node)nb;
+          //conflict(tc, THEORY_BUILTIN);
+          lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
+          return;
+      }
+      else {
+
       Valuation val(this);
       std::vector<TNode> lst;
       for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
@@ -509,6 +555,9 @@ void TheoryEngine::check(Theory::Effort effort) {
       nb2 << c;
       Node l = nb2.constructNode();
 
+      ++d_numPartition;
+      d_asertedPartitions.push_back(l);
+
       /*
       NodeManager * nm = NodeManager::currentNM();
       Node c = nm->mkNot(*lst.begin());
@@ -528,7 +577,7 @@ void TheoryEngine::check(Theory::Effort effort) {
     return;
     }
     }
-
+    }
     // Check until done
     while (d_factsAsserted && !d_inConflict && !d_lemmasAdded) {
 

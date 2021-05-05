@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <vector>
+#include <list>
 
 #include "base/check.h"
 #include "context/cdhashmap.h"
@@ -684,6 +685,9 @@ public:
 private:
 
   std::map< std::string, std::vector< theory::Theory* > > d_attr_handle;
+
+    int d_numPartition;
+    std::list<Node> d_asertedPartitions;
 
  public:
   /** Set user attribute.
