@@ -21,6 +21,14 @@ header = "options/smt_options.h"
   help       = "all dumping goes to FILE (instead of stdout)"
 
 [[option]]
+  name       = "computePartition"
+  category   = "expert"
+  long       = "compute-partition=N"
+  type       = "int"
+  default    = "0"
+  help       = "make n paritions"
+
+[[option]]
   name       = "ackermann"
   category   = "regular"
   long       = "ackermann"

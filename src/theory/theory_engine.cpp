@@ -446,6 +446,10 @@ void TheoryEngine::check(Theory::Effort effort) {
       d_tc->resetRound();
       // make conflict clauses. 
       // const LogicInfo& logicInfo = d_qstate.getLogicInfo();
+
+      // if (options::computePartion() > 0){
+        // std::cout << "caught the option " << options::computePartition() << std::endl;
+      // }
       Valuation val(this);
       std::vector<TNode> lst;
       for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
