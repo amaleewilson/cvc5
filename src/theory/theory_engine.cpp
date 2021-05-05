@@ -461,15 +461,31 @@ void TheoryEngine::check(Theory::Effort effort) {
              ++it)
         {
           TNode a = (*it).d_assertion;
-          if (!expr::hasSubtermKind(kind::SKOLEM, a) &&
-              !expr::hasSubtermKind(kind::BOOLEAN_TERM_VARIABLE, a) &&
-              val.isSatLiteral(a)) {
+          if (val.isSatLiteral(a)) {
               if (val.isDecision(a)) {
-                  std::cout << a << std::endl;
-                lst.push_back(a);
+                // Revisit this bool_term_var thing. 
+                if (expr::hasSubtermKind(kind::BOOLEAN_TERM_VARIABLE, a)){
+                  std::cout << "bool term " << a << std::endl;
+                }
+                if (expr::hasSubtermKind(kind::SKOLEM, a)) {
+                  // convert to original form
+                  //push orignal form to lst.
+                  Node og = SkolemManager::getOriginalForm(a);
+                  std::cout << "skolem" << a << std::endl;
+                  lst.push_back(og);
+                }
+                else {
+                  // just push original form to list. 
+                  std::cout << "other " << a << std::endl;
+                  lst.push_back(a);
+                }
           }
           }
         }
+      }
+
+      for (auto thing : lst) {
+        std::cout << "thing in list " << thing << std::endl;
       }
 
       if (!lst.empty())
