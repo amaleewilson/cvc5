@@ -457,132 +457,15 @@ void TheoryEngine::check(Theory::Effort effort) {
       if (options::computePartition() > 0){
 
         std::cout << "caught the option " << options::computePartition() << std::endl;
-      }
-      int numPartitions = options::computePartition();
-      Assert(numPartitions > 1);
-
-      /*
-     x1 = 1
-     x2 > 2
-     lemma a: !(x1 = 1 /\ x2 > 2)
-
-     x1 = 2
-     x2 < 2
-     lemma b: !(x1 = 2 /\ x2 < 2)
-
-     !(a /\ b)
-
-     a \/ b \/ (-a \/ -b)
-      */
-
-      if ( d_numPartition == numPartitions - 1 )
-      {
-          // Dump and assert the negation of the previous cubes
-          Node c = *d_asertedPartitions.begin();
-          if (d_asertedPartitions.size() > 1)
-          {
-              NodeBuilder nb(kind::AND);
-              // make a trustnode of everything in lst and call conflict.
-              for (const auto d : d_asertedPartitions) {
-                  nb << d;
-              }
-                  c = nb.constructNode();
-              }
-          NodeBuilder nb2(kind::NOT);
-          nb2 << c;
-          Node l = nb2.constructNode();
-
-          TrustNode tl = TrustNode::mkTrustLemma(l);
-          //std::cout << lst.size() << std::endl;
-          std::cout << "last partition:" << tl << std::endl;
-          // Node c = (Node)nb;
-          //conflict(tc, THEORY_BUILTIN);
+        // TrustNode tn = d_splitter->makePartitions();
+        // lemma(tgn)
+        TrustNode tl = d_splitter->makePartitions();
+        if (!tl.isNull()){
           lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
-          return;
-      }
-      else {
 
-      Valuation val(this);
-      std::vector<TNode> lst;
-      for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
-      {
-        // if (!logicInfo.isTheoryEnabled(theoryId))
-        // {
-          // continue;
-        // }
-        for (context::CDList<Assertion>::const_iterator
-                 it = val.factsBegin(theoryId),
-                 it_end = val.factsEnd(theoryId);
-             it != it_end;
-             ++it)
-        {
-          TNode a = (*it).d_assertion;
-          if (val.isSatLiteral(a)) {
-              if (val.isDecision(a)) {
-                // Revisit this bool_term_var thing. 
-                if (expr::hasSubtermKind(kind::BOOLEAN_TERM_VARIABLE, a)){
-                  std::cout << "bool term " << a << std::endl;
-                }
-                if (expr::hasSubtermKind(kind::SKOLEM, a)) {
-                  // convert to original form
-                  //push orignal form to lst.
-                  Node og = SkolemManager::getOriginalForm(a);
-                  std::cout << "skolem" << a << std::endl;
-                  lst.push_back(og);
-                }
-                else {
-                  // just push original form to list. 
-                  std::cout << "other " << a << std::endl;
-                  lst.push_back(a);
-                }
-          }
-          }
         }
+
       }
-
-      for (auto thing : lst) {
-        std::cout << "thing in list " << thing << std::endl;
-      }
-
-      if (!lst.empty())
-      {
-      Node c = *lst.begin();
-      if (lst.size() > 1)
-      {
-
-          NodeBuilder nb(kind::AND);
-          // make a trustnode of everything in lst and call conflict.
-          for (auto d : lst) {
-              nb << d;
-          }
-          c = nb.constructNode();
-      }
-      NodeBuilder nb2(kind::NOT);
-      nb2 << c;
-      Node l = nb2.constructNode();
-
-      ++d_numPartition;
-      d_asertedPartitions.push_back(l);
-
-      /*
-      NodeManager * nm = NodeManager::currentNM();
-      Node c = nm->mkNot(*lst.begin());
-    if (lst.size() > 1)
-    {
-        c = nm->mkAnd(lst);
-        c = nm->mkNot(c);
-    }
-      */
-
-    TrustNode tl = TrustNode::mkTrustLemma(l);
-    //std::cout << lst.size() << std::endl;
-    std::cout << tl << std::endl;
-    // Node c = (Node)nb;
-    //conflict(tc, THEORY_BUILTIN);
-    lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
-    return;
-    }
-    }
     }
     // Check until done
     while (d_factsAsserted && !d_inConflict && !d_lemmasAdded) {

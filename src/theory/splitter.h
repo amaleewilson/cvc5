@@ -24,6 +24,30 @@
 
 #include "expr/node.h"
 
+
+//TODO: remove unneccessary incluedes
+
+#include "base/check.h"
+#include "context/cdhashmap.h"
+#include "expr/node.h"
+#include "options/theory_options.h"
+#include "theory/atom_requests.h"
+#include "theory/engine_output_channel.h"
+#include "theory/interrupted.h"
+#include "theory/rewriter.h"
+#include "theory/sort_inference.h"
+#include "theory/splitter.h"
+#include "theory/theory.h"
+#include "theory/theory_preprocessor.h"
+#include "theory/trust_node.h"
+#include "theory/trust_substitutions.h"
+#include "theory/uf/equality_engine.h"
+#include "theory/valuation.h"
+#include "util/hash.h"
+#include "util/statistics_stats.h"
+#include "util/unsafe_interrupt_exception.h"
+
+
 namespace cvc5 {
 
 class TheoryEngine;
@@ -38,6 +62,7 @@ class Splitter
     {
         d_valuation = std::make_unique<Valuation>(theoryEngine);
     }
+    TrustNode makePartitions();
 
 
  private:
