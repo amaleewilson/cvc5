@@ -265,6 +265,11 @@ TheoryEngine::TheoryEngine(context::Context* context,
 
   d_true = NodeManager::currentNM()->mkConst<bool>(true);
   d_false = NodeManager::currentNM()->mkConst<bool>(false);
+
+  if (options::computePartition() > 1)
+  {
+      d_splitter = make_unique<Splitter>(this);
+  }
 }
 
 TheoryEngine::~TheoryEngine() {
@@ -450,6 +455,7 @@ void TheoryEngine::check(Theory::Effort effort) {
       // const LogicInfo& logicInfo = d_qstate.getLogicInfo();
 
       if (options::computePartition() > 0){
+
         std::cout << "caught the option " << options::computePartition() << std::endl;
       }
       int numPartitions = options::computePartition();

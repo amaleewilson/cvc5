@@ -20,7 +20,6 @@
 
 #include <memory>
 #include <vector>
-#include <list>
 
 #include "base/check.h"
 #include "context/cdhashmap.h"
@@ -31,6 +30,7 @@
 #include "theory/interrupted.h"
 #include "theory/rewriter.h"
 #include "theory/sort_inference.h"
+#include "theory/splitter.h"
 #include "theory/theory.h"
 #include "theory/theory_preprocessor.h"
 #include "theory/trust_node.h"
@@ -686,6 +686,8 @@ private:
 
   std::map< std::string, std::vector< theory::Theory* > > d_attr_handle;
 
+
+    std::unique_ptr<cvc5::theory::Splitter> d_splitter;
     int d_numPartition;
     std::list<Node> d_asertedPartitions;
 
