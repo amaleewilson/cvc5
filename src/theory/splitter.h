@@ -13,10 +13,9 @@
  * The trust node utility.
  */
 
-#include "cvc5_private.h"
-
 #include <list>
 
+#include "cvc5_private.h"
 #include "theory/valuation.h"
 
 #ifndef CVC5__THEORY__SPLITTER_H
@@ -24,8 +23,7 @@
 
 #include "expr/node.h"
 
-
-//TODO: remove unneccessary incluedes
+// TODO: remove unneccessary incluedes
 
 #include "base/check.h"
 #include "context/cdhashmap.h"
@@ -47,7 +45,6 @@
 #include "util/statistics_stats.h"
 #include "util/unsafe_interrupt_exception.h"
 
-
 namespace cvc5 {
 
 class TheoryEngine;
@@ -57,18 +54,16 @@ namespace theory {
 class Splitter
 {
  public:
-    Splitter(TheoryEngine* theoryEngine)
-        : d_numPartition(0)
-    {
-        d_valuation = std::make_unique<Valuation>(theoryEngine);
-    }
-    TrustNode makePartitions();
-
+  Splitter(TheoryEngine* theoryEngine) : d_numPartition(0)
+  {
+    d_valuation = std::make_unique<Valuation>(theoryEngine);
+  }
+  TrustNode makePartitions();
 
  private:
-    std::unique_ptr<Valuation> d_valuation;
-    int d_numPartition;
-    std::list<Node> d_asertedPartitions;
+  std::unique_ptr<Valuation> d_valuation;
+  int d_numPartition;
+  std::list<Node> d_asertedPartitions;
 };
 }  // namespace theory
 }  // namespace cvc5

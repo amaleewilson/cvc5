@@ -1,6 +1,6 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Amalee Wilson, Andrew Wu
+    Amalee Wilson, Andrew Wu
  *
  * This file is part of the cvc5 project.
  *
@@ -13,16 +13,15 @@
  * The trust node utility.
  */
 
-#include "options/smt_options.h"
 #include "theory/splitter.h"
-#include "theory/theory_engine.h"
-#include "expr/node_algorithm.h"
+
 #include <sstream>
 
 #include "base/map_util.h"
 #include "decision/decision_engine.h"
 #include "expr/attribute.h"
 #include "expr/lazy_proof.h"
+#include "expr/node_algorithm.h"
 #include "expr/node_builder.h"
 #include "expr/node_visitor.h"
 #include "expr/proof_checker.h"
@@ -43,6 +42,7 @@
 #include "theory/rewriter.h"
 #include "theory/shared_solver.h"
 #include "theory/theory.h"
+#include "theory/theory_engine.h"
 #include "theory/theory_engine_proof_generator.h"
 #include "theory/theory_id.h"
 #include "theory/theory_model.h"
@@ -54,110 +54,119 @@ namespace cvc5 {
 
 namespace theory {
 
+TrustNode Splitter::makePartitions()
+{
+  int numPartitions = options::computePartition();
+  Assert(numPartitions > 1);
 
-TrustNode Splitter::makePartitions() {
-      int numPartitions = options::computePartition();
-      Assert(numPartitions > 1);
+  /*
+ x1 = 1
+ x2 > 2
+ lemma a: !(x1 = 1 /\ x2 > 2)
 
-      /*
-     x1 = 1
-     x2 > 2
-     lemma a: !(x1 = 1 /\ x2 > 2)
+ x1 = 2
+ x2 < 2
+ lemma b: !(x1 = 2 /\ x2 < 2)
 
-     x1 = 2
-     x2 < 2
-     lemma b: !(x1 = 2 /\ x2 < 2)
+ !(a /\ b)
 
-     !(a /\ b)
+ a \/ b \/ (-a \/ -b)
+  */
 
-     a \/ b \/ (-a \/ -b)
-      */
-
-      if ( d_numPartition == numPartitions - 1 )
+  if (d_numPartition == numPartitions - 1)
+  {
+    // Dump and assert the negation of the previous cubes
+    Node c = *d_asertedPartitions.begin();
+    if (d_asertedPartitions.size() > 1)
+    {
+      NodeBuilder nb(kind::AND);
+      // make a trustnode of everything in lst and call conflict.
+      for (const auto d : d_asertedPartitions)
       {
-          // Dump and assert the negation of the previous cubes
-          Node c = *d_asertedPartitions.begin();
-          if (d_asertedPartitions.size() > 1)
-          {
-              NodeBuilder nb(kind::AND);
-              // make a trustnode of everything in lst and call conflict.
-              for (const auto d : d_asertedPartitions) {
-                  nb << d;
-              }
-                  c = nb.constructNode();
-              }
-          NodeBuilder nb2(kind::NOT);
-          nb2 << c;
-          Node l = nb2.constructNode();
-
-          TrustNode tl = TrustNode::mkTrustLemma(l);
-          //std::cout << lst.size() << std::endl;
-          std::cout << "last partition:" << tl << std::endl;
-          // Node c = (Node)nb;
-          //conflict(tc, THEORY_BUILTIN);
-          return tl;
-          // lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
-          // return;
+        nb << d;
       }
-      else {
+      c = nb.constructNode();
+    }
+    NodeBuilder nb2(kind::NOT);
+    nb2 << c;
+    Node l = nb2.constructNode();
+    std::cout << l << std::endl;
 
-      std::vector<TNode> lst;
-      for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
+    // Last partition
+    TrustNode tl = TrustNode::mkTrustLemma(l);
+    // std::cout << tl << std::endl;
+
+    return tl;
+  }
+  else
+  {
+    std::vector<TNode> lst;
+    for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
+    {
+      // if (!logicInfo.isTheoryEnabled(theoryId))
+      // {
+      // continue;
+      // }
+      for (context::CDList<Assertion>::const_iterator
+               it = d_valuation->factsBegin(theoryId),
+               it_end = d_valuation->factsEnd(theoryId);
+           it != it_end;
+           ++it)
       {
-        // if (!logicInfo.isTheoryEnabled(theoryId))
-        // {
-          // continue;
-        // }
-        for (context::CDList<Assertion>::const_iterator
-                 it = d_valuation->factsBegin(theoryId),
-                 it_end = d_valuation->factsEnd(theoryId);
-             it != it_end;
-             ++it)
+        TNode a = (*it).d_assertion;
+        if (d_valuation->isSatLiteral(a))
         {
-          TNode a = (*it).d_assertion;
-          if (d_valuation->isSatLiteral(a)) {
-              if (d_valuation->isDecision(a)) {
-                // Revisit this bool_term_var thing. 
-                if (expr::hasSubtermKind(kind::BOOLEAN_TERM_VARIABLE, a)){
-                  std::cout << "bool term " << a << std::endl;
-                }
-                if (expr::hasSubtermKind(kind::SKOLEM, a)) {
-                  // convert to original form
-                  //push orignal form to lst.
-                  Node og = SkolemManager::getOriginalForm(a);
-                  std::cout << "skolem" << a << std::endl;
-                  lst.push_back(og);
-                }
-                else {
-                  // just push original form to list. 
-                  std::cout << "other " << a << std::endl;
-                  lst.push_back(a);
-                }
-          }
+          if (d_valuation->isDecision(a))
+          {
+            // Revisit this bool_term_var thing.
+            if (expr::hasSubtermKind(kind::BOOLEAN_TERM_VARIABLE, a))
+            {
+              // useful debug
+              // std::cout << "bool term " << a << std::endl;
+            }
+            if (expr::hasSubtermKind(kind::SKOLEM, a))
+            {
+              // convert to original form
+              // push orignal form to lst.
+              Node og = SkolemManager::getOriginalForm(a);
+              // useful debug
+              // std::cout << "skolem" << a << std::endl;
+              lst.push_back(og);
+            }
+            else
+            {
+              // just push original form to list.
+              // useful debug
+              // std::cout << "other " << a << std::endl;
+              lst.push_back(a);
+            }
           }
         }
       }
+    }
 
-      for (auto thing : lst) {
-        std::cout << "thing in list " << thing << std::endl;
-      }
+    // useful debug
+    // for (auto thing : lst) {
+    //   std::cout << "thing in list " << thing << std::endl;
+    // }
 
-      if (!lst.empty())
-      {
+    if (!lst.empty())
+    {
       Node c = *lst.begin();
       if (lst.size() > 1)
       {
-
-          NodeBuilder nb(kind::AND);
-          // make a trustnode of everything in lst and call conflict.
-          for (auto d : lst) {
-              nb << d;
-          }
-          c = nb.constructNode();
+        NodeBuilder nb(kind::AND);
+        // make a trustnode of everything in lst and call conflict.
+        for (auto d : lst)
+        {
+          nb << d;
+        }
+        c = nb.constructNode();
       }
       NodeBuilder nb2(kind::NOT);
       nb2 << c;
       Node l = nb2.constructNode();
+      std::cout << l << std::endl;
 
       ++d_numPartition;
       d_asertedPartitions.push_back(l);
@@ -172,19 +181,18 @@ TrustNode Splitter::makePartitions() {
     }
       */
 
-    TrustNode tl = TrustNode::mkTrustLemma(l);
-    //std::cout << lst.size() << std::endl;
-    std::cout << tl << std::endl;
-    // Node c = (Node)nb;
-    //conflict(tc, THEORY_BUILTIN);
-    // lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
-    return tl;
-      }
-      }
+      TrustNode tl = TrustNode::mkTrustLemma(l);
+      // std::cout << lst.size() << std::endl;
+      // std::cout << tl << std::endl;
+      // Node c = (Node)nb;
+      // conflict(tc, THEORY_BUILTIN);
+      // lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
+      return tl;
+    }
+  }
 
   return TrustNode::null();
 }
 
 }  // namespace theory
 }  // namespace cvc5
-

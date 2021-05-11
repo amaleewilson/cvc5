@@ -456,7 +456,7 @@ void TheoryEngine::check(Theory::Effort effort) {
 
       if (options::computePartition() > 0){
 
-        std::cout << "caught the option " << options::computePartition() << std::endl;
+        // std::cout << "caught the option " << options::computePartition() << std::endl;
         // TrustNode tn = d_splitter->makePartitions();
         // lemma(tgn)
         TrustNode tl = d_splitter->makePartitions();
