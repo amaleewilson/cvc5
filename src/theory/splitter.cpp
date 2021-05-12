@@ -16,6 +16,7 @@
 #include "theory/splitter.h"
 
 #include <sstream>
+#include <fstream>
 
 #include "base/map_util.h"
 #include "decision/decision_engine.h"
@@ -73,6 +74,9 @@ TrustNode Splitter::makePartitions()
  a \/ b \/ (-a \/ -b)
   */
 
+  ofstream output;
+  output.open ("cubes");
+
   if (d_numPartition == numPartitions - 1)
   {
     // Dump and assert the negation of the previous cubes
@@ -90,12 +94,14 @@ TrustNode Splitter::makePartitions()
     NodeBuilder nb2(kind::NOT);
     nb2 << c;
     Node l = nb2.constructNode();
-    std::cout << l << std::endl;
+    // std::cout << l << std::endl;
 
     // Last partition
     TrustNode tl = TrustNode::mkTrustLemma(l);
     // std::cout << tl << std::endl;
 
+    output << l;
+    output.close();
     return tl;
   }
   else
@@ -187,6 +193,8 @@ TrustNode Splitter::makePartitions()
       // Node c = (Node)nb;
       // conflict(tc, THEORY_BUILTIN);
       // lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
+      output << l;
+      output.close();
       return tl;
     }
   }
