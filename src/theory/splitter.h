@@ -28,6 +28,7 @@
 #include "base/check.h"
 #include "context/cdhashmap.h"
 #include "expr/node.h"
+#include "options/smt_options.h"
 #include "options/theory_options.h"
 #include "theory/atom_requests.h"
 #include "theory/engine_output_channel.h"
@@ -54,7 +55,9 @@ namespace theory {
 class Splitter
 {
  public:
-  Splitter(TheoryEngine* theoryEngine) : d_numPartition(0)
+  Splitter(TheoryEngine* theoryEngine)
+      : d_numPartition(0)
+      , d_partitionFile(options::writePartitionToFileName())
   {
     d_valuation = std::make_unique<Valuation>(theoryEngine);
   }
@@ -63,6 +66,7 @@ class Splitter
  private:
   std::unique_ptr<Valuation> d_valuation;
   int d_numPartition;
+  std::string d_partitionFile;
   std::list<Node> d_asertedPartitions;
 };
 }  // namespace theory

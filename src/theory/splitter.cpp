@@ -28,7 +28,6 @@
 #include "expr/proof_checker.h"
 #include "expr/proof_ensure_closed.h"
 #include "options/quantifiers_options.h"
-#include "options/smt_options.h"
 #include "options/theory_options.h"
 #include "printer/printer.h"
 #include "prop/prop_engine.h"
@@ -74,8 +73,8 @@ TrustNode Splitter::makePartitions()
  a \/ b \/ (-a \/ -b)
   */
 
-  ofstream output;
-  output.open ("cubes");
+  std::ofstream output;
+  output.open (d_partitionFile, std::ofstream::app);
 
   if (d_numPartition == numPartitions - 1)
   {
@@ -100,7 +99,7 @@ TrustNode Splitter::makePartitions()
     TrustNode tl = TrustNode::mkTrustLemma(l);
     // std::cout << tl << std::endl;
 
-    output << l;
+    output << l << "\n";
     output.close();
     return tl;
   }
@@ -172,7 +171,7 @@ TrustNode Splitter::makePartitions()
       NodeBuilder nb2(kind::NOT);
       nb2 << c;
       Node l = nb2.constructNode();
-      std::cout << l << std::endl;
+      //std::cout << l << std::endl;
 
       ++d_numPartition;
       d_asertedPartitions.push_back(l);
@@ -193,7 +192,7 @@ TrustNode Splitter::makePartitions()
       // Node c = (Node)nb;
       // conflict(tc, THEORY_BUILTIN);
       // lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
-      output << l;
+      output << l << "\n";
       output.close();
       return tl;
     }

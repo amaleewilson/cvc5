@@ -29,6 +29,14 @@ header = "options/smt_options.h"
   help       = "make n paritions"
 
 [[option]]
+  name       = "writePartitionToFileName"
+  category   = "expert"
+  long       = "write-partition-to=N"
+  type       = "std::string"
+  read_only  = true
+  help       = "The file to write partition to"
+
+[[option]]
   name       = "ackermann"
   category   = "regular"
   long       = "ackermann"
