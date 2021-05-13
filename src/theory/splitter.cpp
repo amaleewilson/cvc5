@@ -27,23 +27,19 @@ namespace theory {
 
 TrustNode Splitter::makePartitions()
 {
-  std::ofstream output;
-  output.open (d_partitionFile, std::ofstream::app);
-
   if (d_numPartitionsSoFar == d_numPartitions - 1){
     // Last partition
     // Dump and assert the negation of the previous cubes
     NodeBuilder andBuilder(kind::AND);
     // make a trustnode of everything in lst and call conflict.
     for (const auto d : d_asertedPartitions)
-        andBuilder << d;
+      andBuilder << d;
     Node conj = andBuilder.constructNode();
     NodeBuilder notBuilder(kind::NOT);
     notBuilder << conj;
     Node lemma = notBuilder.constructNode();
 
-    output << lemma << "\n";
-    output.close();
+    *d_output << lemma << "\n";
     return TrustNode::mkTrustLemma(lemma);
   }
   else{
@@ -98,8 +94,7 @@ TrustNode Splitter::makePartitions()
       NodeBuilder notBuilder(kind::NOT);
       notBuilder << conj;
       Node lemma = notBuilder.constructNode();
-      output << lemma << "\n";
-      output.close();
+      *d_output << lemma << "\n";
 
       ++d_numPartitionsSoFar;
       d_asertedPartitions.push_back(lemma);

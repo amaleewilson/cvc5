@@ -43,10 +43,19 @@ class Splitter
   {
     Assert(numPartitions > 1);
     d_valuation = std::make_unique<Valuation>(theoryEngine);
-    std::ofstream output;
-    output.open (d_partitionFile);
-    output.close();
+    d_output = &std::cout;
+    if (d_partitionFile != ""){
+      d_partitionFileStream.open(d_partitionFile);
+      d_output = &d_partitionFileStream;
+    }
   }
+
+  ~Splitter()
+  {
+    if (d_partitionFile != "")
+      d_partitionFileStream.close();
+  }
+
   TrustNode makePartitions();
 
  private:
@@ -54,6 +63,8 @@ class Splitter
   const unsigned d_numPartitions;
   unsigned d_numPartitionsSoFar;
   std::string d_partitionFile;
+  std::ofstream d_partitionFileStream;
+  std::ostream *d_output;
   std::list<Node> d_asertedPartitions;
 };
 }  // namespace theory
