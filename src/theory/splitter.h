@@ -37,9 +37,9 @@ class Splitter
 {
  public:
   Splitter(TheoryEngine* theoryEngine)
-      : d_numPartitions(options::computePartitions())
-      , d_numPartitionsSoFar(0)
-      , d_partitionFile(options::writePartitionsToFileName())
+      : d_numPartitions(options::computePartitions()),
+      d_numPartitionsSoFar(0),
+      d_partitionFile(options::writePartitionsToFileName())
   {
     Assert(numPartitions > 1);
     d_valuation = std::make_unique<Valuation>(theoryEngine);

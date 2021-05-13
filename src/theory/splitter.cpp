@@ -25,6 +25,10 @@ namespace cvc5 {
 
 namespace theory {
 
+
+// TODO: if we get too many, just write the previous level
+// if too fine grained, output the most fine grained still 
+// in your threshold. 
 TrustNode Splitter::makePartitions()
 {
     if (d_partitionFile != ""){
@@ -32,6 +36,7 @@ TrustNode Splitter::makePartitions()
       d_output = &d_partitionFileStream;
     }
 
+  // You really just want to stop here. 
   if (d_numPartitionsSoFar == d_numPartitions - 1){
     // Last partition
     // Dump and assert the negation of the previous cubes
@@ -45,10 +50,12 @@ TrustNode Splitter::makePartitions()
     Node lemma = notBuilder.constructNode();
 
     *d_output << lemma << "\n";
+    // append to list after creating. 
     if (d_partitionFile != ""){
         d_partitionFileStream.close();
     }
 
+    // return a mktrust of false. 
     return TrustNode::mkTrustLemma(lemma);
   }
   else{
@@ -66,34 +73,34 @@ TrustNode Splitter::makePartitions()
         TNode a = (*it).d_assertion;
         if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
         {
+          // have a mapping of nodes to whether they qualify for the list. 
           // TODO: Revisit this bool_term_var thing.
+          Node og = SkolemManager::getOriginalForm(a);
           std::unordered_set<Kind, kind::KindHashFunction> kinds =
               {kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
-          if (expr::hasSubtermKinds(kinds, a))
-          {
             // convert to original form
-            Node og = SkolemManager::getOriginalForm(a);
-            if ( expr::hasSubtermKinds(kinds, og) )
-              continue;
-            // useful debug
-            // std::cout << "skolem" << a << std::endl;
-            literals.push_back(og);
-          }
-          else{
-            // just push original form to list.
-            // useful debug
-            // std::cout << "other " << a << std::endl;
-            literals.push_back(a);
-          }
+          if ( expr::hasSubtermKinds(kinds, og) )
+            continue;
+          // useful debug
+          // std::cout << "skolem" << a << std::endl;
+          literals.push_back(og);
         }
       }
     }
 
-    // useful debug
-    // for (auto thing : lst) {
-    //   std::cout << "thing in list " << thing << std::endl;
-    // }
+    /*
+    If we don't emit any conflict, then the result is valid. 
+    completely naive way: this entire feature is finding one literal
+    Split on it and recurse at the higher level.  
 
+    Does gg know which partitions are free?
+    For any given problem, try solving it directly and also produce splits to try 
+    on other machines.
+
+    Can this be made adaptive? 
+
+    Need to be able to make just one partition. 
+    */
     if (!literals.empty()){
       // make a trustnode of everything in lst and call conflict.
       NodeBuilder andBuilder(kind::AND);
@@ -112,11 +119,6 @@ TrustNode Splitter::makePartitions()
       d_asertedPartitions.push_back(lemma);
 
       TrustNode trustedLemma = TrustNode::mkTrustLemma(lemma);
-      // std::cout << lst.size() << std::endl;
-      // std::cout << tl << std::endl;
-      // Node c = (Node)nb;
-      // conflict(tc, THEORY_BUILTIN);
-      // lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
       return trustedLemma;
     }
   }

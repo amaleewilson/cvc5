@@ -266,6 +266,7 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_true = NodeManager::currentNM()->mkConst<bool>(true);
   d_false = NodeManager::currentNM()->mkConst<bool>(false);
 
+  // TODO: pass valuation, not ptr to theoryengine
   if (options::computePartitions() > 1)
   {
       d_splitter = make_unique<Splitter>(this);
@@ -454,6 +455,7 @@ void TheoryEngine::check(Theory::Effort effort) {
       // make conflict clauses. 
       // const LogicInfo& logicInfo = d_qstate.getLogicInfo();
 
+      // Whenever you emit a lemma, emit at least one partition. 
       if (options::computePartitions() > 1){
         TrustNode tl = d_splitter->makePartitions();
         if (!tl.isNull()){
