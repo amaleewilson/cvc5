@@ -47,13 +47,8 @@ class Splitter
     if (d_partitionFile != ""){
       d_partitionFileStream.open(d_partitionFile);
       d_output = &d_partitionFileStream;
-    }
-  }
-
-  ~Splitter()
-  {
-    if (d_partitionFile != "")
       d_partitionFileStream.close();
+    }
   }
 
   TrustNode makePartitions();
