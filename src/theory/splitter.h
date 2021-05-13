@@ -13,38 +13,19 @@
  * The trust node utility.
  */
 
-#include <list>
 
 #include "cvc5_private.h"
-#include "theory/valuation.h"
 
 #ifndef CVC5__THEORY__SPLITTER_H
 #define CVC5__THEORY__SPLITTER_H
 
-#include "expr/node.h"
+#include <fstream>
+#include <list>
+#include <sstream>
 
-// TODO: remove unneccessary incluedes
-
-#include "base/check.h"
-#include "context/cdhashmap.h"
-#include "expr/node.h"
 #include "options/smt_options.h"
-#include "options/theory_options.h"
-#include "theory/atom_requests.h"
-#include "theory/engine_output_channel.h"
-#include "theory/interrupted.h"
-#include "theory/rewriter.h"
-#include "theory/sort_inference.h"
-#include "theory/splitter.h"
-#include "theory/theory.h"
-#include "theory/theory_preprocessor.h"
 #include "theory/trust_node.h"
-#include "theory/trust_substitutions.h"
-#include "theory/uf/equality_engine.h"
 #include "theory/valuation.h"
-#include "util/hash.h"
-#include "util/statistics_stats.h"
-#include "util/unsafe_interrupt_exception.h"
 
 namespace cvc5 {
 
@@ -56,16 +37,22 @@ class Splitter
 {
  public:
   Splitter(TheoryEngine* theoryEngine)
-      : d_numPartition(0)
+      : d_numPartitions(options::computePartition())
+      , d_numPartitionsSoFar(0)
       , d_partitionFile(options::writePartitionToFileName())
   {
+    Assert(numPartitions > 1);
     d_valuation = std::make_unique<Valuation>(theoryEngine);
+    std::ofstream output;
+    output.open (d_partitionFile);
+    output.close();
   }
   TrustNode makePartitions();
 
  private:
   std::unique_ptr<Valuation> d_valuation;
-  int d_numPartition;
+  const unsigned d_numPartitions;
+  unsigned d_numPartitionsSoFar;
   std::string d_partitionFile;
   std::list<Node> d_asertedPartitions;
 };
