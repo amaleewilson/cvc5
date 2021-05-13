@@ -30,8 +30,7 @@ TrustNode Splitter::makePartitions()
   std::ofstream output;
   output.open (d_partitionFile, std::ofstream::app);
 
-  if (d_numPartitionsSoFar == d_numPartitions - 1)
-  {
+  if (d_numPartitionsSoFar == d_numPartitions - 1){
     // Last partition
     // Dump and assert the negation of the previous cubes
     NodeBuilder andBuilder(kind::AND);
@@ -47,11 +46,9 @@ TrustNode Splitter::makePartitions()
     output.close();
     return TrustNode::mkTrustLemma(lemma);
   }
-  else
-  {
+  else{
     std::vector<TNode> literals;
-    for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
-    {
+    for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId){
       // if (!logicInfo.isTheoryEnabled(theoryId))
       // {
       // continue;
@@ -60,8 +57,7 @@ TrustNode Splitter::makePartitions()
                it = d_valuation->factsBegin(theoryId),
                it_end = d_valuation->factsEnd(theoryId);
            it != it_end;
-           ++it)
-      {
+           ++it){
         TNode a = (*it).d_assertion;
         if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
         {
@@ -78,8 +74,7 @@ TrustNode Splitter::makePartitions()
             // std::cout << "skolem" << a << std::endl;
             literals.push_back(og);
           }
-          else
-          {
+          else{
             // just push original form to list.
             // useful debug
             // std::cout << "other " << a << std::endl;
@@ -94,8 +89,7 @@ TrustNode Splitter::makePartitions()
     //   std::cout << "thing in list " << thing << std::endl;
     // }
 
-    if (!literals.empty())
-    {
+    if (!literals.empty()){
       // make a trustnode of everything in lst and call conflict.
       NodeBuilder andBuilder(kind::AND);
       for (auto d : literals)

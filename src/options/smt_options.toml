@@ -21,17 +21,17 @@ header = "options/smt_options.h"
   help       = "all dumping goes to FILE (instead of stdout)"
 
 [[option]]
-  name       = "computePartition"
+  name       = "computePartitions"
   category   = "expert"
-  long       = "compute-partition=N"
+  long       = "compute-partitions=N"
   type       = "int"
   default    = "0"
   help       = "make n paritions"
 
 [[option]]
-  name       = "writePartitionToFileName"
+  name       = "writePartitionsToFileName"
   category   = "expert"
-  long       = "write-partition-to=N"
+  long       = "write-partitions-to=N"
   type       = "std::string"
   read_only  = true
   help       = "The file to write partition to"

@@ -266,7 +266,7 @@ TheoryEngine::TheoryEngine(context::Context* context,
   d_true = NodeManager::currentNM()->mkConst<bool>(true);
   d_false = NodeManager::currentNM()->mkConst<bool>(false);
 
-  if (options::computePartition() > 1)
+  if (options::computePartitions() > 1)
   {
       d_splitter = make_unique<Splitter>(this);
   }
@@ -454,17 +454,11 @@ void TheoryEngine::check(Theory::Effort effort) {
       // make conflict clauses. 
       // const LogicInfo& logicInfo = d_qstate.getLogicInfo();
 
-      if (options::computePartition() > 0){
-
-        // std::cout << "caught the option " << options::computePartition() << std::endl;
-        // TrustNode tn = d_splitter->makePartitions();
-        // lemma(tgn)
+      if (options::computePartitions() > 1){
         TrustNode tl = d_splitter->makePartitions();
         if (!tl.isNull()){
           lemma(tl, LemmaProperty::NONE, THEORY_LAST, THEORY_BUILTIN );
-
         }
-
       }
     }
     // Check until done
