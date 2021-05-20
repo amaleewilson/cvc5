@@ -13,7 +13,6 @@
  * The trust node utility.
  */
 
-
 #include "cvc5_private.h"
 
 #ifndef CVC5__THEORY__SPLITTER_H
@@ -38,13 +37,14 @@ class Splitter
  public:
   Splitter(TheoryEngine* theoryEngine)
       : d_numPartitions(options::computePartitions()),
-      d_numPartitionsSoFar(0),
-      d_partitionFile(options::writePartitionsToFileName())
+        d_numPartitionsSoFar(0),
+        d_partitionFile(options::writePartitionsToFileName())
   {
-    Assert(numPartitions > 1);
+    // Assert(numPartitions > 1);
     d_valuation = std::make_unique<Valuation>(theoryEngine);
     d_output = &std::cout;
-    if (d_partitionFile != ""){
+    if (d_partitionFile != "")
+    {
       d_partitionFileStream.open(d_partitionFile);
       d_output = &d_partitionFileStream;
       d_partitionFileStream.close();
@@ -59,7 +59,7 @@ class Splitter
   unsigned d_numPartitionsSoFar;
   std::string d_partitionFile;
   std::ofstream d_partitionFileStream;
-  std::ostream *d_output;
+  std::ostream* d_output;
   std::list<Node> d_asertedPartitions;
 };
 }  // namespace theory
