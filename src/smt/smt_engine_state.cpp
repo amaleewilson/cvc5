@@ -94,8 +94,9 @@ void SmtEngineState::notifyCheckSatResult(bool hasAssumptions, Result r)
   // Remember the status
   d_status = r;
   // Check against expected status
-  if (!d_expectedStatus.isUnknown() && !d_status.isUnknown()
-      && d_status != d_expectedStatus)
+  if ( options::computePartitions() == 0
+       && !d_expectedStatus.isUnknown() && !d_status.isUnknown()
+       && d_status != d_expectedStatus)
   {
     CVC5_FATAL() << "Expected result " << d_expectedStatus << " but got "
                  << d_status;

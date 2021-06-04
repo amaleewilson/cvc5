@@ -60,7 +60,7 @@ class Splitter
   std::string d_partitionFile;
   std::ofstream d_partitionFileStream;
   std::ostream* d_output;
-  std::list<Node> d_asertedPartitions;
+  std::list<Node> d_assertedLemmas;
 };
 }  // namespace theory
 }  // namespace cvc5

@@ -34,24 +34,30 @@ TrustNode Splitter::makePartitions()
 {
   if (d_partitionFile != "")
   {
-    d_partitionFileStream.open(d_partitionFile, std::ofstream::app);
+    d_partitionFileStream.open(d_partitionFile, std::ios_base::app);
     d_output = &d_partitionFileStream;
   }
 
   // You really just want to stop here.
   if (d_numPartitionsSoFar == d_numPartitions - 1)
   {
+    // added cubes: C1, C2, C3
+    // asserted lemmas: -C1 /\ -C2 /\ -C3
+
+    // now add cube: -C1 \/ -C2 \/ -C3
+    // now assert lemma: -(-C1 /\ - C2 /\ -C3)
+
     // Last partition
     // Dump and assert the negation of the previous cubes
-    NodeBuilder andBuilder(kind::AND);
-    // make a trustnode of everything in lst and call conflict.
-    for (const auto d : d_asertedPartitions) andBuilder << d;
-    Node conj = andBuilder.constructNode();
-    NodeBuilder notBuilder(kind::NOT);
-    notBuilder << conj;
-    Node lemma = notBuilder.constructNode();
 
-    *d_output << lemma << "\n";
+    NodeBuilder orBuilder(kind::OR);
+    // make a trustnode of everything in lst and call conflict.
+    for (const auto d : d_assertedLemmas) orBuilder << d;
+    Node disj = orBuilder.constructNode();
+
+    //std::cout << "Last cube" << std::endl;
+    *d_output << disj << "\n";
+    std::cout << disj << "\n";
     // append to list after creating.
     if (d_partitionFile != "")
     {
@@ -59,6 +65,14 @@ TrustNode Splitter::makePartitions()
     }
 
     // return a mktrust of false.
+    NodeBuilder andBuilder(kind::AND);
+    // make a trustnode of everything in lst and call conflict.
+    for (const auto d : d_assertedLemmas) andBuilder << d;
+    Node conj = andBuilder.constructNode();
+    NodeBuilder notBuilder(kind::NOT);
+    notBuilder << conj;
+    Node lemma = notBuilder.constructNode();
+
     return TrustNode::mkTrustLemma(lemma);
   }
   else
@@ -113,26 +127,34 @@ TrustNode Splitter::makePartitions()
       std::vector<Node> tmpLiterals(literals.begin(),
                                     literals.begin() + conflictSize);
       Node conj = NodeManager::currentNM()->mkAnd(tmpLiterals);
+      //std::cout << "Not last cube" << std::endl;
+      *d_output << conj << "\n";
+      if (d_partitionFile != "")
+      {
+          d_partitionFileStream.close();
+      }
 
+      std::cout << conj << "\n";
       // NodeBuilder andBuilder(kind::AND);
       // for (auto d : literals) andBuilder << d;
       // Node conj = andBuilder.constructNode();
       NodeBuilder notBuilder(kind::NOT);
       notBuilder << conj;
       Node lemma = notBuilder.constructNode();
-      *d_output << lemma << "\n";
-      if (d_partitionFile != "")
-      {
-        d_partitionFileStream.close();
-      }
 
       ++d_numPartitionsSoFar;
-      d_asertedPartitions.push_back(lemma);
+      d_assertedLemmas.push_back(lemma);
 
       TrustNode trustedLemma = TrustNode::mkTrustLemma(lemma);
       return trustedLemma;
     }
   }
+
+  if (d_partitionFile != "")
+  {
+      d_partitionFileStream.close();
+  }
+
   return TrustNode::null();
 }
 
