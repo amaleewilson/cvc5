@@ -55,9 +55,9 @@ TrustNode Splitter::makePartitions()
     for (const auto d : d_assertedLemmas) orBuilder << d;
     Node disj = orBuilder.constructNode();
 
-    //std::cout << "Last cube" << std::endl;
+    // std::cout << "Last cube" << std::endl;
     *d_output << disj << "\n";
-    std::cout << disj << "\n";
+    // std::cout << disj << "\n";
     // append to list after creating.
     if (d_partitionFile != "")
     {
@@ -127,14 +127,14 @@ TrustNode Splitter::makePartitions()
       std::vector<Node> tmpLiterals(literals.begin(),
                                     literals.begin() + conflictSize);
       Node conj = NodeManager::currentNM()->mkAnd(tmpLiterals);
-      //std::cout << "Not last cube" << std::endl;
+      // std::cout << "Not last cube" << std::endl;
       *d_output << conj << "\n";
       if (d_partitionFile != "")
       {
-          d_partitionFileStream.close();
+        d_partitionFileStream.close();
       }
 
-      std::cout << conj << "\n";
+      // std::cout << conj << "\n";
       // NodeBuilder andBuilder(kind::AND);
       // for (auto d : literals) andBuilder << d;
       // Node conj = andBuilder.constructNode();
@@ -152,7 +152,7 @@ TrustNode Splitter::makePartitions()
 
   if (d_partitionFile != "")
   {
-      d_partitionFileStream.close();
+    d_partitionFileStream.close();
   }
 
   return TrustNode::null();
