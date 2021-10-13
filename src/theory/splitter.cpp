@@ -1,6 +1,6 @@
 /******************************************************************************
  * Top contributors (to current version):
-    Amalee Wilson, Andrew Wu
+ *   Amalee Wilson, Andrew Wu
  *
  * This file is part of the cvc5 project.
  *
@@ -45,7 +45,7 @@ TrustNode Splitter::makePartitions()
     // asserted lemmas: -C1 /\ -C2 /\ -C3
 
     // now add cube: -C1 \/ -C2 \/ -C3
-    // now assert lemma: -(-C1 /\ - C2 /\ -C3)
+    // now assert lemma: -(-C1 /\ -C2 /\ -C3)
 
     // Last partition
     // Dump and assert the negation of the previous cubes

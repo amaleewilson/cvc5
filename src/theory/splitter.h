@@ -10,7 +10,6 @@
  * directory for licensing information.
  * ****************************************************************************
  *
- * The trust node utility.
  */
 
 #include "cvc5_private.h"
