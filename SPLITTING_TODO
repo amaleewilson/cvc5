@@ -1,0 +1,157 @@
+1. Fix this:
+    - in the case where the number of requested partitions is 2, we need to emit proper cubes. 
+
+    ./build/bin/cvc5 ../dnc-smt/tests/idl.smt2 --compute-partitions=2
+    (>= (+ x1 (* (- 1) x3)) 0)                                                                                                     
+    Fatal failure within cvc5::expr::NodeValue* cvc5::NodeBuilder::constructNV() at /home/amalee/cvc5/src/expr/node_builder.cpp:433
+    Check failure                                                                                                                  
+                                                                                                                                   
+     getNumChildren() >= kind::metakind::getMinArityForKind(getKind())                                                             
+    Nodes with kind OR must have at least 2 children (the one under construction has 1)                                            
+    Aborted     
+
+
+NEW CUBES ['(and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (>= (+ x_903 (* (- 1) x_4120)) 1)))\n', '(and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1673 (* (- 1) x_1674)) 1))))\n', '(and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1958 (* (- 1) x_3272)) 0))))\n', 'false\n']
+NEW CUBES ['false\n', 'false\n']
+NEW CUBES ['(and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1673 (* (- 1) x_1674)) 1)))) (>= (+ w_521 (* (- 1) w_522)) 0))\n', 'false\n']
+NEW CUBES ['(and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1958 (* (- 1) x_3272)) 0)))) (>= (+ w_639 (* (- 1) w_640)) 0))\n', 'false\n']
+NEW CUBES ['(and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (>= (+ x_903 (* (- 1) x_4120)) 1))) (>= (+ w_752 (* (- 1) w_753)) 0))\n', 'false\n']
+^Cgg-force: killed by signal
+
+2. 
+
+
+
+
+--stats-expert
+stats:
+timers, numbers, histograms
+
+The prefix may be better for the splitting. 
+
+
+
+
+NEW CUBES ['(and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (>= (+ x_903 (* (- 1) x_4120)) 1)))\n', 
+'(and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1673 (* (- 1) x_1674)) 1))))\n', 
+'(and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1958 (* (- 1) x_3272)) 0))))\n', 'false\n']
+UNSAT
+NEW CUBES ['(and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1958 (* (- 1) x_3272)) 0)))) (>= (+ w_639 (* (- 1) w_640)) 0))\n', 'false\n']
+NEW CUBES ['(and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1673 (* (- 1) x_1674)) 1)))) (>= (+ w_521 (* (- 1) w_522)) 0))\n', 'false\n']
+NEW CUBES ['(and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (>= (+ x_903 (* (- 1) x_4120)) 1))) (>= (+ w_752 (* (- 1) w_753)) 0))\n', 'false\n']
+NEW CUBES ['(and (and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1958 (* (- 1) x_3272)) 0)))) (>= (+ w_639 (* (- 1) w_640)) 0)) (>= (+ w_1751 (* (- 1) w_1752)) 0))\n', 'false\n']
+NEW CUBES ['(and (and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (>= (+ x_903 (* (- 1) x_4120)) 1))) (>= (+ w_752 (* (- 1) w_753)) 0)) (>= (+ w_917 (* (- 1) w_918)) 0))\n', 'false\n']
+NEW CUBES ['(and (and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1673 (* (- 1) x_1674)) 1)))) (>= (+ w_521 (* (- 1) w_522)) 0)) (>= (+ w_2099 (* (- 1) w_2100)) 0))\n', 'false\n']
+NEW CUBES ['(and (and (and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1958 (* (- 1) x_3272)) 0)))) (>= (+ w_639 (* (- 1) w_640)) 0)) (>= (+ w_1751 (* (- 1) w_1752)) 0)) (not (>= (+ w_1043 (* (- 1) z)) 1)))\n', 'false\n']
+NEW CUBES ['(and (and (and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (>= (+ x_903 (* (- 1) x_4120)) 1))) (>= (+ w_752 (* (- 1) w_753)) 0)) (>= (+ w_917 (* (- 1) w_918)) 0)) (>= (+ w_1751 (* (- 1) w_1752)) 0))\n', 'false\n']
+NEW CUBES ['(and (and (and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1673 (* (- 1) x_1674)) 1)))) (>= (+ w_521 (* (- 1) w_522)) 0)) (>= (+ w_2099 (* (- 1) w_2100)) 0)) (not (>= (+ w_877 (* (- 1) z)) 2)))\n', 'false\n']
+NEW CUBES ['(and (and (and (and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (not (>= (+ x_1958 (* (- 1) x_3272)) 0)))) (>= (+ w_639 (* (- 1) w_640)) 0)) (>= (+ w_1751 (* (- 1) w_1752)) 0)) (not (>= (+ w_1043 (* (- 1) z)) 1))) (not (>= (+ w_479 (* (- 1) z)) 1)))\n', 'false\n']
+NEW CUBES ['(and (and (and (and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (>= (+ x_903 (* (- 1) x_4120)) 1))) (>= (+ w_752 (* (- 1) w_753)) 0)) (>= (+ w_917 (* (- 1) w_918)) 0)) (>= (+ w_1751 (* (- 1) w_1752)) 0)) (not (>= (+ w_247 (* (- 1) z)) 1)))\n', 'false\n']
+^Cgg-force: killed by signal
+
+
+
+NEW CUBES ['(and true (let ((_let_1 (* (- 1) z))) (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3)))))\n', 
+'(and true (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 (* (- 1) z)) 3))))\n', 
+'(and true (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 (* (- 1) z)) 0)))\n', 
+'(and true (let ((_let_1 (* (- 1) z))) (or (not (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3)))) (not (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 _let_1) 3)))) (not (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 _let_1) 0))))))\n']
+NEW CUBES ['(and (and true (let ((_let_1 (* (- 1) z))) (or (not (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3)))) (not (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 _let_1) 3)))) (not (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 _let_1) 0)))))) (not (>= (+ w_2580 (* (- 1) z)) 2)))\n', '(and (and true (let ((_let_1 (* (- 1) z))) (or (not (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3)))) (not (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 _let_1) 3)))) (not (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 _let_1) 0)))))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and true (let ((_let_1 (* (- 1) z))) (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3))))) (not (>= (+ w_2575 (* (- 1) z)) 2)))\n', '(and (and true (let ((_let_1 (* (- 1) z))) (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3))))) (let ((_let_1 (not (not (>= (+ w_2575 (* (- 1) z)) 2))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and true (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 (* (- 1) z)) 0))) (not (>= (+ w_2580 (* (- 1) z)) 2)))\n', '(and (and true (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 (* (- 1) z)) 0))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and true (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 (* (- 1) z)) 3)))) (not (>= (+ w_2580 (* (- 1) z)) 2)))\n', '(and (and true (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 (* (- 1) z)) 3)))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and (and true (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 (* (- 1) z)) 3)))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1))) (not (>= (+ w_2578 (* (- 1) z)) 3)))\n', '(and (and (and true (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 (* (- 1) z)) 3)))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1))) (let ((_let_1 (not (not (>= (+ w_2578 (* (- 1) z)) 3))))) (or _let_1 _let_1)))\n']- 1) z)) 3))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and (and true (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 (* (- 1) z)) 3)))) (not (>= (+ w_2580 (* (- 1) z)) 2))) (not (>= (+ w_2578 (* (- 1) z)) 3)))\n', '(and (and (and true (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 (* (- 1) z)) 3)))) (not (>= (+ w_2580 (* (- 1) z)) 2))) (let ((_let_1 (not (not (>= (+ w_2578 (* (- 1) z)) 3))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and (and true (let ((_let_1 (* (- 1) z))) (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3))))) (not (>= (+ w_2575 (* (- 1) z)) 2))) (not (>= (+ w_2572 (* (- 1) z)) 3)))\n', '(and (and (and true (let ((_let_1 (* (- 1) z))) (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3))))) (not (>= (+ w_2575 (* (- 1) z)) 2))) (let ((_let_1 (not (not (>= (+ w_2572 (* (- 1) z)) 3))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and (and true (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 (* (- 1) z)) 0))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1))) (not (>= (+ w_2578 (* (- 1) z)) 3)))\n', '(and (and (and true (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 (* (- 1) z)) 0))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1))) (let ((_let_1 (not (not (>= (+ w_2578 (* (- 1) z)) 3))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and (and true (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 (* (- 1) z)) 0))) (not (>= (+ w_2580 (* (- 1) z)) 2))) (not (>= (+ w_2578 (* (- 1) z)) 3)))\n', '(and (and (and true (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 (* (- 1) z)) 0))) (not (>= (+ w_2580 (* (- 1) z)) 2))) (let ((_let_1 (not (not (>= (+ w_2578 (* (- 1) z)) 3))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and (and true (let ((_let_1 (* (- 1) z))) (or (not (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3)))) (not (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 _let_1) 3)))) (not (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 _let_1) 0)))))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1))) (not (>= (+ w_2578 (* (- 1) z)) 3)))\n', '(and (and (and true (let ((_let_1 (* (- 1) z))) (or (not (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3)))) (not (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 _let_1) 3)))) (not (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 _let_1) 0)))))) (let ((_let_1 (not (not (>= (+ w_2580 (* (- 1) z)) 2))))) (or _let_1 _let_1))) (let ((_let_1 (not (not (>= (+ w_2578 (* (- 1) z)) 3))))) (or _let_1 _let_1)))\n']
+NEW CUBES ['(and (and (and true (let ((_let_1 (* (- 1) z))) (or (not (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3)))) (not (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 _let_1) 3)))) (not (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 _let_1) 0)))))) (not (>= (+ w_2580 (* (- 1) z)) 2))) (not (>= (+ w_2578 (* (- 1) z)) 3)))\n', '(and (and (and true (let ((_let_1 (* (- 1) z))) (or (not (and (not (>= (+ w_2580 _let_1) 2)) (not (>= (+ w_2578 _let_1) 3)))) (not (and (>= (+ w_2576 (* (- 1) w_2577)) 0) (not (>= (+ w_2518 _let_1) 3)))) (not (and (>= (+ w_2516 (* (- 1) w_2517)) 0) (>= (+ w_2576 _let_1) 0)))))) (not (>= (+ w_2580 (* (- 1) z)) 2))) (let ((_let_1 (not (not (>= (+ w_2578 (* (- 1) z)) 3))))) (or _let_1 _let_1)))\n']
+
+
+In the class in the header there is a statistics class within that module. 
+Figure ou twhy we get all false cubes for the LRA problem. 
+
+
+DefaultModel::ee::termsCount = 2
+JustifyStrategy::MaxAssertionsSize = 955
+JustifyStrategy::MaxStackSize = 2
+JustifyStrategy::StatusBacktrack = 3
+JustifyStrategy::StatusDecision = 1
+JustifyStrategy::StatusNoDecision = 9
+api::CONSTANT = { real type: 1117 }
+api::TERM = { AND: 1100, EQUAL: 899, GEQ: 52, GT: 1, LEQ: 2180, MULT: 341, OR: 52, PLUS: 694, UMINUS: 2368 }
+arithCong::ee::functionTermsCount = 4
+arithCong::ee::mergesCount = 224
+arithCong::ee::termsCount = 247
+driver::filename = /home/amalee/QF_LRA/latendresse/shewanella-compact2.smt2
+global::totalTime = 13601ms
+preprocessing::apply-substs = 74ms
+preprocessing::non-clausal-simp = 50ms
+preprocessing::rewrite = 0ms
+preprocessing::static-learning = 2ms
+preprocessing::theory-preprocess = 15ms
+preprocessing::theory-rewrite-eq = 9ms
+prop::CnfStream::cnfConversionTime = 24ms
+resource::resourceUnitsUsed = 155660
+resource::spendResourceCalls = 155660
+resource::steps::inference-id = { ARITH_CONF_SIMPLEX: 53, ARITH_ROW_IMPL: 3, ARITH_UNATE: 901 }
+resource::steps::resource = { ArithPivotStep: 6284, CnfStep: 4253, DecisionStep: 32, LemmaStep: 11, PreprocessStep: 11, RewriteStep: 144035, SatConflictStep: 34, TheoryCheckStep: 43 }
+sat::clauses_literals = 905
+sat::conflicts = 2
+sat::decisions = 32
+sat::learnts_literals = 66
+sat::max_literals = 2
+sat::propagations = 1853
+sat::starts = 1
+sat::tot_literals = 2
+shared::ee::termsCount = 2
+smt::SolverEngine::processAssertionsTime = 179ms
+smt::SolverEngine::solveTime = 13369ms
+theory::arith::AuxiliaryVariables = 201
+theory::arith::UserVariables = 615
+theory::arith::adjTime = 241ms
+theory::arith::bound::time = 2ms
+theory::arith::cd::unatePropagateCalls = 1688
+theory::arith::checkTime = 13359ms
+theory::arith::conflicts = 53
+theory::arith::congruence::equalsConstantCalls = 211
+theory::arith::congruence::watchedVariableIsNotZero = 8
+theory::arith::congruence::watchedVariableIsZero = 9
+theory::arith::congruence::watchedVariables = 22
+theory::arith::dual::findConflictOnTheQueueTime = 16ms
+theory::arith::dual::lastPivots = 15
+theory::arith::dual::recentViolationCatches = 53
+theory::arith::dual::searchTime = 13346ms
+theory::arith::inferencesConflict = { ARITH_CONF_SIMPLEX: 53 }
+theory::arith::inferencesLemma = { ARITH_ROW_IMPL: 3, ARITH_UNATE: 901 }
+theory::arith::initialTableauSize = 2420
+theory::arith::lemmas = 904
+theory::arith::newPropTimer = 0ms
+theory::arith::pivotTime = 13307ms
+theory::arith::pivots = 6284
+theory::arith::ppRewriteTimer = 8ms
+theory::arith::presolveTime = 4ms
+theory::arith::propagations = 4
+theory::arith::simplifyTimer = 1ms
+theory::arith::staticLearningTimer = 1ms
+theory::arith::status::avgUnknownsInARow = 0
+theory::arith::status::commitsOnConflicts = 10
+theory::arith::status::nontrivialSatChecks = 33
+theory::arith::updates = 6310
+theory::arith::weakening::attempts = 53
+theory::arith::weakening::success = 47
+theory::arith::weakening::time = 2ms
+theory::arith::weakening::total = 428
+theory::arith::z::solveRealRelax::timer = 13346ms
+theory::arrays::ee::termsCount = 2
+theory::arrays::mayEqual::termsCount = 2
+theory::arrays::pp::termsCount = 2
+theory::bags::ee::termsCount = 2
+theory::bv::BVSolverBitblast::cadical::variables = 2
+theory::bv::ee::termsCount = 2
+theory::datatypes::ee::termsCount = 2
+theory::fp::ee::termsCount = 2
+theory::sep::ee::termsCount = 2
+theory::sets::ee::termsCount = 2
+theory::strings::ee::termsCount = 2
+theory::uf::ee::termsCount = 2

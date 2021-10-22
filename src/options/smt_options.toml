@@ -10,6 +10,21 @@ name   = "SMT Layer"
   help       = "eliminate functions by ackermannization"
 
 [[option]]
+  name       = "computePartitions"
+  category   = "expert"
+  long       = "compute-partitions=N"
+  type       = "uint64_t"
+  default    = "0"
+  help       = "make n partitions"
+
+[[option]]
+  name       = "writePartitionsToFileName"
+  category   = "expert"
+  long       = "write-partitions-to=N"
+  type       = "std::string"
+  help       = "file to write partitions to"
+
+[[option]]
   name       = "simplificationMode"
   alias      = ["simplification-mode"]
   category   = "regular"

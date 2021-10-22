@@ -39,6 +39,7 @@
 #include "theory/relevance_manager.h"
 #include "theory/rewriter.h"
 #include "theory/shared_solver.h"
+#include "theory/splitter.h"
 #include "theory/theory.h"
 #include "theory/theory_engine_proof_generator.h"
 #include "theory/theory_id.h"
@@ -251,6 +252,13 @@ TheoryEngine::TheoryEngine(Env& env)
 
   d_true = NodeManager::currentNM()->mkConst<bool>(true);
   d_false = NodeManager::currentNM()->mkConst<bool>(false);
+
+  // SPLIT
+	// TODO: pass valuation, not ptr to theoryengine
+  if (options::computePartitions() > 1)
+  {
+      d_splitter = make_unique<Splitter>(this);
+  }
 }
 
 TheoryEngine::~TheoryEngine() {
@@ -392,7 +400,16 @@ void TheoryEngine::check(Theory::Effort effort) {
         d_relManager->beginRound();
       }
       d_tc->resetRound();
+
     }
+			// SPLIT
+      // Whenever you emit a lemma, emit at least one partition. 
+      if (options::computePartitions() > 1){
+        TrustNode tl = d_splitter->makePartitions();
+        if (!tl.isNull()){
+          lemma(tl, LemmaProperty::NONE, THEORY_LAST);
+        }
+      }
 
     // Check until done
     while (d_factsAsserted && !d_inConflict && !d_lemmasAdded) {
