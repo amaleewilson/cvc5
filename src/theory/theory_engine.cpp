@@ -1493,7 +1493,7 @@ void TheoryEngine::conflict(TrustNode tconflict, TheoryId theoryId)
       }
       else
       {
-        if (fullConflict != conflict)
+        if (!CDProof::isSame(fullConflict, conflict))
         {
           // ------------------------- explained  ---------- from theory
           // fullConflict => conflict              ~conflict
