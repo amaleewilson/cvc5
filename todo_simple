@@ -1,0 +1,37 @@
+1. Why do we cube forever on IDL? 
+2. Why are we unsound for quantifiers? 
+3. Can CVC5 solve the OpenSMT partitions better than OpenSMT? 
+4. Why giving 6 or even 9 cubes when gg asks for 4?
+
+
+
+OpenSMT stuff: 
+
+time ~/OpenSMTs/opensmt b.smt2
+unsat
+
+real    13m37.241s
+user    13m37.108s
+sys     0m0.120s
+
+
+time ~/OpenSMTs/opensmt a.smt2
+unsat
+real    0m3.260s
+user    0m3.230s
+sys     0m0.030s
+
+
+time ~/CVCs/regular a.smt2
+unsat
+
+real    1m37.424s
+user    1m37.302s
+sys     0m0.100s
+
+time ~/CVCs/regular a-00.smt2
+unsat
+
+real    3m1.552s
+user    3m1.359s
+sys     0m0.190s

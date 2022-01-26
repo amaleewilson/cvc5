@@ -23,6 +23,40 @@ NEW CUBES ['(and (and true (and (>= (+ w_1683 (* (- 1) w_1684)) 0) (>= (+ x_903 
 
 
 
+gg-force --jobs 24 --engine local out
+→ Loading the thunks...  done (0 ms).
+Traceback (most recent call last):
+  File "./smt.py", line 214, in <module>
+    gg.main()
+  File "/tmp/thunk-execute.TjSMpilZDD.fqgDuh/pygg.py", line 729, in main
+    result = t._exec()
+  File "/tmp/thunk-execute.TjSMpilZDD.fqgDuh/pygg.py", line 306, in _exec
+    r = self.f.f(*self.args)
+  File "./smt.py", line 147, in solve_cube
+    new_cubes, sat = split(cube, merged_path, splits_now)
+  File "./smt.py", line 102, in split
+    raise Exception(f"Wanted {splits} cubes but got {len(cubes)} cubes from the splitter.")
+Exception: Wanted 4 cubes but got 6 cubes from the splitter.
+Warning: rmdir /tmp/thunk-execute.TjSMpilZDD.fqgDuh: Directory not empty
+ExecutionError
+ `TjSMpilZDD8EcFKCmpbV4rImCD.XnB0DkyFCtKXuQ8zk00000492': process exited with failure status 1
+gg-force: `TjSMpilZDD8EcFKCmpbV4rImCD.XnB0DkyFCtKXuQ8zk00000492': process exited with failure status 5
+
+Traceback (most recent call last):
+  File "./smt.py", line 214, in <module>
+    gg.main()
+  File "/tmp/thunk-execute.T59agmKYGt.ikNYs0/pygg.py", line 729, in main
+    result = t._exec()
+  File "/tmp/thunk-execute.T59agmKYGt.ikNYs0/pygg.py", line 306, in _exec
+    r = self.f.f(*self.args)
+  File "./smt.py", line 147, in solve_cube
+    new_cubes, sat = split(cube, merged_path, splits_now)
+  File "./smt.py", line 102, in split
+    raise Exception(f"Wanted {splits} cubes but got {len(cubes)} cubes from the splitter.")
+Exception: Wanted 4 cubes but got 9 cubes from the splitter.
+
+
+
 --stats-expert
 stats:
 timers, numbers, histograms
