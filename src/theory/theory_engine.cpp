@@ -402,6 +402,13 @@ void TheoryEngine::check(Theory::Effort effort) {
       d_tc->resetRound();
 
     }
+
+    // MAybe wait until there have been i checks, then generate the cubes (as many as you want).
+    // These cubes should contain some stuff generated from the theory. 
+    // Try with arrays.
+    // Strings: you may introduce new variables -- skolemization -- later problem. Array shouldn't have that problem. 
+
+    // Could wait for decision trail of length n. May never get that length trail
 			// SPLIT
       // Whenever you emit a lemma, emit at least one partition. 
       if (options::computePartitions() > 1){
