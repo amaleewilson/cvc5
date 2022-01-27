@@ -18,6 +18,20 @@ name   = "SMT Layer"
   help       = "make n partitions"
 
 [[option]]
+  name       = "partitionStrategy"
+  category   = "expert"
+  long       = "partition-strategy=X"
+  type       = "std::string"
+  help       = "select which algorithm for making partitions"
+
+[[option]]
+  name       = "partitionCheck"
+  category   = "expert"
+  long       = "partition-check=X"
+  type       = "std::string"
+  help       = "select whether partitioning happens at full or standard check"
+
+[[option]]
   name       = "writePartitionsToFileName"
   category   = "expert"
   long       = "write-partitions-to=N"

@@ -401,6 +401,12 @@ void TheoryEngine::check(Theory::Effort effort) {
       }
       d_tc->resetRound();
 
+      if (options::computePartitions() > 1 && options::partitionCheck() == "full"){
+        TrustNode tl = d_splitter->makePartitions();
+        if (!tl.isNull()){
+          lemma(tl, LemmaProperty::NONE, THEORY_LAST);
+        }
+      }
     }
 
     // MAybe wait until there have been i checks, then generate the cubes (as many as you want).
@@ -411,7 +417,7 @@ void TheoryEngine::check(Theory::Effort effort) {
     // Could wait for decision trail of length n. May never get that length trail
 			// SPLIT
       // Whenever you emit a lemma, emit at least one partition. 
-      if (options::computePartitions() > 1){
+      if (options::computePartitions() > 1 && options::partitionCheck() == "standard"){
         TrustNode tl = d_splitter->makePartitions();
         if (!tl.isNull()){
           lemma(tl, LemmaProperty::NONE, THEORY_LAST);
