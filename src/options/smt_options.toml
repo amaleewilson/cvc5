@@ -35,6 +35,14 @@ name   = "SMT Layer"
   help       = "make n partitions"
 
 [[option]]
+  name       = "numChecks"
+  category   = "expert"
+  long       = "num-checks=N"
+  type       = "uint64_t"
+  default    = "1"
+  help       = "number of standard effort checks until partitioning"
+
+[[option]]
   name       = "partitionStrategy"
   category   = "expert"
   long       = "partition-strategy=X"

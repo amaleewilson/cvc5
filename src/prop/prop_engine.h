@@ -71,6 +71,8 @@ class PropEngine
    */
   void finishInit();
 
+  //TODO: Add an interface here for getting the decisions from the sat solver. 
+
   /**
    * This is called by SolverEngine, at shutdown time, just before
    * destruction.  It is important because there are destruction
@@ -148,6 +150,8 @@ class PropEngine
    * returns true for both lit and the negation of lit.
    */
   bool isDecision(Node lit) const;
+
+  std::vector<Node> getDecisions() const;
 
   /**
    * Return SAT context level at which `lit` was decided on.

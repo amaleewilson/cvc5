@@ -19,8 +19,10 @@
 
 #include "expr/node_algorithm.h"
 #include "expr/node_builder.h"
+#include "prop/prop_engine.h"
 #include "theory/theory_engine.h"
 #include "theory/theory_id.h"
+#include "theory/theory_engine.h"
 #include "theory/theory_traits.h"
 
 using namespace std;
@@ -32,36 +34,45 @@ namespace theory {
 
 // TODO: Need to have more control over the ordering of these literals. 
 void Splitter::collectLiterals(std::vector<TNode>& literals) {
-  for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
-  {
-    for (context::CDList<Assertion>::const_iterator
-         it = d_valuation->factsBegin(theoryId),
-         it_end = d_valuation->factsEnd(theoryId);
-         it != it_end;
-         ++it)
-    {
-      TNode a = (*it).d_assertion;
+  unsigned conflictSize = (unsigned)log2(d_numPartitions);
 
-      // Is isSatLiteral ever false here???
-      // Maybe just add an interface to access the decision trail in the sat solver? 
-      // This is kludgy
-      // Might be enough to check if decision. 
-      if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
-      {
-        // have a mapping of nodes to whether they qualify for the list.
-
-        Node og = SkolemManager::getOriginalForm(a);
-
-        // Make sure the literal does not have a boolean term in it
-        // because partitions containing those would just look like fresh variables. 
-        std::unordered_set<Kind, kind::KindHashFunction> kinds = {
-            kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
-
-        if (expr::hasSubtermKinds(kinds, og)) continue;
-        literals.push_back(og);
-      }
-    }
+  std::cout << "collectLiterals" << std::endl;
+  std::vector<Node> decisionNodes = d_propEngine->getDecisions();
+  for (Node n : decisionNodes) {
+    TNode t = n;
+    literals.push_back(t);
   }
+  // // If you use only one theory, the list is (most likely) guaranteed to be in order. 
+  // for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
+  // {
+  //   for (context::CDList<Assertion>::const_iterator
+  //        it = d_valuation->factsBegin(theoryId),
+  //        it_end = d_valuation->factsEnd(theoryId);
+  //        it != it_end;
+  //        ++it)
+  //   {
+  //     TNode a = (*it).d_assertion;
+
+  //     // Is isSatLiteral ever false here???
+  //     // Maybe just add an interface to access the decision trail in the sat solver? 
+  //     // This is kludgy
+  //     // Might be enough to check if decision. 
+  //     if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
+  //     {
+  //       // have a mapping of nodes to whether they qualify for the list.
+
+  //       Node og = SkolemManager::getOriginalForm(a);
+
+  //       // Make sure the literal does not have a boolean term in it
+  //       // because partitions containing those would just look like fresh variables. 
+  //       std::unordered_set<Kind, kind::KindHashFunction> kinds = {
+  //           kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
+
+  //       if (expr::hasSubtermKinds(kinds, og)) continue;
+  //       literals.push_back(og);
+  //     }
+  //   }
+  // }
 }
 
 // TODO: if we get too many, just write the previous level
@@ -69,6 +80,7 @@ void Splitter::collectLiterals(std::vector<TNode>& literals) {
 // in your threshold.
 TrustNode Splitter::makePartitions()
 {
+  d_numChecks = d_numChecks + 1; 
   if (d_partitionFile != "")
   {
     d_partitionFileStream.open(d_partitionFile, std::ios_base::app);
@@ -199,25 +211,18 @@ TrustNode Splitter::makePartitions()
 
 
   // This splits on each variable in the decision trail. 
-  if (options::partitionStrategy() == "full-trail") {
-    std::vector<TNode> literals = {};
+  if (options::partitionStrategy() == "full-trail" && d_numChecks >= options::numChecks()) {
+    
+    std::vector<TNode> literals;
     collectLiterals(literals); 
-    *d_output << "number of literals " << literals.size() << "\n";
-    *d_output << "test\n";
 
     unsigned conflictSize = (unsigned)log2(d_numPartitions);
-    *d_output << "test\n";
-    *d_output << "test " << literals.size() << "\n";
-    *d_output << "test " << conflictSize << "\n";
-    *d_output << "test\n";
     if (literals.size() >= conflictSize)
     {
-    *d_output << "test\n";
       std::vector<Node> tmpLiterals(literals.begin(),
                                     literals.begin() + conflictSize);
       std::vector<Node> part_nodes; 
       int part_depth = conflictSize;
-    *d_output << "test\n";
 
       // This complicated thing is basically making a truth table
       // of length 2^depth so that these can be put together into a partition later.
@@ -226,12 +231,10 @@ TrustNode Splitter::makePartitions()
       int i = 1;
       bool t = false;
       int q = part_depth;
-    *d_output << "test\n";
       for (Node n : tmpLiterals){
           NodeBuilder notBuilder(kind::NOT);
           notBuilder << n;
           Node lemma = notBuilder.constructNode();
-          std::cout << "node " << std::endl;
           int total = pow(2,part_depth);
           q = q-1;
           int loc = 0;
@@ -239,19 +242,16 @@ TrustNode Splitter::makePartitions()
             t = !t;
           for (int j = 0; j < total; ++j) {
             if (j < pow(2,q)){
-              std::cout << j << (t ? "T" : "F") << " " << loc << std::endl;
               result_node_lists[loc].push_back((t ? n : lemma));;
               ++loc;
             }
           }
           }
-
+      }
         for (std::vector<Node> lst : result_node_lists) {
           Node conj = NodeManager::currentNM()->mkAnd(lst);
-          std::cout << conj << std::endl;
+          *d_output << conj << std::endl;
         }
-      }
-    *d_output << "test\n";
 
         if (d_partitionFile != "")
         {

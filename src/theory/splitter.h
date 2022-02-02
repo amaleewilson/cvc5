@@ -29,18 +29,24 @@ namespace cvc5 {
 
 class TheoryEngine;
 
+namespace prop {
+class PropEngine;
+}
+
 namespace theory {
 
 class Splitter
 {
  public:
-  Splitter(TheoryEngine* theoryEngine)
+  Splitter(TheoryEngine* theoryEngine, prop::PropEngine* propEngine)
       : d_numPartitions(options::computePartitions()),
         d_numPartitionsSoFar(0),
+        d_numChecks(0),
         d_partitionFile(options::writePartitionsToFileName())
   {
     // Assert(numPartitions > 1);
     d_valuation = std::make_unique<Valuation>(theoryEngine);
+    d_propEngine = propEngine;
     d_output = &std::cout;
     if (d_partitionFile != "")
     {
@@ -53,8 +59,10 @@ class Splitter
   TrustNode makePartitions();
 
  private:
+  prop::PropEngine* d_propEngine;
   std::unique_ptr<Valuation> d_valuation;
   const unsigned d_numPartitions;
+  unsigned d_numChecks;
   unsigned d_numPartitionsSoFar;
   std::string d_partitionFile;
   std::ofstream d_partitionFileStream;

@@ -260,7 +260,7 @@ TheoryEngine::TheoryEngine(Env& env)
 	// TODO: pass valuation, not ptr to theoryengine
   if (options::computePartitions() > 1)
   {
-      d_splitter = make_unique<Splitter>(this);
+      d_splitter = make_unique<Splitter>(this, getPropEngine());
   }
 }
 
