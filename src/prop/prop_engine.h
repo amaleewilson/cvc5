@@ -144,7 +144,7 @@ class PropEngine : protected EnvObj
    */
   bool isDecision(Node lit) const;
 
-  std::vector<Node> getDecisions() const;
+  std::vector<Node> getPropDecisions() const;
 
   /**
    * Return SAT context level at which `lit` was decided on.

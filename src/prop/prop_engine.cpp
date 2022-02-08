@@ -313,7 +313,7 @@ bool PropEngine::isDecision(Node lit) const {
   return d_satSolver->isDecision(d_cnfStream->getLiteral(lit).getSatVariable());
 }
 
-std::vector<Node> PropEngine::getDecisions() const
+std::vector<Node> PropEngine::getPropDecisions() const
 {
   std::cout << "propengine getdecisions" << std::endl;
   std::vector<Node> decisions; 

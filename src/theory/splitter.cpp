@@ -36,43 +36,43 @@ namespace theory {
 void Splitter::collectLiterals(std::vector<TNode>& literals) {
   unsigned conflictSize = (unsigned)log2(d_numPartitions);
 
-  std::cout << "collectLiterals" << std::endl;
-  std::vector<Node> decisionNodes = d_propEngine->getDecisions();
-  for (Node n : decisionNodes) {
-    TNode t = n;
-    literals.push_back(t);
-  }
-  // // If you use only one theory, the list is (most likely) guaranteed to be in order. 
-  // for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
-  // {
-  //   for (context::CDList<Assertion>::const_iterator
-  //        it = d_valuation->factsBegin(theoryId),
-  //        it_end = d_valuation->factsEnd(theoryId);
-  //        it != it_end;
-  //        ++it)
-  //   {
-  //     TNode a = (*it).d_assertion;
-
-  //     // Is isSatLiteral ever false here???
-  //     // Maybe just add an interface to access the decision trail in the sat solver? 
-  //     // This is kludgy
-  //     // Might be enough to check if decision. 
-  //     if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
-  //     {
-  //       // have a mapping of nodes to whether they qualify for the list.
-
-  //       Node og = SkolemManager::getOriginalForm(a);
-
-  //       // Make sure the literal does not have a boolean term in it
-  //       // because partitions containing those would just look like fresh variables. 
-  //       std::unordered_set<Kind, kind::KindHashFunction> kinds = {
-  //           kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
-
-  //       if (expr::hasSubtermKinds(kinds, og)) continue;
-  //       literals.push_back(og);
-  //     }
-  //   }
+  // std::cout << "collectLiterals" << std::endl;
+  // std::vector<Node> decisionNodes = d_propEngine->getPropDecisions();
+  // for (Node n : decisionNodes) {
+  //   TNode t = n;
+  //   literals.push_back(t);
   // }
+  // If you use only one theory, the list is (most likely) guaranteed to be in order. 
+  for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
+  {
+    for (context::CDList<Assertion>::const_iterator
+         it = d_valuation->factsBegin(theoryId),
+         it_end = d_valuation->factsEnd(theoryId);
+         it != it_end;
+         ++it)
+    {
+      TNode a = (*it).d_assertion;
+
+      // Is isSatLiteral ever false here???
+      // Maybe just add an interface to access the decision trail in the sat solver? 
+      // This is kludgy
+      // Might be enough to check if decision. 
+      if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
+      {
+        // have a mapping of nodes to whether they qualify for the list.
+
+        Node og = SkolemManager::getOriginalForm(a);
+
+        // Make sure the literal does not have a boolean term in it
+        // because partitions containing those would just look like fresh variables. 
+        std::unordered_set<Kind, kind::KindHashFunction> kinds = {
+            kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
+
+        if (expr::hasSubtermKinds(kinds, og)) continue;
+        literals.push_back(og);
+      }
+    }
+  }
 }
 
 // TODO: if we get too many, just write the previous level
@@ -189,6 +189,197 @@ TrustNode Splitter::makePartitions()
         // NodeBuilder andBuilder(kind::AND);
         // for (auto d : literals) andBuilder << d;
         // Node conj = andBuilder.constructNode();
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << conj;
+        Node lemma = notBuilder.constructNode();
+  
+        ++d_numPartitionsSoFar;
+        d_assertedLemmas.push_back(lemma);
+  
+        TrustNode trustedLemma = TrustNode::mkTrustLemma(lemma);
+        return trustedLemma;
+      }
+    }
+  
+    if (d_partitionFile != "")
+    {
+      d_partitionFileStream.close();
+    }
+  
+    return TrustNode::null();
+  }
+
+  if (options::partitionStrategy() == "old-revised-improved"){
+
+    // If we're at the last cube
+    if (d_numPartitionsSoFar == d_numPartitions - 1)
+    {
+      if (d_numPartitionsSoFar == 1) {
+        *d_output << d_assertedLemmas.front() << "\n";
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << d_assertedLemmas.front();
+        Node lemma = notBuilder.constructNode();
+        *d_output << lemma << "\n";
+        return TrustNode::mkTrustLemma(lemma);
+      }
+      // If we ask for more than two partitions. 
+      else {
+
+        // Emit 
+        // c1 & ~c2 & ~c3 
+        // c2 & ~c1 & ~c3
+        // c3 & ~c1 & ~c2 
+        // ~c1 & ~c2 & ~c3
+
+        vector<Node> cubes_to_emit;
+        for (const auto d1 : d_assertedLemmas) {
+          NodeBuilder andBuilder(kind::AND);
+          for (const auto d2 : d_assertedLemmas) {
+            if (d1 == d2) {
+              andBuilder << d2;
+            }
+            else {
+              NodeBuilder notBuilder(kind::NOT);
+              notBuilder << d2;
+              Node negated_cube = notBuilder.constructNode();
+              andBuilder << negated_cube;
+            }
+          }
+          cubes_to_emit.push_back(andBuilder.constructNode());
+        }
+
+
+        NodeBuilder andBuilder(kind::AND);
+        for (const auto d : d_assertedLemmas) {
+          NodeBuilder notBuilder(kind::NOT);
+          notBuilder << d;
+          Node negated_cube = notBuilder.constructNode();
+          andBuilder << negated_cube;
+        }
+        cubes_to_emit.push_back(andBuilder.constructNode());
+
+        for (const auto d :cubes_to_emit) {
+          *d_output << d << "\n";
+        }
+      
+        if (d_partitionFile != "")
+        {
+          d_partitionFileStream.close();
+        }
+
+        NodeBuilder andBuilder2(kind::AND);
+        for (const auto d : d_assertedLemmas) andBuilder2 << d;
+        Node conj = andBuilder2.constructNode();
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << conj;
+        Node lemma = notBuilder.constructNode();
+        ++d_numPartitionsSoFar;
+  
+        return TrustNode::mkTrustLemma(lemma);
+      }
+    }
+  
+    // Not at the last cube
+    else
+    {
+      
+      std::vector<TNode> literals;
+      collectLiterals(literals); 
+  
+      unsigned conflictSize = (unsigned)log2(d_numPartitions);
+      if (literals.size() >= conflictSize)
+      {
+        std::vector<Node> tmpLiterals(literals.begin(),
+                                      literals.begin() + conflictSize);
+        Node conj = NodeManager::currentNM()->mkAnd(tmpLiterals);
+        // *d_output << conj << "\n";
+        //if (d_partitionFile != "")
+        //{
+        //  d_partitionFileStream.close();
+        //}
+  
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << conj;
+        Node lemma = notBuilder.constructNode();
+  
+        ++d_numPartitionsSoFar;
+        d_assertedLemmas.push_back(lemma);
+  
+        TrustNode trustedLemma = TrustNode::mkTrustLemma(lemma);
+        return trustedLemma;
+      }
+    }
+  
+    if (d_partitionFile != "")
+    {
+      d_partitionFileStream.close();
+    }
+  
+    return TrustNode::null();
+  }
+
+
+  if (options::partitionStrategy() == "old-revised"){
+
+    // If we're at the last cube
+    if (d_numPartitionsSoFar == d_numPartitions - 1)
+    {
+      if (d_numPartitionsSoFar == 1) {
+        *d_output << d_assertedLemmas.front() << "\n";
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << d_assertedLemmas.front();
+        Node lemma = notBuilder.constructNode();
+        return TrustNode::mkTrustLemma(lemma);
+      }
+      // If we ask for more than two partitions. 
+      else {
+        NodeBuilder andBuilder(kind::AND);
+        for (const auto d : d_assertedLemmas) {
+          NodeBuilder notBuilder(kind::NOT);
+          notBuilder << d;
+          Node negated_cube = notBuilder.constructNode();
+          andBuilder << negated_cube;
+        }
+
+        Node last_cube = andBuilder.constructNode();
+        *d_output << last_cube << "\n";
+
+        if (d_partitionFile != "")
+        {
+          d_partitionFileStream.close();
+        }
+
+        NodeBuilder andBuilder2(kind::AND);
+        for (const auto d : d_assertedLemmas) andBuilder2 << d;
+        Node conj = andBuilder2.constructNode();
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << conj;
+        Node lemma = notBuilder.constructNode();
+        ++d_numPartitionsSoFar;
+  
+        return TrustNode::mkTrustLemma(lemma);
+      }
+    }
+  
+    // Not at the last cube
+    else
+    {
+      
+      std::vector<TNode> literals;
+      collectLiterals(literals); 
+  
+      unsigned conflictSize = (unsigned)log2(d_numPartitions);
+      if (literals.size() >= conflictSize)
+      {
+        std::vector<Node> tmpLiterals(literals.begin(),
+                                      literals.begin() + conflictSize);
+        Node conj = NodeManager::currentNM()->mkAnd(tmpLiterals);
+        *d_output << conj << "\n";
+        if (d_partitionFile != "")
+        {
+          d_partitionFileStream.close();
+        }
+  
         NodeBuilder notBuilder(kind::NOT);
         notBuilder << conj;
         Node lemma = notBuilder.constructNode();
