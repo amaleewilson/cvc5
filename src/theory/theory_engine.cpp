@@ -203,6 +203,14 @@ void TheoryEngine::finishInit()
     // finish initializing the theory
     t->finishInit();
   }
+
+  // TODO: this won't work with incremental solving
+  // SPLIT
+	// TODO: pass valuation, not ptr to theoryengine
+  if (options::computePartitions() > 1)
+  {
+      d_splitter = make_unique<Splitter>(this, getPropEngine());
+  }
   Trace("theory") << "End TheoryEngine::finishInit" << std::endl;
 }
 
@@ -255,13 +263,6 @@ TheoryEngine::TheoryEngine(Env& env)
 
   d_true = NodeManager::currentNM()->mkConst<bool>(true);
   d_false = NodeManager::currentNM()->mkConst<bool>(false);
-
-  // SPLIT
-	// TODO: pass valuation, not ptr to theoryengine
-  if (options::computePartitions() > 1)
-  {
-      d_splitter = make_unique<Splitter>(this, getPropEngine());
-  }
 }
 
 TheoryEngine::~TheoryEngine() {

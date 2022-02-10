@@ -32,47 +32,72 @@ namespace cvc5 {
 
 namespace theory {
 
-// TODO: Need to have more control over the ordering of these literals. 
-void Splitter::collectLiterals(std::vector<TNode>& literals) {
-  unsigned conflictSize = (unsigned)log2(d_numPartitions);
+// TODO: determine whether the old or new way of collecting literals is better. 
+void Splitter::collectLiteralsOld(std::vector<TNode>& literals) {
+  // If you use only one theory, the list is (most likely) guaranteed to be in order. 
+  for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
+  {
+    for (context::CDList<Assertion>::const_iterator
+         it = d_valuation->factsBegin(theoryId),
+         it_end = d_valuation->factsEnd(theoryId);
+         it != it_end;
+         ++it)
+    {
+      TNode a = (*it).d_assertion;
+      Node og = SkolemManager::getOriginalForm(a); 
 
-  std::cout << "collectLiterals" << std::endl;
-  std::vector<Node> decisionNodes = d_propEngine->getDecisions();
-  for (Node n : decisionNodes) {
-    TNode t = n;
-    literals.push_back(t);
+      // Is isSatLiteral ever false here???
+      // Maybe just add an interface to access the decision trail in the sat solver? 
+      // This is kludgy
+      // Might be enough to check if decision. 
+      if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
+      {
+        // have a mapping of nodes to whether they qualify for the list.
+ 
+        //Node og = SkolemManager::getOriginalForm(a);
+ 
+        // Make sure the literal does not have a boolean term in it
+        // because partitions containing those would just look like fresh variables. 
+        std::unordered_set<Kind, kind::KindHashFunction> kinds = {
+            kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
+ 
+        if (expr::hasSubtermKinds(kinds, og)) continue;
+        literals.push_back(og);
+      }
+    }
   }
-  // // If you use only one theory, the list is (most likely) guaranteed to be in order. 
-  // for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
-  // {
-  //   for (context::CDList<Assertion>::const_iterator
-  //        it = d_valuation->factsBegin(theoryId),
-  //        it_end = d_valuation->factsEnd(theoryId);
-  //        it != it_end;
-  //        ++it)
-  //   {
-  //     TNode a = (*it).d_assertion;
+}
 
-  //     // Is isSatLiteral ever false here???
-  //     // Maybe just add an interface to access the decision trail in the sat solver? 
-  //     // This is kludgy
-  //     // Might be enough to check if decision. 
-  //     if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
-  //     {
-  //       // have a mapping of nodes to whether they qualify for the list.
+// TODO: determine whether the old or new way of collecting literals is better. 
+void Splitter::collectLiteralsNew(std::vector<TNode>& literals) {
+ unsigned conflictSize = (unsigned)log2(d_numPartitions);
 
-  //       Node og = SkolemManager::getOriginalForm(a);
+ std::vector<Node> decisionNodes = d_propEngine->getDecisions();
+ for (Node n : decisionNodes) {
+   TNode t = n;
+   
+   Node og = SkolemManager::getOriginalForm(n);
 
-  //       // Make sure the literal does not have a boolean term in it
-  //       // because partitions containing those would just look like fresh variables. 
-  //       std::unordered_set<Kind, kind::KindHashFunction> kinds = {
-  //           kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
+   // Make sure the literal does not have a boolean term in it
+   // because partitions containing those would just look like fresh variables. 
+   std::unordered_set<Kind, kind::KindHashFunction> kinds = {
+       kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
 
-  //       if (expr::hasSubtermKinds(kinds, og)) continue;
-  //       literals.push_back(og);
-  //     }
+  if (expr::hasSubtermKinds(kinds, og) || !d_valuation->isSatLiteral(og) || !d_valuation->isDecision(og)){
+    continue;
+  }
+
+  // This probably makes the new version produce the same cubes. 
+  // if (og.getKind() == kind::NOT) {
+  //   if (expr::hasSubtermKinds(kinds, og[0]) || !d_valuation->isSatLiteral(og[0]) || !d_valuation->isDecision(og[0])){
+  //     continue;
   //   }
   // }
+
+   literals.push_back(og);
+   // std::cout << t << std::endl;
+ }
+
 }
 
 // TODO: if we get too many, just write the previous level
@@ -150,6 +175,24 @@ TrustNode Splitter::makePartitions()
       
       std::vector<TNode> literals;
       collectLiterals(literals); 
+
+      std::cout << "printing all literals " << std::endl;
+      std::cout << "literals size " << literals.size() << std::endl;
+      for (auto l : literals){
+        std::cout << l << std::endl;
+        if (l.getKind() == kind::NOT) {
+          if(l[0].getNumChildren() > 0){
+            std::cout << theory::Theory::theoryOf(l[0][0]) << std::endl;
+          }
+
+        }
+        else {
+        std::cout << theory::Theory::theoryOf(l) << std::endl;
+
+        }
+      }
+
+      std::cout << "literal size " << literals.size() << std::endl;
   
       /*
       If we don't emit any conflict, then the result is valid.
