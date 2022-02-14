@@ -56,7 +56,6 @@ void Splitter::collectLiteralsOld(std::vector<TNode>& literals)
         // have a mapping of nodes to whether they qualify for the list.
         std::unordered_set<Kind, kind::KindHashFunction> kinds = {
             kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
-
         if (expr::hasSubtermKinds(kinds, og)) continue;
         literals.push_back(og);
       }
@@ -230,7 +229,6 @@ TrustNode Splitter::makePartitions()
         return trustedLemma;
       }
     }
-
     if (d_partitionFile != "")
     {
       d_partitionFileStream.close();
@@ -395,7 +393,6 @@ TrustNode Splitter::makePartitions()
         {
           d_partitionFileStream.close();
         }
-
         // return a mktrust of false.
         NodeBuilder andBuilder(kind::AND);
 
@@ -456,7 +453,6 @@ TrustNode Splitter::makePartitions()
         {
           d_partitionFileStream.close();
         }
-
         // std::cout << conj << "\n";
         // NodeBuilder andBuilder(kind::AND);
         // for (auto d : literals) andBuilder << d;
@@ -472,7 +468,6 @@ TrustNode Splitter::makePartitions()
         return trustedLemma;
       }
     }
-
     if (d_partitionFile != "")
     {
       d_partitionFileStream.close();
@@ -685,7 +680,6 @@ TrustNode Splitter::makePartitions()
         return trustedLemma;
       }
     }
-
     if (d_partitionFile != "")
     {
       d_partitionFileStream.close();
@@ -775,7 +769,6 @@ TrustNode Splitter::makePartitions()
         return trustedLemma;
       }
     }
-
     if (d_partitionFile != "")
     {
       d_partitionFileStream.close();
