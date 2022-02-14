@@ -315,11 +315,8 @@ bool PropEngine::isDecision(Node lit) const {
 
 std::vector<Node> PropEngine::getPropDecisions() const
 {
-  std::cout << "propengine getdecisions" << std::endl;
   std::vector<Node> decisions; 
-  std::cout << "made vector of nodes" << std::endl;
   std::vector<SatLiteral> miniDecisions = d_satSolver->getDecisions();
-  std::cout << "after miniDecisions assigned" << std::endl;
   for (SatLiteral d : miniDecisions) {
     decisions.push_back(d_cnfStream->getNode(d));
   }

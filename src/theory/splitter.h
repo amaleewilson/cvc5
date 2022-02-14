@@ -68,7 +68,9 @@ class Splitter
   std::ofstream d_partitionFileStream;
   std::ostream* d_output;
   std::list<Node> d_assertedLemmas;
-  void collectLiterals(std::vector<TNode>& literals);
+  std::vector<Node> d_cubes;
+  void collectLiteralsOld(std::vector<TNode>& literals);
+  void collectLiteralsNew(std::vector<TNode>& literals);
 };
 }  // namespace theory
 }  // namespace cvc5
