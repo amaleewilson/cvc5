@@ -31,6 +31,7 @@ class TheoryEngine;
 
 namespace prop {
 class PropEngine;
+class ZeroLevelLearner;
 }
 
 namespace theory {
@@ -44,7 +45,8 @@ class Splitter
         d_numChecks(0),
         d_partitionFile(options::writePartitionsToFileName())
   {
-    // Assert(numPartitions > 1);
+
+// Assert(numPartitions > 1);
     d_valuation = std::make_unique<Valuation>(theoryEngine);
     d_propEngine = propEngine;
     d_output = &std::cout;
