@@ -260,7 +260,6 @@ bool MinisatSatSolver::isDecision(SatVariable decn) const {
 
 std::vector<SatLiteral> MinisatSatSolver::getDecisions() const
 {
-  std::cout << "minisat get decisions" << std::endl;
   std::vector<SatLiteral> decisions;
   Minisat::vec<Minisat::Lit> miniDecisions;
   d_minisat->getMiniSatDecisions().copyTo(miniDecisions);

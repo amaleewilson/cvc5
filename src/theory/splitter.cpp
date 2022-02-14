@@ -32,16 +32,8 @@ namespace cvc5 {
 
 namespace theory {
 
-// TODO: Need to have more control over the ordering of these literals. 
-void Splitter::collectLiterals(std::vector<TNode>& literals) {
-  unsigned conflictSize = (unsigned)log2(d_numPartitions);
-
-  // std::cout << "collectLiterals" << std::endl;
-  // std::vector<Node> decisionNodes = d_propEngine->getPropDecisions();
-  // for (Node n : decisionNodes) {
-  //   TNode t = n;
-  //   literals.push_back(t);
-  // }
+// TODO: determine whether the old or new way of collecting literals is better. 
+void Splitter::collectLiteralsOld(std::vector<TNode>& literals) {
   // If you use only one theory, the list is (most likely) guaranteed to be in order. 
   for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId)
   {
@@ -52,6 +44,7 @@ void Splitter::collectLiterals(std::vector<TNode>& literals) {
          ++it)
     {
       TNode a = (*it).d_assertion;
+      Node og = SkolemManager::getOriginalForm(a); 
 
       // Is isSatLiteral ever false here???
       // Maybe just add an interface to access the decision trail in the sat solver? 
@@ -60,19 +53,45 @@ void Splitter::collectLiterals(std::vector<TNode>& literals) {
       if (d_valuation->isSatLiteral(a) && d_valuation->isDecision(a))
       {
         // have a mapping of nodes to whether they qualify for the list.
-
-        Node og = SkolemManager::getOriginalForm(a);
-
-        // Make sure the literal does not have a boolean term in it
-        // because partitions containing those would just look like fresh variables. 
         std::unordered_set<Kind, kind::KindHashFunction> kinds = {
             kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
-
+ 
         if (expr::hasSubtermKinds(kinds, og)) continue;
         literals.push_back(og);
       }
     }
   }
+}
+
+// TODO: determine whether the old or new way of collecting literals is better. 
+void Splitter::collectLiteralsNew(std::vector<TNode>& literals) {
+ unsigned conflictSize = (unsigned)log2(d_numPartitions);
+
+ std::vector<Node> decisionNodes = d_propEngine->getPropDecisions();
+ for (Node n : decisionNodes) {
+   TNode t = n;
+   
+   Node og = SkolemManager::getOriginalForm(n);
+
+   // Make sure the literal does not have a boolean term in it
+   // because partitions containing those would just look like fresh variables. 
+   std::unordered_set<Kind, kind::KindHashFunction> kinds = {
+       kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
+
+  if (expr::hasSubtermKinds(kinds, og) || !d_valuation->isSatLiteral(og) || !d_valuation->isDecision(og)){
+    continue;
+  }
+
+  // This probably makes the new version produce the same cubes as old version
+  // if (og.getKind() == kind::NOT) {
+  //   if (expr::hasSubtermKinds(kinds, og[0]) || !d_valuation->isSatLiteral(og[0]) || !d_valuation->isDecision(og[0])){
+  //     continue;
+  //   }
+  // }
+
+   literals.push_back(og);
+ }
+
 }
 
 // TODO: if we get too many, just write the previous level
@@ -87,6 +106,127 @@ TrustNode Splitter::makePartitions()
     d_output = &d_partitionFileStream;
   }
   
+  // The strict cube strategy makes cubes like this: 
+  //  c1 & !c2 & !c3
+  // !c1 &  c2 & !c3
+  // !c1 & !c2 &  c3
+  // !c1 & !c2 & !c3
+  if (options::partitionStrategy() == "strict-cube"){
+
+    // If we're at the last cube
+    if (d_numPartitionsSoFar == d_numPartitions - 1)
+    {
+      // For the case where only two partitions are requested: 
+      // We have emitted x1 as a partition, so just emit -x1 as the next one. 
+      // Note: maybe we can do better, but for now it is at least sound.  
+      // And there is no need to wait for another call to makePartitions to execute this code. 
+      if (d_numPartitionsSoFar == 1) {
+        *d_output << d_cubes[0] << "\n";
+        NodeBuilder notBuilder2(kind::NOT);
+        notBuilder2 << d_cubes[0];
+        *d_output << notBuilder2.constructNode() << "\n";
+
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << d_assertedLemmas.front();
+        Node lemma = notBuilder.constructNode();
+        return TrustNode::mkTrustLemma(lemma);
+      }
+      // If we ask for more than two partitions. 
+      else {
+        // Last partition
+        // Dump and assert the negation of the previous cubes
+
+        // from i=1 to n where n is the number of requested cubes:
+        // c1 & !c2 & !c3 
+        // !c1 & c2
+        for (int i = 0; i < d_numPartitions - 1; ++i) {
+          NodeBuilder cubeBuilder(kind::AND);
+          for (int j =  0; j < d_numPartitions - 1; ++j) {
+            if (i == j) {
+              cubeBuilder << d_cubes[j];
+            }
+            else {
+              NodeBuilder cubeNotter(kind::NOT);
+              cubeNotter << d_cubes[j];
+              cubeBuilder << cubeNotter.constructNode();
+            }
+          }
+          *d_output << cubeBuilder.constructNode() << "\n";
+        }
+  
+          NodeBuilder cubeBuilder(kind::AND);
+          for (int j =  0; j < d_numPartitions - 1; ++j) {
+              NodeBuilder cubeNotter(kind::NOT);
+              cubeNotter << d_cubes[j];
+              cubeBuilder << cubeNotter.constructNode();
+          }
+          *d_output << cubeBuilder.constructNode() << "\n";
+
+        NodeBuilder orBuilder(kind::OR);
+
+        // Make a trustnode of everything in list and call conflict.
+        for (const auto d : d_assertedLemmas) orBuilder << d;
+
+        // disj is an OR of all the previously asserted lemmas. 
+        // in other words, it is a disjunction of the negation of all the cubes.  
+        Node disj = orBuilder.constructNode();
+  
+  
+        // return a mktrust of false.
+        NodeBuilder andBuilder(kind::AND);
+
+        for (const auto d : d_assertedLemmas) andBuilder << d;
+        Node conj = andBuilder.constructNode();
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << conj;
+        Node lemma = notBuilder.constructNode();
+        ++d_numPartitionsSoFar;
+  
+        return TrustNode::mkTrustLemma(lemma);
+      }
+    }
+  
+    // Not at the last cube
+    else
+    {
+      
+      std::vector<TNode> literals;
+      if (options::decisionStrategy() == "old"){
+        collectLiteralsOld(literals); 
+      }
+      else {
+        collectLiteralsNew(literals); 
+      }
+
+  
+      unsigned conflictSize = (unsigned)log2(d_numPartitions);
+      if (literals.size() >= conflictSize)
+      {
+        std::vector<Node> tmpLiterals(literals.begin(),
+                                      literals.begin() + conflictSize);
+        Node conj = NodeManager::currentNM()->mkAnd(tmpLiterals);
+        d_cubes.push_back(conj);
+  
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << conj;
+        Node lemma = notBuilder.constructNode();
+  
+        ++d_numPartitionsSoFar;
+        d_assertedLemmas.push_back(lemma);
+  
+        TrustNode trustedLemma = TrustNode::mkTrustLemma(lemma);
+        return trustedLemma;
+      }
+    }
+  
+    if (d_partitionFile != "")
+    {
+      d_partitionFileStream.close();
+    }
+  
+    return TrustNode::null();
+  }
+
 
   // Old way of doing things:
   // On each standard check, create a cube, e.g. x1 & x2 with at least conflcitSize variables.
@@ -149,7 +289,13 @@ TrustNode Splitter::makePartitions()
     {
       
       std::vector<TNode> literals;
-      collectLiterals(literals); 
+      if (options::decisionStrategy() == "old"){
+        collectLiteralsOld(literals); 
+      }
+      else {
+        collectLiteralsNew(literals); 
+      }
+
   
       /*
       If we don't emit any conflict, then the result is valid.
@@ -284,7 +430,12 @@ TrustNode Splitter::makePartitions()
     {
       
       std::vector<TNode> literals;
-      collectLiterals(literals); 
+      if (options::decisionStrategy() == "old"){
+        collectLiteralsOld(literals); 
+      }
+      else {
+        collectLiteralsNew(literals); 
+      } 
   
       unsigned conflictSize = (unsigned)log2(d_numPartitions);
       if (literals.size() >= conflictSize)
@@ -366,7 +517,13 @@ TrustNode Splitter::makePartitions()
     {
       
       std::vector<TNode> literals;
-      collectLiterals(literals); 
+      if (options::decisionStrategy() == "old"){
+        collectLiteralsOld(literals); 
+      }
+      else {
+        collectLiteralsNew(literals); 
+      }
+       
   
       unsigned conflictSize = (unsigned)log2(d_numPartitions);
       if (literals.size() >= conflictSize)
@@ -405,7 +562,12 @@ TrustNode Splitter::makePartitions()
   if (options::partitionStrategy() == "full-trail" && d_numChecks >= options::numChecks()) {
     
     std::vector<TNode> literals;
-    collectLiterals(literals); 
+      if (options::decisionStrategy() == "old"){
+        collectLiteralsOld(literals); 
+      }
+      else {
+        collectLiteralsNew(literals); 
+      }
 
     unsigned conflictSize = (unsigned)log2(d_numPartitions);
     if (literals.size() >= conflictSize)
