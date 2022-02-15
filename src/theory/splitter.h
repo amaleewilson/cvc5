@@ -70,6 +70,7 @@ class Splitter
   std::ostream* d_output;
   std::list<Node> d_assertedLemmas;
   std::vector<Node> d_cubes;
+  TrustNode makeFinalConflict();
   void collectLiteralsOld(std::vector<TNode>& literals);
   void collectLiteralsNew(std::vector<TNode>& literals);
 };

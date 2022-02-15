@@ -24,6 +24,7 @@
 #include "theory/theory_id.h"
 #include "theory/theory_traits.h"
 #include "prop/zero_level_learner.h"
+#include "prop/theory_proxy.h"
 
 using namespace std;
 using namespace cvc5::theory;
@@ -144,25 +145,31 @@ TrustNode Splitter::makePartitions()
         // Dump and assert the negation of the previous cubes
 
         // from i=1 to n where n is the number of requested cubes:
-        // c1 & !c2 & !c3
-        // !c1 & c2
+        // c1
+        // !c1 &  c2
+        // !c1 & !c2 &  c3
+        // !c1 & !c2 & !c3
+         NodeManager* nm = NodeManager::currentNM();
         for (int i = 0; i < d_numPartitions - 1; ++i)
         {
-          NodeBuilder cubeBuilder(kind::AND);
+          vector<Node> stuff_to_and;
           for (int j = 0; j < i+1; ++j)
           {
             if (i == j)
             {
-              cubeBuilder << d_cubes[j];
+              stuff_to_and.push_back(d_cubes[j]);
+              //cubeBuilder << d_cubes[j];
             }
             else
             {
               NodeBuilder cubeNotter(kind::NOT);
               cubeNotter << d_cubes[j];
-              cubeBuilder << cubeNotter.constructNode();
+              stuff_to_and.push_back(cubeNotter.constructNode());
             }
           }
-          *d_output << cubeBuilder.constructNode() << "\n";
+          *d_output << nm->mkAnd(stuff_to_and) << "\n";
+
+          //*d_output << cubeBuilder.constructNode() << "\n";
         }
 
         NodeBuilder cubeBuilder(kind::AND);
@@ -238,116 +245,125 @@ TrustNode Splitter::makePartitions()
   }
 
 // TODO !
-  //// if (options::partitionStrategy() == "ll-to-all-revised")
-  //// {
-  ////   // If we're at the last cube
-  ////   if (d_numPartitionsSoFar == d_numPartitions - 1)
-  ////   {
-  ////     // For the case where only two partitions are requested:
-  ////     // We have emitted x1 as a partition, so just emit -x1 as the next one.
-  ////     // Note: maybe we can do better, but for now it is at least sound.
-  ////     // And there is no need to wait for another call to makePartitions to
-  ////     // execute this code.
-  ////     if (d_numPartitionsSoFar == 1)
-  ////     {
-  ////       *d_output << d_cubes[0] << "\n";
-  ////       NodeBuilder notBuilder2(kind::NOT);
-  ////       notBuilder2 << d_cubes[0];
-  ////       *d_output << notBuilder2.constructNode() << "\n";
+   if (options::partitionStrategy() == "ll-to-all-revised")
+   {
+     // If we're at the last cube
+     if (d_numPartitionsSoFar == d_numPartitions - 1)
+     {
+       // For the case where only two partitions are requested:
+       // We have emitted x1 as a partition, so just emit -x1 as the next one.
+       // Note: maybe we can do better, but for now it is at least sound.
+       // And there is no need to wait for another call to makePartitions to
+       // execute this code.
+       if (d_numPartitionsSoFar == 1)
+       {
+         NodeManager* nm = NodeManager::currentNM();
+         std::vector<Node> stuff_to_and;
+         for (auto ll : d_propEngine->getLearnedZeroLevelLiterals()) stuff_to_and.push_back(ll);
+         for (auto ll : d_propEngine->getLearnedZeroLevelLiterals()) std::cout << "learned lit " << ll <<std::endl;
+         stuff_to_and.push_back(d_cubes[0]);
+         *d_output << nm->mkAnd(stuff_to_and) << "\n";
 
-  ////       NodeBuilder notBuilder(kind::NOT);
-  ////       notBuilder << d_assertedLemmas.front();
-  ////       Node lemma = notBuilder.constructNode();
-  ////       return TrustNode::mkTrustLemma(lemma);
-  ////     }
-  ////     // If we ask for more than two partitions.
-  ////     else
-  ////     {
-  ////       std::unordered_set<Node>& learned_lits = getLearnedZeroLevelLiterals();
+         std::vector<Node> stuff_to_and2;
+         for (auto ll : d_propEngine->getLearnedZeroLevelLiterals()) stuff_to_and2.push_back(ll);
+         NodeBuilder notBuilder2(kind::NOT);
+         notBuilder2 << d_cubes[0];
+         stuff_to_and2.push_back(notBuilder2.constructNode());
+         *d_output << nm->mkAnd(stuff_to_and2) << "\n";
 
-  ////       for (int i = 0; i < d_numPartitions - 1; ++i)
-  ////       {
-  ////         NodeBuilder cubeBuilder(kind::AND);
-  ////         cubeBuilder << d_cubes[i];
-  ////         for (Node ll : learned_lits)
-  ////         {
-  ////             cubeBuilder << ll;
-  ////         }
-  ////         *d_output << cubeBuilder.constructNode() << "\n";
-  ////       }
+         NodeBuilder notBuilder(kind::NOT);
+         notBuilder << d_assertedLemmas.front();
+         Node lemma = notBuilder.constructNode();
+         return TrustNode::mkTrustLemma(lemma);
+       }
+       // If we ask for more than two partitions.
+       else
+       {
+         std::unordered_set<Node> learned_lits = d_propEngine->getLearnedZeroLevelLiterals();
 
-  ////       NodeBuilder cubeBuilder(kind::AND);
-  ////       for (int j = 0; j < d_numPartitions - 1; ++j)
-  ////       {
-  ////         NodeBuilder cubeNotter(kind::NOT);
-  ////         cubeNotter << d_cubes[j];
-  ////         cubeBuilder << cubeNotter.constructNode();
-  ////       }
-  ////       *d_output << cubeBuilder.constructNode() << "\n";
+         for (int i = 0; i < d_numPartitions - 1; ++i)
+         {
+           NodeBuilder cubeBuilder(kind::AND);
+           cubeBuilder << d_cubes[i];
+           for (Node ll : learned_lits)
+           {
+               cubeBuilder << ll;
+           }
+           *d_output << cubeBuilder.constructNode() << "\n";
+         }
 
-  ////       NodeBuilder orBuilder(kind::OR);
+         NodeBuilder cubeBuilder(kind::AND);
+         for (int j = 0; j < d_numPartitions - 1; ++j)
+         {
+           NodeBuilder cubeNotter(kind::NOT);
+           cubeNotter << d_cubes[j];
+           cubeBuilder << cubeNotter.constructNode();
+         }
+         *d_output << cubeBuilder.constructNode() << "\n";
 
-  ////       // Make a trustnode of everything in list and call conflict.
-  ////       for (const auto d : d_assertedLemmas) orBuilder << d;
+         NodeBuilder orBuilder(kind::OR);
 
-  ////       // disj is an OR of all the previously asserted lemmas.
-  ////       // in other words, it is a disjunction of the negation of all the cubes.
-  ////       Node disj = orBuilder.constructNode();
+         // Make a trustnode of everything in list and call conflict.
+         for (const auto d : d_assertedLemmas) orBuilder << d;
 
-  ////       // return a mktrust of false.
-  ////       NodeBuilder andBuilder(kind::AND);
+         // disj is an OR of all the previously asserted lemmas.
+         // in other words, it is a disjunction of the negation of all the cubes.
+         Node disj = orBuilder.constructNode();
 
-  ////       for (const auto d : d_assertedLemmas) andBuilder << d;
-  ////       Node conj = andBuilder.constructNode();
-  ////       NodeBuilder notBuilder(kind::NOT);
-  ////       notBuilder << conj;
-  ////       Node lemma = notBuilder.constructNode();
-  ////       ++d_numPartitionsSoFar;
+         // return a mktrust of false.
+         NodeBuilder andBuilder(kind::AND);
 
-  ////       return TrustNode::mkTrustLemma(lemma);
-  ////     }
-  ////   }
+         for (const auto d : d_assertedLemmas) andBuilder << d;
+         Node conj = andBuilder.constructNode();
+         NodeBuilder notBuilder(kind::NOT);
+         notBuilder << conj;
+         Node lemma = notBuilder.constructNode();
+         ++d_numPartitionsSoFar;
 
-  ////   // Not at the last cube
-  ////   else
-  ////   {
-  ////     std::vector<TNode> literals;
-  ////     if (options::decisionStrategy() == "old")
-  ////     {
-  ////       collectLiteralsOld(literals);
-  ////     }
-  ////     else
-  ////     {
-  ////       collectLiteralsNew(literals);
-  ////     }
+         return TrustNode::mkTrustLemma(lemma);
+       }
+     }
 
-  ////     unsigned conflictSize = (unsigned)log2(d_numPartitions);
-  ////     if (literals.size() >= conflictSize)
-  ////     {
-  ////       std::vector<Node> tmpLiterals(literals.begin(),
-  ////                                     literals.begin() + conflictSize);
-  ////       Node conj = NodeManager::currentNM()->mkAnd(tmpLiterals);
-  ////       d_cubes.push_back(conj);
+     // Not at the last cube
+     else
+     {
+       std::vector<TNode> literals;
+       if (options::decisionStrategy() == "old")
+       {
+         collectLiteralsOld(literals);
+       }
+       else
+       {
+         collectLiteralsNew(literals);
+       }
 
-  ////       NodeBuilder notBuilder(kind::NOT);
-  ////       notBuilder << conj;
-  ////       Node lemma = notBuilder.constructNode();
+       unsigned conflictSize = (unsigned)log2(d_numPartitions);
+       if (literals.size() >= conflictSize)
+       {
+         std::vector<Node> tmpLiterals(literals.begin(),
+                                       literals.begin() + conflictSize);
+         Node conj = NodeManager::currentNM()->mkAnd(tmpLiterals);
+         d_cubes.push_back(conj);
 
-  ////       ++d_numPartitionsSoFar;
-  ////       d_assertedLemmas.push_back(lemma);
+         NodeBuilder notBuilder(kind::NOT);
+         notBuilder << conj;
+         Node lemma = notBuilder.constructNode();
 
-  ////       TrustNode trustedLemma = TrustNode::mkTrustLemma(lemma);
-  ////       return trustedLemma;
-  ////     }
-  ////   }
+         ++d_numPartitionsSoFar;
+         d_assertedLemmas.push_back(lemma);
 
-  ////   if (d_partitionFile != "")
-  ////   {
-  ////     d_partitionFileStream.close();
-  ////   }
+         TrustNode trustedLemma = TrustNode::mkTrustLemma(lemma);
+         return trustedLemma;
+       }
+     }
 
-  ////   return TrustNode::null();
-  //// }
+     if (d_partitionFile != "")
+     {
+       d_partitionFileStream.close();
+     }
+
+     return TrustNode::null();
+   }
 
   // Old way of doing things:
   // On each standard check, create a cube, e.g. x1 & x2 with at least
