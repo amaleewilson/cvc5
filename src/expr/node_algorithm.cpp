@@ -537,6 +537,37 @@ void getSymbols(TNode n,
   } while (!visit.empty());
 }
 
+// I am hoping that this gets all subterms. 
+void getSubterms(TNode n,
+                     bool topLevel,
+                     std::unordered_set<Node>& ts)
+{
+  std::unordered_set<TNode> visited;
+  std::vector<TNode> visit;
+  TNode cur;
+  visit.push_back(n);
+  do
+  {
+    cur = visit.back();
+    visit.pop_back();
+    if (visited.find(cur) == visited.end())
+    {
+      visited.insert(cur);
+        ts.insert(cur);
+        if (topLevel)
+        {
+          // only considering top-level applications
+          continue;
+        }
+      if (cur.hasOperator())
+      {
+        visit.push_back(cur.getOperator());
+      }
+      visit.insert(visit.end(), cur.begin(), cur.end());
+    }
+  } while (!visit.empty());
+}
+
 void getKindSubterms(TNode n,
                      Kind k,
                      bool topLevel,
