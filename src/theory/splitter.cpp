@@ -236,7 +236,8 @@ TrustNode Splitter::makePartitions()
   }
 
 // TODO !
-   if (options::partitionStrategy() == "ll-to-all-revised")
+   if (options::partitionStrategy() == "ll-to-all-revised"
+        && d_numChecks >= options::numChecks())
    {
      if (d_numPartitionsSoFar == d_numPartitions - 1)
      {
