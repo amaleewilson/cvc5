@@ -1,7 +1,5 @@
 ; COMMAND-LINE: -q
 ; EXPECT: unsat
-; DISABLE-TESTER: unsat-core
-; DISABLE-TESTER: proof
 (set-logic ALL)
 (set-option :miniscope-quant true)
 (set-option :sygus-inference true)

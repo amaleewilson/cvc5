@@ -18,8 +18,8 @@
 #ifndef CVC5__THEORY__ARITH__REWRITER__ADDITION_H
 #define CVC5__THEORY__ARITH__REWRITER__ADDITION_H
 
-#include <iosfwd>
 #include <map>
+#include <iosfwd>
 
 #include "expr/node.h"
 #include "theory/arith/rewriter/ordering.h"

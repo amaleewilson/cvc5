@@ -215,29 +215,28 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId,
               rewriteStackTop.getTheoryId(), rewriteStackTop.d_node, tcpg);
 
           // Put the rewritten node to the top of the stack
-          TNode newNode = response.d_node;
-          TheoryId newTheory = theoryOf(newNode);
-          rewriteStackTop.d_node = newNode;
-          rewriteStackTop.d_theoryId = newTheory;
+          rewriteStackTop.d_node = response.d_node;
+          TheoryId newTheory = theoryOf(rewriteStackTop.d_node);
           // In the pre-rewrite, if changing theories, we just call the other
           // theories pre-rewrite. If the kind of the node was changed, then we
           // pre-rewrite again.
-          if ((originalKind == newNode.getKind()
-               && response.d_status == REWRITE_DONE)
-              || newNode.getNumChildren() == 0)
+          if (originalKind == rewriteStackTop.d_node.getKind()
+              && response.d_status == REWRITE_DONE)
           {
             if (Configuration::isAssertionBuild())
             {
               // REWRITE_DONE should imply that no other pre-rewriting can be
               // done.
+              Node rewritten = rewriteStackTop.d_node;
               Node rewrittenAgain =
-                  preRewrite(newTheory, newNode, nullptr).d_node;
-              Assert(newNode == rewrittenAgain)
-                  << "Rewriter returned REWRITE_DONE for " << newNode
+                  preRewrite(newTheory, rewritten, nullptr).d_node;
+              Assert(rewritten == rewrittenAgain)
+                  << "Rewriter returned REWRITE_DONE for " << rewritten
                   << " but it can be rewritten to " << rewrittenAgain;
             }
             break;
           }
+          rewriteStackTop.d_theoryId = newTheory;
         }
 
         // Cache the rewrite
@@ -304,8 +303,7 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId,
             rewriteStackTop.getTheoryId(), rewriteStackTop.d_node, tcpg);
 
         // We continue with the response we got
-        TNode newNode = response.d_node;
-        TheoryId newTheoryId = theoryOf(newNode);
+        TheoryId newTheoryId = theoryOf(response.d_node);
         if (newTheoryId != rewriteStackTop.getTheoryId()
             || response.d_status == REWRITE_AGAIN_FULL)
         {
@@ -324,16 +322,16 @@ Node Rewriter::rewriteTo(theory::TheoryId theoryId,
 #endif
           break;
         }
-        else if ((response.d_status == REWRITE_DONE
-                  && originalKind == newNode.getKind())
-                 || newNode.getNumChildren() == 0)
+        else if (response.d_status == REWRITE_DONE
+                 && originalKind == response.d_node.getKind())
         {
 #ifdef CVC5_ASSERTIONS
           RewriteResponse r2 =
-              d_theoryRewriters[newTheoryId]->postRewrite(newNode);
-          Assert(r2.d_node == newNode) << r2.d_node << " != " << newNode;
+              d_theoryRewriters[newTheoryId]->postRewrite(response.d_node);
+          Assert(r2.d_node == response.d_node)
+              << r2.d_node << " != " << response.d_node;
 #endif
-          rewriteStackTop.d_node = newNode;
+          rewriteStackTop.d_node = response.d_node;
           break;
         }
         // Check for trivial rewrite loops of size 1 or 2

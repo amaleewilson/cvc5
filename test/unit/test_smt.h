@@ -30,6 +30,7 @@
 #include "theory/theory_state.h"
 #include "theory/valuation.h"
 #include "util/resource_manager.h"
+#include "util/unsafe_interrupt_exception.h"
 
 namespace cvc5 {
 namespace test {

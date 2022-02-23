@@ -263,7 +263,7 @@ class PropEngine : protected EnvObj
 
   /**
    * Informs the ResourceManager that a resource has been spent.  If out of
-   * resources, the solver is interrupted using a callback.
+   * resources, can throw an UnsafeInterruptException exception.
    */
   void spendResource(Resource r);
 

@@ -1,7 +1,8 @@
-; COMMAND-LINE: -q
-; EXPECT: sat
+; COMMAND-LINE: --check-model
+; EXPECT: (error "Cannot run check-model on a model with approximate values.")
+; EXIT: 1
 (set-logic QF_UFNRAT)
-(set-info :status sat)
+(set-option :produce-models true)
 (declare-fun b (Real) Real)
 (declare-fun v () Real)
 (assert (distinct 0 (* v v)))

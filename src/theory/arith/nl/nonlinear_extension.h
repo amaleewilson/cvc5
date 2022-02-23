@@ -278,6 +278,11 @@ class NonlinearExtension : EnvObj
    * NlModel::getModelValueRepair.
    */
   std::map<Node, std::pair<Node, Node>> d_approximations;
+  /**
+   * The witnesses computed during collectModelInfo. For details, see
+   * NlModel::getModelValueRepair.
+   */
+  std::map<Node, Node> d_witnesses;
 }; /* class NonlinearExtension */
 
 }  // namespace nl

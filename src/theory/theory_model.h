@@ -358,16 +358,10 @@ class TheoryModel : protected EnvObj
   std::string debugPrintModelEqc() const;
 
   /**
-   * Is the node n a "value"? This is true if n is a "base value", where
-   * a base value is one where isConst() returns true, a constant-like
-   * value (e.g. a real algebraic number) or if n is a lambda or witness
-   * term.
-   *
-   * We also return true for rewritten nodes whose leafs are base values.
-   * For example, (str.++ (witness ((x String)) (= (str.len x) 1000)) "A") is
-   * a value.
+   * Is the node n a "value"? This is true if n is constant, a constant-like
+   * value (e.g. a real algebraic number) or if n is a lambda.
    */
-  bool isValue(TNode node) const;
+  static bool isValue(TNode node);
 
  protected:
   /** Unique name of this model */
@@ -422,12 +416,6 @@ class TheoryModel : protected EnvObj
    * a model builder constructs this model.
    */
   virtual void addTermInternal(TNode n);
-  /**
-   * Is base model value?  This is a helper method for isValue, returns true
-   * if n is a base model value.
-   */
-  bool isBaseModelValue(TNode n) const;
-
  private:
   /** cache for getModelValue */
   mutable std::unordered_map<Node, Node> d_modelCache;

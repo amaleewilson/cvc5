@@ -136,37 +136,23 @@ void AstPrinter::toStream(std::ostream& out, const CommandStatus* s) const
 
 void AstPrinter::toStream(std::ostream& out, const smt::Model& m) const
 {
-  out << "Model(" << std::endl;
-  this->Printer::toStream(out, m);
-  out << ")" << std::endl;
+  out << "Model()";
 }
 
 void AstPrinter::toStreamModelSort(std::ostream& out,
                                    TypeNode tn,
                                    const std::vector<Node>& elements) const
 {
-  out << "(" << tn << "(";
-  bool firstTime = true;
-  for (const Node& elem : elements)
-  {
-    if (firstTime)
-    {
-      firstTime = false;
-    }
-    else
-    {
-      out << " ";
-    }
-    out << elem;
-  }
-  out << "))" << std::endl;
+  // shouldn't be called; only the non-Command* version above should be
+  Unreachable();
 }
 
 void AstPrinter::toStreamModelTerm(std::ostream& out,
                                    const Node& n,
                                    const Node& value) const
 {
-  out << "(" << n << " " << value << ")" << std::endl;
+  // shouldn't be called; only the non-Command* version above should be
+  Unreachable();
 }
 
 void AstPrinter::toStreamCmdEmpty(std::ostream& out,

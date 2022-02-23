@@ -65,7 +65,6 @@ set(regress_0_tests
   regress0/arith/issue5219-conflict-rewrite.smt2
   regress0/arith/issue5761-ppr.smt2
   regress0/arith/issue7984-quant-trans.smt2
-  regress0/arith/issue8097-iid.smt2
   regress0/arith/ite-lift.smt2
   regress0/arith/leq.01.smtv1.smt2
   regress0/arith/miplib.cvc.smt2
@@ -636,7 +635,6 @@ set(regress_0_tests
   regress0/fuzz_3.smtv1.smt2
   regress0/get-value-incremental.smt2
   regress0/get-value-ints.smt2
-  regress0/get-value-no-evaluate.smt2
   regress0/get-value-reals-ints.smt2
   regress0/get-value-reals.smt2
   regress0/ho/apply-collapse-sat.smt2
@@ -765,7 +763,6 @@ set(regress_0_tests
   regress0/nl/issue5737-div00.smt2
   regress0/nl/issue5740-mod00.smt2
   regress0/nl/issue5740-2-mod00.smt2
-  regress0/nl/issue8135-icp-candidates.smt2
   regress0/nl/magnitude-wrong-1020-m.smt2
   regress0/nl/mult-po.smt2
   regress0/nl/nia-wrong-tl.smt2
@@ -1737,7 +1734,6 @@ set(regress_1_tests
   regress1/datatypes/dt-param-card4-unsat.smt2
   regress1/datatypes/issue3266-small.smt2
   regress1/datatypes/issue4851-cdt-model.smt2
-  regress1/datatypes/issue8124-real-int-cg.smt2
   regress1/datatypes/issue-variant-dt-zero.smt2
   regress1/datatypes/manos-model.smt2
   regress1/datatypes/non-simple-rec.smt2
@@ -1805,7 +1801,6 @@ set(regress_1_tests
   regress1/fmf/issue6690-re-enum.smt2
   regress1/fmf/issue6744-2-unc-bool-var.smt2
   regress1/fmf/issue6744-3-unc-bool-var.smt2
-  regress1/fmf/issue8096-non-const-rep.smt2
   regress1/fmf/issue916-fmf-or.smt2
   regress1/fmf/jasmin-cdt-crash.smt2
   regress1/fmf/ko-bound-set.cvc.smt2
@@ -1931,7 +1926,6 @@ set(regress_1_tests
   regress1/nl/sugar-ident-3.smt2
   regress1/nl/sugar-ident.smt2
   regress1/nl/tan-rewrite2.smt2
-  regress1/nl/transcedental_model_simple.smt2
   regress1/nl/zero-subset.smt2
   regress1/non-fatal-errors.smt2
   regress1/proj-issue175.smt2
@@ -2426,7 +2420,6 @@ set(regress_1_tests
   regress1/strings/issue6973-dup-lemma-conc.smt2
   regress1/strings/issue7677-test-const-rv.smt2 
   regress1/strings/issue7918-learned-rewrite.smt2
-  regress1/strings/issue8094-witness-model.smt2
   regress1/strings/kaluza-fl.smt2
   regress1/strings/loop002.smt2
   regress1/strings/loop003.smt2
@@ -2511,7 +2504,6 @@ set(regress_1_tests
   regress1/strings/update-ex1.smt2
   regress1/strings/update-ex2.smt2
   regress1/strings/username_checker_min.smt2
-  regress1/strings/witness-model.smt2
   regress1/sygus/VC22_a.sy
   regress1/sygus/abv.sy
   regress1/sygus/array-grammar-store.sy
