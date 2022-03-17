@@ -135,11 +135,14 @@ TrustNode PartitionGenerator::makeRevisedPartitions()
   // At the last cube
   else
   {
-    vector<Node> nots;
-    for (auto c : d_cubes) nots.push_back(c.notNode());
-    Node lemma = NodeManager::currentNM()->mkAnd(nots);
-    // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1)
-    emitCube(lemma);
+    // vector<Node> nots;
+    // for (auto c : d_cubes) nots.push_back(c.notNode());
+    // Node lemma = NodeManager::currentNM()->mkAnd(nots);
+    
+    Node lemma = NodeManager::currentNM()->mkOr(d_cubes);
+    // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1),
+    // which is the same as not(cube_one or cube_two or ... or cube_n-1)
+    emitCube(lemma.notNode());
     return stopPartitioning();
   }
 }

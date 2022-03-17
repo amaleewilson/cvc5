@@ -708,9 +708,51 @@ void Solver::resetTrail() { cancelUntil(0); }
 //=================================================================================================
 // Major methods:
 
-
+int visits = 0;
 Lit Solver::pickBranchLit()
 {
+  int target_visits = 1;
+  if (visits < target_visits) {
+  visits++; 
+
+  double seed = 42;
+  double& my_seed = seed;
+
+  int num_parts = 200;
+  std::vector<Node> part_nodes; 
+  std::vector<std::vector<Node> > result_node_lists(num_parts); 
+  // for num_parts partitions, make some random assignment. 
+  for (int i = 0; i < num_parts; i++){
+    for (int j = 0; j < order_heap.size(); ++j) {
+      Node dec = d_proxy->getNode(order_heap[j]);
+      if (irand(my_seed,2) == 0) {
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << dec;
+        Node lemma = notBuilder.constructNode();
+        result_node_lists[i].push_back(lemma);
+      }
+      else {
+        result_node_lists[i].push_back(dec);
+      }
+    }
+  }
+
+
+    for (std::vector<Node> lst : result_node_lists) {
+      Node conj = NodeManager::currentNM()->mkAnd(lst);
+      std::cout << conj << std::endl;
+    }
+
+      // NodeBuilder notBuilder(kind::NOT);
+      // notBuilder << dec;
+      // Node lemma = notBuilder.constructNode();
+      // std::cout << lemma << std::endl;
+  }
+
+  // TODO: 
+  // - Figure out how to stop execution from here. 
+  // - Use this for the next random node: value(next) == l_Undef && decision[next]
+    
     Lit nextLit;
 
     // Theory requests
