@@ -54,7 +54,17 @@ PartitionGenerator::PartitionGenerator(Env& env,
 std::vector<TNode> PartitionGenerator::collectDecisionLiterals()
 {
   std::vector<TNode> literals;
-  std::vector<Node> decisionNodes = d_propEngine->getPropDecisions();
+  std::vector<Node> decisionNodes;
+  if (options().parallel.partitionStrategy
+      == options::PartitionMode::HEAP_TRAIL)
+  {
+    decisionNodes = d_propEngine->getPropOrderHeap();
+  }
+  else
+  {
+    decisionNodes = d_propEngine->getPropDecisions();
+  }
+
   // Make sure the literal does not have a boolean term or skolem in it.
   const std::unordered_set<Kind, kind::KindHashFunction> kinds = {
       kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE, kind::CONST_BOOLEAN};
@@ -124,7 +134,23 @@ TrustNode PartitionGenerator::makeRevisedPartitions()
     literals.resize(d_conflictSize);
     // Make first cube and emit it.
     Node conj = NodeManager::currentNM()->mkAnd(literals);
-    emitCube(conj);
+
+    if (options().parallel.partitionStrategy
+        == options::PartitionMode::STRICT_CUBE)
+    {
+      vector<Node> nots;
+      for (auto c : d_cubes) nots.push_back(c.notNode());
+      Node lemma = NodeManager::currentNM()->mkAnd(nots);
+
+      std::vector<TNode> toConj = {conj, lemma};
+      Node to_emit = NodeManager::currentNM()->mkAnd(toConj);
+      emitCube(to_emit);
+    }
+    else
+    {
+      emitCube(conj);
+    }
+
     // Add to the list of cubes.
     d_cubes.push_back(conj);
     return blockPath(conj);
@@ -139,6 +165,13 @@ TrustNode PartitionGenerator::makeRevisedPartitions()
     emitCube(lemma);
     return stopPartitioning();
   }
+}
+
+TrustNode PartitionGenerator::makeFullTrailPartitions()
+{
+  std::vector<TNode> literals = collectDecisionLiterals();
+  int num_var = static_cast<int>(log2(d_numPartitions));
+  literals.resize(num_var);
 }
 
 TrustNode PartitionGenerator::makePartitions(Theory::Effort e)
@@ -162,6 +195,10 @@ TrustNode PartitionGenerator::makePartitions(Theory::Effort e)
   switch (options().parallel.partitionStrategy)
   {
     case options::PartitionMode::REVISED: return makeRevisedPartitions();
+    case options::PartitionMode::STRICT_CUBE: return makeRevisedPartitions();
+    case options::PartitionMode::DECISION_TRAIL:
+      return makeFullTrailPartitions();
+    case options::PartitionMode::HEAP_TRAIL: return makeFullTrailPartitions();
     default: return TrustNode::null();
   }
 }

@@ -293,88 +293,89 @@ const vec<Lit>& getMiniSatDecisions() {
   return trail; 
 }
 
- // Read state:
- //
- lbool value(Var x) const;  // The current value of a variable.
- lbool value(Lit p) const;  // The current value of a literal.
- lbool modelValue(
-     Var x) const;  // The value of a variable in the last model. The last call
-                    // to solve must have been satisfiable.
- lbool modelValue(
-     Lit p) const;  // The value of a literal in the last model. The last call
-                    // to solve must have been satisfiable.
- int nAssigns() const;  // The current number of assigned literals.
- int nClauses() const;  // The current number of original clauses.
- int nLearnts() const;  // The current number of learnt clauses.
- int nVars() const;     // The current number of variables.
- int nFreeVars() const;
- bool isDecision(Var x) const;  // is the given var a decision?
+const std::vector<Node> getMiniSatOrderHeap();
 
- // Debugging SMT explanations
- //
- bool properExplanation(Lit l, Lit expl)
-     const;  // returns true if expl can be used to explain l---i.e., both
-             // assigned and trail_index(expl) < trail_index(l)
+// Read state:
+//
+lbool value(Var x) const;  // The current value of a variable.
+lbool value(Lit p) const;  // The current value of a literal.
+lbool modelValue(
+    Var x) const;  // The value of a variable in the last model. The last call
+                   // to solve must have been satisfiable.
+lbool modelValue(
+    Lit p) const;  // The value of a literal in the last model. The last call
+                   // to solve must have been satisfiable.
+int nAssigns() const;  // The current number of assigned literals.
+int nClauses() const;  // The current number of original clauses.
+int nLearnts() const;  // The current number of learnt clauses.
+int nVars() const;     // The current number of variables.
+int nFreeVars() const;
+bool isDecision(Var x) const;  // is the given var a decision?
 
- // Resource contraints:
- //
- void setConfBudget(int64_t x);
- void setPropBudget(int64_t x);
- void budgetOff();
- void interrupt();  // Trigger a (potentially asynchronous) interruption of the
-                    // solver.
- void clearInterrupt();  // Clear interrupt indicator flag.
+// Debugging SMT explanations
+//
+bool properExplanation(Lit l, Lit expl)
+    const;  // returns true if expl can be used to explain l---i.e., both
+            // assigned and trail_index(expl) < trail_index(l)
 
- // Memory managment:
- //
- virtual void garbageCollect();
- void checkGarbage(double gf);
- void checkGarbage();
+// Resource contraints:
+//
+void setConfBudget(int64_t x);
+void setPropBudget(int64_t x);
+void budgetOff();
+void interrupt();  // Trigger a (potentially asynchronous) interruption of the
+                   // solver.
+void clearInterrupt();  // Clear interrupt indicator flag.
 
- // Extra results: (read-only member variable)
- //
- vec<lbool> model;  // If problem is satisfiable, this vector contains the model
-                    // (if any).
- vec<Lit> d_conflict;  // If problem is unsatisfiable (possibly under
-                       // assumptions), this vector represent the final
-                       // conflict clause expressed in the assumptions.
+// Memory managment:
+//
+virtual void garbageCollect();
+void checkGarbage(double gf);
+void checkGarbage();
 
- // Mode of operation:
- //
- int verbosity;
- double var_decay;
- double clause_decay;
- double random_var_freq;
- double random_seed;
- bool luby_restart;
- int ccmin_mode;    // Controls conflict clause minimization (0=none, 1=basic,
+// Extra results: (read-only member variable)
+//
+vec<lbool> model;  // If problem is satisfiable, this vector contains the model
+                   // (if any).
+vec<Lit> d_conflict;  // If problem is unsatisfiable (possibly under
+                      // assumptions), this vector represent the final
+                      // conflict clause expressed in the assumptions.
+
+// Mode of operation:
+//
+int verbosity;
+double var_decay;
+double clause_decay;
+double random_var_freq;
+double random_seed;
+bool luby_restart;
+int ccmin_mode;     // Controls conflict clause minimization (0=none, 1=basic,
                     // 2=deep).
- int phase_saving;  // Controls the level of phase saving (0=none, 1=limited,
+int phase_saving;   // Controls the level of phase saving (0=none, 1=limited,
                     // 2=full).
- bool rnd_pol;      // Use random polarities for branching heuristics.
- bool
-     rnd_init_act;  // Initialize variable activities with a small random value.
- double garbage_frac;  // The fraction of wasted memory allowed before a garbage
-                       // collection is triggered.
+bool rnd_pol;       // Use random polarities for branching heuristics.
+bool rnd_init_act;  // Initialize variable activities with a small random value.
+double garbage_frac;  // The fraction of wasted memory allowed before a garbage
+                      // collection is triggered.
 
- int restart_first;   // The initial restart limit. (default 100)
- double restart_inc;  // The factor with which the restart limit is multiplied
-                      // in each restart.                    (default 1.5)
- double
-     learntsize_factor;  // The intitial limit for learnt clauses is a factor of
-                         // the original clauses.                (default 1 / 3)
- double learntsize_inc;  // The limit for learnt clauses is multiplied with this
-                         // factor each restart.                 (default 1.1)
+int restart_first;   // The initial restart limit. (default 100)
+double restart_inc;  // The factor with which the restart limit is multiplied
+                     // in each restart.                    (default 1.5)
+double
+    learntsize_factor;  // The intitial limit for learnt clauses is a factor of
+                        // the original clauses.                (default 1 / 3)
+double learntsize_inc;  // The limit for learnt clauses is multiplied with this
+                        // factor each restart.                 (default 1.1)
 
- int learntsize_adjust_start_confl;
- double learntsize_adjust_inc;
+int learntsize_adjust_start_confl;
+double learntsize_adjust_inc;
 
- // Statistics: (read-only member variable)
- //
- int64_t solves, starts, decisions, rnd_decisions, propagations, conflicts,
-     resources_consumed;
- int64_t dec_vars, clauses_literals, learnts_literals, max_literals,
-     tot_literals;
+// Statistics: (read-only member variable)
+//
+int64_t solves, starts, decisions, rnd_decisions, propagations, conflicts,
+    resources_consumed;
+int64_t dec_vars, clauses_literals, learnts_literals, max_literals,
+    tot_literals;
 
 protected:
 
