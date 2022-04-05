@@ -121,6 +121,7 @@ TrustNode PartitionGenerator::makeRevisedPartitions()
   // If we're not at the last cube
   if (d_numPartitionsSoFar < d_numPartitions - 1)
   {
+    // TODO: Add strict cube strategy
     std::vector<TNode> literals = collectDecisionLiterals();
 
     // Make sure we have enough literals.
@@ -235,10 +236,9 @@ TrustNode PartitionGenerator::makePartitions(Theory::Effort e)
 
   switch (options().parallel.partitionStrategy)
   {
-    case options::PartitionMode::REVISED: return makeRevisedPartitions();
+    case options::PartitionMode::REVISED:
     case options::PartitionMode::STRICT_CUBE: return makeRevisedPartitions();
     case options::PartitionMode::DECISION_TRAIL:
-      return makeFullTrailPartitions();
     case options::PartitionMode::HEAP_TRAIL: return makeFullTrailPartitions();
     default: return TrustNode::null();
   }

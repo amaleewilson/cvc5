@@ -708,10 +708,110 @@ void Solver::resetTrail() { cancelUntil(0); }
 //=================================================================================================
 // Major methods:
 
-
+int visits = 0;
+bool sample = false;
+bool partition = false;
+int num_parts = 256;
 Lit Solver::pickBranchLit()
 {
-    Lit nextLit;
+  Lit nextLit;
+  if (sample)
+  {
+    int target_visits = 1;
+    if (visits < target_visits)
+    {
+      visits++;
+      double seed = 2944;
+      double& my_seed = seed;
+
+      // double check that you're only looking at atoms.
+      std::vector<Node> part_nodes;
+      std::vector<std::vector<Node> > result_node_lists(num_parts);
+      // for num_parts partitions, make some random assignment.
+      for (int i = 0; i < num_parts; i++)
+      {
+        for (int j = 0; j < 11; ++j)
+        {
+          Node dec = d_proxy->getNode(order_heap[j]);
+          if (irand(my_seed, 2) == 0)
+          {
+            NodeBuilder notBuilder(kind::NOT);
+            notBuilder << dec;
+            Node lemma = notBuilder.constructNode();
+            result_node_lists[i].push_back(lemma);
+          }
+          else
+          {
+            result_node_lists[i].push_back(dec);
+          }
+        }
+      }
+
+      for (std::vector<Node> lst : result_node_lists)
+      {
+        Node conj = NodeManager::currentNM()->mkAnd(lst);
+        std::cout << conj << std::endl;
+      }
+    }
+  }
+  else if (partition)
+  {
+    int target_visits = 1;
+    int part_depth = int(log2(num_parts));
+    if (visits < target_visits)
+    {
+      visits++;
+      std::vector<Node> part_nodes;
+      for (int i = 0; i < part_depth; ++i)
+      {
+        Node dec = d_proxy->getNode(order_heap[i]);
+        // Below code gets random variables.
+        // Node dec =
+        // d_proxy->getNode(order_heap[irand(random_seed,order_heap.size())]);
+        // // prevent repeats.
+        // while (std::find(part_nodes.begin(), part_nodes.end(), dec) !=
+        // part_nodes.end()) {
+        //   dec =
+        //   d_proxy->getNode(order_heap[irand(random_seed,order_heap.size())]);
+        // }
+        part_nodes.push_back(dec);
+      }
+
+      // This complicated thing is basically making a truth table
+      // of length 2^depth so that these can be put together into a partition
+      // later.
+      std::vector<std::vector<Node> > result_node_lists(pow(2, part_depth));
+      bool t = false;
+      int q = part_depth;
+      for (Node n : part_nodes)
+      {
+        NodeBuilder notBuilder(kind::NOT);
+        notBuilder << n;
+        Node lemma = notBuilder.constructNode();
+        // std::cout << "node " << std::endl;
+        int total = pow(2, part_depth);
+        q = q - 1;
+        int loc = 0;
+        for (int z = 0; z < total / pow(2, q); ++z)
+        {
+          t = !t;
+          for (int j = 0; j < pow(2, q); ++j)
+          {
+            // std::cout << j << (t ? "T " : "F ") << " " << loc << std::endl;
+            result_node_lists[loc].push_back((t ? n : lemma));
+            ;
+            ++loc;
+          }
+        }
+      }
+
+      for (std::vector<Node> lst : result_node_lists)
+      {
+        Node conj = NodeManager::currentNM()->mkAnd(lst);
+        std::cout << conj << std::endl;
+      }
+    }
+  }
 
     // Theory requests
     nextLit =
