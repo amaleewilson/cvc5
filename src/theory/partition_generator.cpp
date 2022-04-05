@@ -170,8 +170,49 @@ TrustNode PartitionGenerator::makeRevisedPartitions()
 TrustNode PartitionGenerator::makeFullTrailPartitions()
 {
   std::vector<TNode> literals = collectDecisionLiterals();
-  int num_var = static_cast<int>(log2(d_numPartitions));
-  literals.resize(num_var);
+  uint64_t num_var = static_cast<uint64_t>(log2(d_numPartitions));
+  if (literals.size() >= num_var)
+  {
+    literals.resize(num_var);
+    std::vector<Node> part_nodes;
+    int part_depth = num_var;
+
+    // This complicated thing is basically making a truth table
+    // of length 2^depth so that these can be put together into a partition
+    // later.
+    std::vector<std::vector<Node> > result_node_lists(pow(2, part_depth));
+    std::vector<std::vector<std::string> > testv(pow(2, part_depth));
+    bool t = false;
+    int q = part_depth;
+    for (Node n : literals)
+    {
+      NodeBuilder notBuilder(kind::NOT);
+      notBuilder << n;
+      Node lemma = notBuilder.constructNode();
+      int total = pow(2, part_depth);
+      q = q - 1;
+      int loc = 0;
+      for (int z = 0; z < total / pow(2, q); ++z)
+      {
+        t = !t;
+        for (int j = 0; j < total; ++j)
+        {
+          if (j < pow(2, q))
+          {
+            result_node_lists[loc].push_back((t ? n : lemma));
+            ++loc;
+          }
+        }
+      }
+    }
+    for (std::vector<Node> lst : result_node_lists)
+    {
+      Node conj = NodeManager::currentNM()->mkAnd(lst);
+      emitCube(conj);
+    }
+    return stopPartitioning();
+  }
+  return TrustNode::null();
 }
 
 TrustNode PartitionGenerator::makePartitions(Theory::Effort e)
