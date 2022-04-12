@@ -170,6 +170,7 @@ TrustNode PartitionGenerator::makeRevisedPartitions()
 
 TrustNode PartitionGenerator::makeFullTrailPartitions()
 {
+  auto learnedLits = d_propEngine->getLearnedZeroLevelLiterals();
   std::vector<TNode> literals = collectDecisionLiterals();
   uint64_t num_var = static_cast<uint64_t>(log2(d_numPartitions));
   if (literals.size() >= num_var)
@@ -208,6 +209,9 @@ TrustNode PartitionGenerator::makeFullTrailPartitions()
     }
     for (std::vector<Node> lst : result_node_lists)
     {
+      for (auto ll : learnedLits){
+        lst.push_back(ll);
+      }
       Node conj = NodeManager::currentNM()->mkAnd(lst);
       emitCube(conj);
     }
