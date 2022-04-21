@@ -710,7 +710,7 @@ void Solver::resetTrail() { cancelUntil(0); }
 
 int visits = 0;
 bool sample = false;
-bool partition = true;
+bool partition = false;
 int num_parts = 256;
 Lit Solver::pickBranchLit()
 {
