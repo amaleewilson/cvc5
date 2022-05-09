@@ -92,6 +92,8 @@ class PartitionGenerator : protected EnvObj
    */
   std::vector<Node> collectLiterals(LiteralListType litType);
 
+  std::vector<Node> selectRandomLiterals(std::vector<Node> literals, bool heuristicallyRandom)
+
 /**
  * Returns the d_cubes, the cubes that have been created for partitioning the
  * original problem.

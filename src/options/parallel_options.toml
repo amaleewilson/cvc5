@@ -89,3 +89,27 @@ name   = "Parallel"
   default    = "false"
   help       = "emit learned literals with the cubes"
 
+[[option]]
+  name       = "randomPartitions"
+  category   = "expert"
+  long       = "random-partitions"
+  type       = "bool"
+  default    = "false"
+  help       = "create partitions randomly from the literals"
+
+[[option]]
+  name       = "heuristicRandomPartitions"
+  category   = "expert"
+  long       = "heuristic-random-partitions"
+  type       = "bool"
+  default    = "false"
+  help       = "create partitions randomly from the heuristically chosen literals"
+
+[[option]]
+  name       = "randomPartitionSeed"
+  category   = "expert"
+  long       = "random-partiton-seed=N"
+  type       = "uint64_t"
+  default    = "32492"
+  help       = "random seed for random or heuristically random partitions"
+

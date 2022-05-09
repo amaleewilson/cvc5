@@ -16,6 +16,7 @@
 #include "theory/partition_generator.h"
 
 #include <math.h>
+#include <random>
 
 #include "expr/node_algorithm.h"
 #include "expr/node_builder.h"
@@ -126,6 +127,12 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
   
   return filteredLiterals;
 }
+
+std::vector<Node> PartitionGenerator::selectRandomLiterals(std::vector<Node> literals, bool heuristicallyRandom)
+{
+
+}
+
 
 void PartitionGenerator::emitCube(Node toEmit)
 {
