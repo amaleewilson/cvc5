@@ -92,13 +92,17 @@ class PartitionGenerator : protected EnvObj
    */
   std::vector<Node> collectLiterals(LiteralListType litType);
 
-  std::vector<Node> selectRandomLiterals(std::vector<Node> literals, bool heuristicallyRandom)
+  std::vector<Node> selectRandomLiterals(std::vector<Node> literals,
+                                         bool heuristicallyRandom)
 
-/**
- * Returns the d_cubes, the cubes that have been created for partitioning the
- * original problem.
- */
-std::vector<Node> getPartitions() const { return d_cubes; }
+      /**
+       * Returns the d_cubes, the cubes that have been created for partitioning
+       * the original problem.
+       */
+      std::vector<Node> getPartitions() const
+  {
+    return d_cubes;
+  }
 
 /**
  * Current propEngine.

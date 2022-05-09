@@ -16,6 +16,7 @@
 #include "theory/partition_generator.h"
 
 #include <math.h>
+
 #include <random>
 
 #include "expr/node_algorithm.h"
@@ -128,11 +129,25 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
   return filteredLiterals;
 }
 
-std::vector<Node> PartitionGenerator::selectRandomLiterals(std::vector<Node> literals, bool heuristicallyRandom)
+std::vector<Node> PartitionGenerator::selectRandomLiterals(
+    std::vector<Node> literals, bool heuristicallyRandom)
 {
+  std::default_random_engine randomEngine(options().parallel.randomPartitionSeed);
+  int max = literals.size();
+  if (heuristicallyRandom)
+  {
+    // The idea is just to limit the pool in some reasonable way. 
+   max = pow(2, d_conflictSize + 1);
+  }
 
+  std::vector<Node> randomLiterals;
+
+  for (size_t i = 0; i < d_conflictSize; ++i)
+  {
+    randomLiterals.push_back();
+  }  
+  
 }
-
 
 void PartitionGenerator::emitCube(Node toEmit)
 {
