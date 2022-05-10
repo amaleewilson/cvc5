@@ -244,7 +244,8 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
   {
     if (emitZLL) 
     {
-      std::vector<Node> zllLiterals = d_propEngine->getLearnedZeroLevelLiterals(modes::LearnedLitType::INPUT);
+      std::vector<Node> zllLiterals = d_propEngine->getLearnedZeroLevelLiterals(
+          modes::LearnedLitType::INPUT);
       std::vector<Node>* cubes = strict ? &d_strict_cubes : &d_cubes;
       
       for (const auto& c : *cubes)
@@ -265,7 +266,8 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
     // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1)
     if (emitZLL) 
     {
-      std::vector<Node> zllLiterals = d_propEngine->getLearnedZeroLevelLiterals(modes::LearnedLitType::INPUT);
+      std::vector<Node> zllLiterals = d_propEngine->getLearnedZeroLevelLiterals(
+          modes::LearnedLitType::INPUT);
       zllLiterals.push_back(lemma);
       Node zllLemma = NodeManager::currentNM()->mkAnd(zllLiterals);
       emitCube(zllLemma);
@@ -298,7 +300,7 @@ TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, b
     size_t total = pow(2, numVar);
 
     // resultNodeLists is built column by column. 
-    std::vector<std::vector<TNode> > resultNodeLists(total);
+    std::vector<std::vector<Node> > resultNodeLists(total);
 
     // t is used to determine whether to push the node or its not_node.
     bool t = false;
@@ -336,7 +338,7 @@ TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, b
 
       numConsecutiveTF = numConsecutiveTF / 2;
     }
-    for (const std::vector<TNode>& row : resultNodeLists)
+    for (const std::vector<Node>& row : resultNodeLists)
     {
       Node conj = NodeManager::currentNM()->mkAnd(row);
       if (emitZLL)
@@ -381,10 +383,14 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
   bool emitZLL = options().parallel.appendLearnedLiteralsToCubes;
   switch (options().parallel.partitionStrategy)
   {
-    case options::PartitionMode::HEAP_TRAIL: return makeFullTrailPartitions(/*litType=*/heap, emitZLL); 
-    case options::PartitionMode::DECISION_TRAIL: return makeFullTrailPartitions(/*litType=*/decision, emitZLL); 
-    case options::PartitionMode::STRICT_CUBE: return makeRevisedPartitions(/*strict=*/true, emitZLL); 
-    case options::PartitionMode::REVISED: return makeRevisedPartitions(/*strict=*/false, emitZLL);
+    case options::PartitionMode::HEAP_TRAIL:
+      return makeFullTrailPartitions(/*litType=*/heap, emitZLL);
+    case options::PartitionMode::DECISION_TRAIL:
+      return makeFullTrailPartitions(/*litType=*/decision, emitZLL);
+    case options::PartitionMode::STRICT_CUBE:
+      return makeRevisedPartitions(/*strict=*/true, emitZLL);
+    case options::PartitionMode::REVISED:
+      return makeRevisedPartitions(/*strict=*/false, emitZLL);
     default: return TrustNode::null();
   }
 }
