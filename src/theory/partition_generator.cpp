@@ -138,14 +138,16 @@ std::vector<Node> PartitionGenerator::selectRandomLiterals(
   if (heuristicallyRandom)
   {
     // The idea is just to limit the pool in some reasonable way. 
-   max = pow(2, d_conflictSize + 1);
+    max = pow(2, d_conflictSize + 1);
+    literals.resize(max);
   }
 
+  std::uniform_int_distribution<int> uniformDist(0, max);
   std::vector<Node> randomLiterals;
 
   for (size_t i = 0; i < d_conflictSize; ++i)
   {
-    randomLiterals.push_back();
+    randomLiterals.push_back(literals[uniformDist(randomEngine)]);
   }  
   
 }
@@ -277,8 +279,11 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
 
 TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, bool emitZLL)
 {
+  std::cout << "full trail " << std::endl;
   std::vector<Node> literals = collectLiterals(litType);
+  std::cout << "literals.size() " << literals.size()  << std::endl;
   uint64_t numVar = static_cast<uint64_t>(log2(d_numPartitions));
+  std::cout << "numVar " << numVar << std::endl;
   if (literals.size() >= numVar)
   {
     literals.resize(numVar);
@@ -345,6 +350,8 @@ TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, b
         emitCube(zllConj);
       }
       else {
+        std::cout << "full trail not emitting zll" << std::endl;
+
         emitCube(conj);
       } 
     }
@@ -361,6 +368,10 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
           && Theory::fullEffort(e))
       || (options().parallel.computePartitions < 2))
   {
+    std::cout << "returning trust node" << std::endl;
+    std::cout << "effort is full " << Theory::fullEffort(e)  << std::endl;
+    std::cout << "num partitions " << options().parallel.computePartitions  << std::endl;
+
     return TrustNode::null();
   }
 
@@ -370,6 +381,9 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
   if (d_numChecks < options().parallel.checksBeforePartitioning || 
       d_betweenChecks < options().parallel.checksBetweenPartitions)
   {
+    std::cout << "returning trust node" << std::endl;
+    std::cout << "d_numChecks " << d_numChecks << std::endl;
+    std::cout << "d_betChecks " << d_betweenChecks << std::endl;
     return TrustNode::null();
   }
 
@@ -377,6 +391,7 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
   d_betweenChecks = 0;
 
   bool emitZLL = options().parallel.appendLearnedLiteralsToCubes;
+  std::cout << "emitZLL " << emitZLL << std::endl;
   switch (options().parallel.partitionStrategy)
   {
     case options::PartitionMode::HEAP_TRAIL: return makeFullTrailPartitions(/*litType=*/heap, emitZLL); 
