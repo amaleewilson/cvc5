@@ -149,6 +149,8 @@ std::vector<Node> PartitionGenerator::selectRandomLiterals(
   {
     randomLiterals.push_back(literals[uniformDist(randomEngine)]);
   }  
+
+  return randomLiterals;
   
 }
 
@@ -179,7 +181,7 @@ TrustNode PartitionGenerator::stopPartitioning() const
 // C2 = l2_{1} & .... & l2_{d_conflictSize}
 // C3 = l3_{1} & .... & l3_{d_conflictSize}
 // C4 = !C1 & !C2 & !C3
-TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
+TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL, bool random)
 {
   // If we're not at the last cube
   if (d_numPartitionsSoFar < d_numPartitions - 1)
