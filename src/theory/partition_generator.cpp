@@ -39,7 +39,8 @@ PartitionGenerator::PartitionGenerator(Env& env,
       d_numPartitions(options().parallel.computePartitions),
       d_numChecks(0),
       d_betweenChecks(0),
-      d_numPartitionsSoFar(0)
+      d_numPartitionsSoFar(0),
+      d_emittedCubes(false)
 {
   d_valuation = std::make_unique<Valuation>(theoryEngine);
   d_propEngine = propEngine;
@@ -51,6 +52,9 @@ PartitionGenerator::PartitionGenerator(Env& env,
   }
 }
 
+bool PartitionGenerator::emittedCubes() {
+  return d_emittedCubes;
+}
 std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
 {
   std::vector<Node> filteredLiterals;
@@ -253,6 +257,7 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
     else {
       emitCube(lemma);
     }
+    d_emittedCubes = true;
     return stopPartitioning();
   }
 }
@@ -330,6 +335,7 @@ TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, b
         emitCube(conj);
       } 
     }
+    d_emittedCubes = true;
     return stopPartitioning();
   }
   return TrustNode::null();

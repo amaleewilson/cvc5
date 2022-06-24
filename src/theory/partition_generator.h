@@ -49,7 +49,8 @@ class PartitionGenerator : protected EnvObj
    */
   TrustNode check(Theory::Effort e);
 
- private:
+  bool emittedCubes();
+
   /* LiteralListType is used to specify where to pull literals from when calling
    * collectLiterals. HEAP for the order_heap in the SAT solver, DECISION for
    * the decision trail in the SAT solver, and ZLL for the zero-level learned
@@ -62,10 +63,28 @@ class PartitionGenerator : protected EnvObj
     ZLL
   };
   /**
+   * Get a list of literals.
+   * litType specifies whether to pull from the decision trail in the sat solver,
+   * from the order heap in the sat solver, or from the zero level learned literals.
+   */
+  std::vector<Node> collectLiterals(LiteralListType litType);
+
+/**
+ * Returns the d_cubes, the cubes that have been created for partitioning the
+ * original problem.
+ */
+
+std::vector<Node> getPartitions() const { return d_cubes; }
+std::vector<Node> getStrictPartitions() const { return d_strict_cubes; }
+
+
+  /**
    * Increment d_numPartitionsSoFar and print the cube to 
    * the output file specified by --write-partitions-to. 
    */
   void emitCube(Node toEmit);
+
+ private:
 
   /**
    * Partition using the "revised" strategy, which emits cubes such as C1, C2,
@@ -99,20 +118,6 @@ class PartitionGenerator : protected EnvObj
    */
   TrustNode stopPartitioning() const;
 
-  /**
-   * Get a list of literals.
-   * litType specifies whether to pull from the decision trail in the sat solver,
-   * from the order heap in the sat solver, or from the zero level learned literals.
-   */
-  std::vector<Node> collectLiterals(LiteralListType litType);
-
-/**
- * Returns the d_cubes, the cubes that have been created for partitioning the
- * original problem.
- */
-
-std::vector<Node> getPartitions() const { return d_cubes; }
-
 /**
  * Current propEngine.
  */
@@ -133,6 +138,8 @@ const uint64_t d_numPartitions;
  * have occured.
  */
 uint64_t d_numChecks;
+
+bool d_emittedCubes;
 
 /**
  * Number of standard checks that have occured since the last partition that was emitted. 

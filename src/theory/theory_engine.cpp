@@ -682,6 +682,53 @@ bool TheoryEngine::presolve() {
 }/* TheoryEngine::presolve() */
 
 void TheoryEngine::postsolve() {
+  if (d_partitionGen != nullptr)
+  {
+    bool emitZLL = options().parallel.appendLearnedLiteralsToCubes;
+    bool strict = options().parallel.partitionStrategy == options::PartitionMode::STRICT_CUBE;
+     // If we didn't emit the cubes during partitioning, then we should emit
+     // them now. 
+    if (!d_partitionGen->emittedCubes()) {
+      std::vector<Node> regular_cubes = d_partitionGen->getPartitions();
+      std::vector<Node> strict_cubes = d_partitionGen->getStrictPartitions();
+
+    if (emitZLL) 
+    {
+      std::vector<Node> zllLiterals = d_propEngine->getLearnedZeroLevelLiterals(
+          modes::LearnedLitType::INPUT);
+      std::vector<Node>* cubes = strict ? &strict_cubes : &regular_cubes;
+      
+      for (const auto& c : *cubes)
+      {
+        zllLiterals.push_back(c);
+        Node lemma = NodeManager::currentNM()->mkAnd(zllLiterals);
+        d_partitionGen->emitCube(lemma);
+        zllLiterals.pop_back();
+      }
+    }
+
+    vector<Node> nots;
+    for (const Node& c : regular_cubes)
+    {
+      nots.push_back(c.notNode());
+    }
+    Node lemma = NodeManager::currentNM()->mkAnd(nots);
+    // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1)
+    if (emitZLL) 
+    {
+      std::vector<Node> zllLiterals = d_propEngine->getLearnedZeroLevelLiterals(
+          modes::LearnedLitType::INPUT);
+      zllLiterals.push_back(lemma);
+      Node zllLemma = NodeManager::currentNM()->mkAnd(zllLiterals);
+      d_partitionGen->emitCube(zllLemma);
+    }
+    else {
+      d_partitionGen->emitCube(lemma);
+    }
+
+   }
+  }
+
   // no longer in SAT mode
   d_inSatMode = false;
   // Reset the interrupt flag
