@@ -795,6 +795,7 @@ Result SolverEngine::checkSatInternal(const std::vector<Node>& assumptions)
                << endl;
   // notify our state of the check-sat result
   d_state->notifyCheckSatResult(hasAssumptions, r);
+  getTheoryEngine()->postsolve();
 
   // Check that SAT results generate a model correctly.
   if (d_env->getOptions().smt.checkModels)
