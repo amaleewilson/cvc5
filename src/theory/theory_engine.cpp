@@ -740,7 +740,7 @@ void TheoryEngine::postsolve()
       {
         std::vector<Node> zllLiterals =
             d_propEngine->getLearnedZeroLevelLiterals(
-                modes::LearnedLitType::INPUT);
+                modes::LearnedLitType::LEARNED_LIT_INPUT);
         std::vector<Node>* cubes = strict ? &strict_cubes : &regular_cubes;
 
         for (const auto& c : *cubes)
@@ -763,7 +763,7 @@ void TheoryEngine::postsolve()
       {
         std::vector<Node> zllLiterals =
             d_propEngine->getLearnedZeroLevelLiterals(
-                modes::LearnedLitType::INPUT);
+                modes::LearnedLitType::LEARNED_LIT_INPUT);
         zllLiterals.push_back(lemma);
         Node zllLemma = NodeManager::currentNM()->mkAnd(zllLiterals);
         d_partitionGen->emitCube(zllLemma);
