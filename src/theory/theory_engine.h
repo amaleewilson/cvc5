@@ -127,7 +127,8 @@ class TheoryEngine : protected EnvObj
   void addTheory(theory::TheoryId theoryId)
   {
     Assert(d_theoryTable[theoryId] == NULL && d_theoryOut[theoryId] == NULL);
-    d_theoryOut[theoryId] = new theory::EngineOutputChannel(this, theoryId);
+    d_theoryOut[theoryId] =
+        new theory::EngineOutputChannel(statisticsRegistry(), this, theoryId);
     d_theoryTable[theoryId] =
         new TheoryClass(d_env, *d_theoryOut[theoryId], theory::Valuation(this));
     getRewriter()->registerTheoryRewriter(
@@ -249,7 +250,7 @@ class TheoryEngine : protected EnvObj
   bool presolve();
 
   /**
-   * Calls postsolve() on all theories.
+   * Resets the internal state.
    */
   void postsolve();
 
@@ -291,14 +292,13 @@ class TheoryEngine : protected EnvObj
   theory::TheoryModel* getModel();
   /**
    * Get the current model for the current set of assertions. This method
-   * should only be called immediately after a satisfiable or unknown
-   * response to a check-sat call, and only if produceModels is true.
+   * should only be called immediately after a satisfiable response to a
+   * check-sat call, and only if produceModels is true.
    *
-   * If the model is not already built, this will cause this theory engine
-   * to build the model.
+   * If the model is not already built, this will cause this theory engine to
+   * build the model.
    *
-   * If the model is not available (for instance, if the last call to check-sat
-   * was interrupted), then this returns the null pointer.
+   * If the model cannot be built, then this returns the null pointer.
    */
   theory::TheoryModel* getBuiltModel();
   /**
@@ -498,9 +498,7 @@ class TheoryEngine : protected EnvObj
    */
   theory::Theory* d_theoryTable[theory::THEORY_LAST];
 
-  //--------------------------------- new proofs
-  /** Proof node manager used by this theory engine, if proofs are enabled */
-  ProofNodeManager* d_pnm;
+  //--------------------------------- proofs
   /** The lazy proof object
    *
    * This stores instructions for how to construct proofs for all theory lemmas.
@@ -508,7 +506,7 @@ class TheoryEngine : protected EnvObj
   std::shared_ptr<LazyCDProof> d_lazyProof;
   /** The proof generator */
   std::shared_ptr<TheoryEngineProofGenerator> d_tepg;
-  //--------------------------------- end new proofs
+  //--------------------------------- end proofs
   /** The combination manager we are using */
   std::unique_ptr<theory::CombinationEngine> d_tc;
   /** The shared solver of the above combination engine. */
@@ -522,9 +520,6 @@ class TheoryEngine : protected EnvObj
   /** The relevance manager */
   std::unique_ptr<theory::RelevanceManager> d_relManager;
 
-  /** are we in eager model building mode? (see setEagerModelBuilding). */
-  bool d_eager_model_building;
-
   /**
    * Output channels for individual theories.
    */
@@ -534,13 +529,6 @@ class TheoryEngine : protected EnvObj
    * Are we in conflict.
    */
   context::CDO<bool> d_inConflict;
-
-  /**
-   * Are we in "SAT mode"? In this state, the user can query for the model.
-   * This corresponds to the state in Figure 4.1, page 52 of the SMT-LIB
-   * standard, version 2.6.
-   */
-  bool d_inSatMode;
 
   /**
    * True if a theory has notified us of incompleteness (at this

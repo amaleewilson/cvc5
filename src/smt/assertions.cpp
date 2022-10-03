@@ -25,8 +25,8 @@
 #include "options/smt_options.h"
 #include "smt/abstract_values.h"
 #include "smt/env.h"
-#include "smt/solver_engine.h"
 #include "theory/trust_substitutions.h"
+#include "util/result.h"
 
 using namespace cvc5::internal::theory;
 using namespace cvc5::internal::kind;
@@ -40,7 +40,6 @@ Assertions::Assertions(Env& env, AbstractValues& absv)
       d_assertionList(userContext()),
       d_assertionListDefs(userContext()),
       d_globalDefineFunLemmasIndex(userContext(), 0),
-      d_globalNegation(false),
       d_assertions(env)
 {
 }
@@ -68,13 +67,9 @@ void Assertions::clearCurrent()
   d_assertions.getIteSkolemMap().clear();
 }
 
-void Assertions::initializeCheckSat(const std::vector<Node>& assumptions)
+void Assertions::setAssumptions(const std::vector<Node>& assumptions)
 {
-  // reset global negation
-  d_globalNegation = false;
-  // clear the assumptions
   d_assumptions.clear();
-  /* Assume: BIGAND assumptions  */
   d_assumptions = assumptions;
 
   Result r(Result::UNKNOWN, UnknownExplanation::UNKNOWN_REASON);
@@ -96,8 +91,6 @@ void Assertions::assertFormula(const Node& n)
 }
 
 std::vector<Node>& Assertions::getAssumptions() { return d_assumptions; }
-bool Assertions::isGlobalNegated() const { return d_globalNegation; }
-void Assertions::flipGlobalNegated() { d_globalNegation = !d_globalNegation; }
 
 preprocessing::AssertionPipeline& Assertions::getAssertionPipeline()
 {

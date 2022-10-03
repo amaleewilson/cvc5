@@ -21,6 +21,13 @@ find_package(Java COMPONENTS Runtime REQUIRED)
 #-----------------------------------------------------------------------------#
 # libcvc5parser source files
 
+set(libcvc5parserapi_src_files
+  api/cpp/command.cpp
+  api/cpp/command.h
+  api/cpp/symbol_manager.cpp
+  api/cpp/symbol_manager.h
+)
+
 set(libcvc5parser_src_files
   antlr_input.cpp
   antlr_input.h
@@ -48,6 +55,8 @@ set(libcvc5parser_src_files
   smt2/smt2_input.h
   smt2/sygus_input.cpp
   smt2/sygus_input.h
+  symbol_table.cpp
+  symbol_table.h
   tptp/tptp.cpp
   tptp/tptp.h
   tptp/tptp_input.cpp
@@ -113,10 +122,18 @@ add_library(cvc5parser-objs OBJECT ${libcvc5parser_src_files})
 set_target_properties(cvc5parser-objs PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_compile_definitions(cvc5parser-objs PUBLIC -D__BUILDING_CVC5PARSERLIB -Dcvc5_obj_EXPORTS)
 
+add_library(cvc5parserapi-objs OBJECT ${libcvc5parserapi_src_files})
+set_target_properties(cvc5parserapi-objs PROPERTIES POSITION_INDEPENDENT_CODE ON)
+target_compile_definitions(cvc5parserapi-objs PUBLIC -D__BUILDING_CVC5LIB -Dcvc5_obj_EXPORTS)
+
 add_dependencies(cvc5parser-objs ANTLR3)
+add_dependencies(cvc5parserapi-objs cvc5parser-objs)
 target_include_directories(cvc5parser-objs PRIVATE ${ANTLR3_INCLUDE_DIR})
 
-add_library(cvc5parser $<TARGET_OBJECTS:cvc5parser-objs>)
+add_library(cvc5parser
+  $<TARGET_OBJECTS:cvc5parser-objs>
+  $<TARGET_OBJECTS:cvc5parserapi-objs>
+)
 if(BUILD_SHARED_LIBS)
   set_target_properties(cvc5parser PROPERTIES SOVERSION ${CVC5_SOVERSION})
 endif()

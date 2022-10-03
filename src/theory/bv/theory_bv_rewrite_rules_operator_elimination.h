@@ -265,40 +265,6 @@ inline Node RewriteRule<RotateRightEliminate>::apply(TNode node)
 }
 
 template <>
-inline bool RewriteRule<BVToNatEliminate>::applies(TNode node)
-{
-  return (node.getKind() == kind::BITVECTOR_TO_NAT);
-}
-
-template <>
-inline Node RewriteRule<BVToNatEliminate>::apply(TNode node)
-{
-  Trace("bv-rewrite") << "RewriteRule<BVToNatEliminate>(" << node << ")" << std::endl;
-
-  //if( node[0].isConst() ){
-    //TODO? direct computation instead of term construction+rewriting
-  //}
-  return utils::eliminateBv2Nat(node);
-}
-
-template <>
-inline bool RewriteRule<IntToBVEliminate>::applies(TNode node)
-{
-  return (node.getKind() == kind::INT_TO_BITVECTOR);
-}
-
-template <>
-inline Node RewriteRule<IntToBVEliminate>::apply(TNode node)
-{
-  Trace("bv-rewrite") << "RewriteRule<IntToBVEliminate>(" << node << ")" << std::endl;
-
-  //if( node[0].isConst() ){
-    //TODO? direct computation instead of term construction+rewriting
-  //}
-  return utils::eliminateInt2Bv(node);
-}
-
-template <>
 inline bool RewriteRule<NandEliminate>::applies(TNode node)
 {
   return (node.getKind() == kind::BITVECTOR_NAND &&
@@ -683,11 +649,14 @@ inline bool RewriteRule<RedorEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<RedorEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<RedorEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<RedorEliminate>(" << node << ")"
+                      << std::endl;
   TNode a = node[0];
-  unsigned size = utils::getSize(node[0]); 
-  Node result = NodeManager::currentNM()->mkNode(kind::EQUAL, a, utils::mkConst( size, 0 ) );
-  return result.negate();
+  unsigned size = utils::getSize(node[0]);
+  NodeManager* nm = NodeManager::currentNM();
+  return nm->mkNode(
+      kind::BITVECTOR_NOT,
+      nm->mkNode(kind::BITVECTOR_COMP, a, utils::mkConst(size, 0)));
 }
 
 template <>
@@ -699,13 +668,137 @@ inline bool RewriteRule<RedandEliminate>::applies(TNode node)
 template <>
 inline Node RewriteRule<RedandEliminate>::apply(TNode node)
 {
-  Trace("bv-rewrite") << "RewriteRule<RedandEliminate>(" << node << ")" << std::endl;
+  Trace("bv-rewrite") << "RewriteRule<RedandEliminate>(" << node << ")"
+                      << std::endl;
   TNode a = node[0];
-  unsigned size = utils::getSize(node[0]); 
-  Node result = NodeManager::currentNM()->mkNode(kind::EQUAL, a, utils::mkOnes( size ) );
+  unsigned size = utils::getSize(node[0]);
+  Node result = NodeManager::currentNM()->mkNode(
+      kind::BITVECTOR_COMP, a, utils::mkOnes(size));
   return result;
 }
 
+template <>
+inline bool RewriteRule<UmuloEliminate>::applies(TNode node)
+{
+  return (node.getKind() == kind::BITVECTOR_UMULO);
 }
+
+template <>
+inline Node RewriteRule<UmuloEliminate>::apply(TNode node)
+{
+  /* Unsigned multiplication overflow detection.
+   * See M.Gok, M.J. Schulte, P.I. Balzola, "Efficient integer multiplication
+   * overflow detection circuits", 2001.
+   * http://ieeexplore.ieee.org/document/987767 */
+
+  Trace("bv-rewrite") << "RewriteRule<UmuloEliminate>(" << node << ")"
+                      << std::endl;
+
+  uint32_t size = node[0].getType().getBitVectorSize();
+
+  if (size == 1)
+  {
+    return utils::mkFalse();
+  }
+
+  NodeManager* nm = NodeManager::currentNM();
+  Node uppc;
+  std::vector<Node> tmp;
+
+  uppc = utils::mkExtract(node[0], size - 1, size - 1);
+  for (size_t i = 1; i < size; ++i)
+  {
+    tmp.push_back(
+        nm->mkNode(kind::BITVECTOR_AND, utils::mkExtract(node[1], i, i), uppc));
+    uppc = nm->mkNode(kind::BITVECTOR_OR,
+                      utils::mkExtract(node[0], size - 1 - i, size - 1 - i),
+                      uppc);
+  }
+  Node zext_t1 = utils::mkConcat(utils::mkZero(1), node[0]);
+  Node zext_t2 = utils::mkConcat(utils::mkZero(1), node[1]);
+  Node mul = nm->mkNode(kind::BITVECTOR_MULT, zext_t1, zext_t2);
+  tmp.push_back(utils::mkExtract(mul, size, size));
+  return nm->mkNode(
+      kind::EQUAL, nm->mkNode(kind::BITVECTOR_OR, tmp), utils::mkOne(1));
 }
+
+template <>
+inline bool RewriteRule<SmuloEliminate>::applies(TNode node)
+{
+  return (node.getKind() == kind::BITVECTOR_SMULO);
+}
+
+template <>
+inline Node RewriteRule<SmuloEliminate>::apply(TNode node)
+{
+  /* Signed multiplication overflow detection.
+   * See M.Gok, M.J. Schulte, P.I. Balzola, "Efficient integer multiplication
+   * overflow detection circuits", 2001.
+   * http://ieeexplore.ieee.org/document/987767 */
+
+  Trace("bv-rewrite") << "RewriteRule<SmuloEliminate>(" << node << ")"
+                      << std::endl;
+
+  uint32_t size = node[0].getType().getBitVectorSize();
+  NodeManager* nm = NodeManager::currentNM();
+  Node bvone = utils::mkOne(1);
+
+  if (size == 1)
+  {
+    return nm->mkNode(
+        kind::EQUAL, nm->mkNode(kind::BITVECTOR_AND, node[0], node[1]), bvone);
+  }
+
+  Node sextOp1 = nm->mkConst<BitVectorSignExtend>(BitVectorSignExtend(1));
+  Node mul = nm->mkNode(kind::BITVECTOR_MULT,
+                        nm->mkNode(sextOp1, node[0]),
+                        nm->mkNode(sextOp1, node[1]));
+
+  if (size == 2)
+  {
+    return nm->mkNode(kind::EQUAL,
+                      nm->mkNode(kind::BITVECTOR_XOR,
+                                 utils::mkExtract(mul, size, size),
+                                 utils::mkExtract(mul, size - 1, size - 1)),
+                      bvone);
+  }
+
+  Node sextOpN =
+      nm->mkConst<BitVectorSignExtend>(BitVectorSignExtend(size - 1));
+  Node sign0 = utils::mkExtract(node[0], size - 1, size - 1);
+  Node sign1 = utils::mkExtract(node[1], size - 1, size - 1);
+  Node xor0 =
+      nm->mkNode(kind::BITVECTOR_XOR, node[0], nm->mkNode(sextOpN, sign0));
+  Node xor1 =
+      nm->mkNode(kind::BITVECTOR_XOR, node[1], nm->mkNode(sextOpN, sign1));
+
+  Node ppc[size - 2];
+  ppc[0] = utils::mkExtract(xor0, size - 2, size - 2);
+  for (uint32_t i = 1; i < size - 2; ++i)
+  {
+    ppc[i] = nm->mkNode(kind::BITVECTOR_OR,
+                        ppc[i - 1],
+                        utils::mkExtract(xor0, size - 2 - i, size - 2 - i));
+  }
+  Node res =
+      nm->mkNode(kind::BITVECTOR_AND, utils::mkExtract(xor1, 1, 1), ppc[0]);
+  for (uint32_t i = 1; i < size - 2; ++i)
+  {
+    res = nm->mkNode(
+        kind::BITVECTOR_OR,
+        res,
+        nm->mkNode(
+            kind::BITVECTOR_AND, utils::mkExtract(xor1, i + 1, i + 1), ppc[i]));
+  }
+  return nm->mkNode(
+      kind::EQUAL,
+      nm->mkNode(kind::BITVECTOR_OR,
+                 res,
+                 nm->mkNode(kind::BITVECTOR_XOR,
+                            utils::mkExtract(mul, size, size),
+                            utils::mkExtract(mul, size - 1, size - 1))),
+      bvone);
+}
+}  // namespace bv
+}  // namespace theory
 }  // namespace cvc5::internal

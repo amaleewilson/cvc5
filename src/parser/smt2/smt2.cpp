@@ -114,6 +114,8 @@ void Smt2::addBitvectorOperators() {
   addOperator(cvc5::BITVECTOR_SGE, "bvsge");
   addOperator(cvc5::BITVECTOR_REDOR, "bvredor");
   addOperator(cvc5::BITVECTOR_REDAND, "bvredand");
+  addOperator(cvc5::BITVECTOR_UMULO, "bvumulo");
+  addOperator(cvc5::BITVECTOR_SMULO, "bvsmulo");
 
   addIndexedOperator(cvc5::BITVECTOR_EXTRACT, "extract");
   addIndexedOperator(cvc5::BITVECTOR_REPEAT, "repeat");
@@ -258,7 +260,9 @@ void Smt2::addSepOperators() {
 void Smt2::addCoreSymbols()
 {
   defineType("Bool", d_solver->getBooleanSort(), true);
-  defineType("Table", d_solver->mkBagSort(d_solver->mkTupleSort({})), true);
+  Sort tupleSort = d_solver->mkTupleSort({});
+  defineType("Relation", d_solver->mkSetSort(tupleSort), true);
+  defineType("Table", d_solver->mkBagSort(tupleSort), true);
   defineVar("true", d_solver->mkTrue(), true);
   defineVar("false", d_solver->mkFalse(), true);
   addOperator(cvc5::AND, "and");
@@ -312,6 +316,62 @@ modes::BlockModelsMode Smt2::getBlockModelsMode(const std::string& mode)
   }
   parseError(std::string("Unknown block models mode `") + mode + "'");
   return modes::BlockModelsMode::LITERALS;
+}
+
+modes::LearnedLitType Smt2::getLearnedLitType(const std::string& mode)
+{
+  if (mode == "preprocess_solved")
+  {
+    return modes::LEARNED_LIT_PREPROCESS_SOLVED;
+  }
+  else if (mode == "preprocess")
+  {
+    return modes::LEARNED_LIT_PREPROCESS;
+  }
+  else if (mode == "input")
+  {
+    return modes::LEARNED_LIT_INPUT;
+  }
+  else if (mode == "solvable")
+  {
+    return modes::LEARNED_LIT_SOLVABLE;
+  }
+  else if (mode == "constant_prop")
+  {
+    return modes::LEARNED_LIT_CONSTANT_PROP;
+  }
+  else if (mode == "internal")
+  {
+    return modes::LEARNED_LIT_INTERNAL;
+  }
+  parseError(std::string("Unknown learned literal type `") + mode + "'");
+  return modes::LEARNED_LIT_UNKNOWN;
+}
+
+modes::ProofComponent Smt2::getProofComponent(const std::string& pc)
+{
+  if (pc == "raw_preprocess")
+  {
+    return modes::ProofComponent::PROOF_COMPONENT_RAW_PREPROCESS;
+  }
+  else if (pc == "preprocess")
+  {
+    return modes::ProofComponent::PROOF_COMPONENT_PREPROCESS;
+  }
+  else if (pc == "sat")
+  {
+    return modes::ProofComponent::PROOF_COMPONENT_SAT;
+  }
+  else if (pc == "theory_lemmas")
+  {
+    return modes::ProofComponent::PROOF_COMPONENT_THEORY_LEMMAS;
+  }
+  else if (pc == "full")
+  {
+    return modes::ProofComponent::PROOF_COMPONENT_FULL;
+  }
+  parseError(std::string("Unknown proof component `") + pc + "'");
+  return modes::ProofComponent::PROOF_COMPONENT_FULL;
 }
 
 bool Smt2::isTheoryEnabled(internal::theory::TheoryId theory) const
@@ -587,7 +647,7 @@ Command* Smt2::setLogic(std::string name, bool fromCommand)
 
   if (d_logic.isTheoryEnabled(internal::theory::THEORY_SETS))
   {
-    defineVar("set.empty", d_solver->mkEmptySet(d_solver->getNullSort()));
+    defineVar("set.empty", d_solver->mkEmptySet(Sort()));
     // the Boolean sort is a placeholder here since we don't have type info
     // without type annotation
     defineVar("set.universe",
@@ -617,7 +677,7 @@ Command* Smt2::setLogic(std::string name, bool fromCommand)
 
   if (d_logic.isTheoryEnabled(internal::theory::THEORY_BAGS))
   {
-    defineVar("bag.empty", d_solver->mkEmptyBag(d_solver->getNullSort()));
+    defineVar("bag.empty", d_solver->mkEmptyBag(Sort()));
     addOperator(cvc5::BAG_UNION_MAX, "bag.union_max");
     addOperator(cvc5::BAG_UNION_DISJOINT, "bag.union_disjoint");
     addOperator(cvc5::BAG_INTER_MIN, "bag.inter_min");
@@ -1130,7 +1190,9 @@ cvc5::Term Smt2::applyParseOp(ParseOp& p, std::vector<cvc5::Term>& args)
   }
   else if (p.d_kind == cvc5::TUPLE_PROJECT || p.d_kind == cvc5::TABLE_PROJECT
            || p.d_kind == cvc5::TABLE_AGGREGATE || p.d_kind == cvc5::TABLE_JOIN
-           || p.d_kind == cvc5::TABLE_GROUP)
+           || p.d_kind == cvc5::TABLE_GROUP || p.d_kind == cvc5::RELATION_GROUP
+           || p.d_kind == cvc5::RELATION_AGGREGATE
+           || p.d_kind == cvc5::RELATION_PROJECT)
   {
     cvc5::Term ret = d_solver->mkTerm(p.d_op, args);
     Trace("parser") << "applyParseOp: return projection " << ret << std::endl;
@@ -1333,13 +1395,24 @@ void Smt2::notifyNamedExpression(cvc5::Term& expr, std::string name)
 {
   checkUserSymbol(name);
   // remember the expression name in the symbol manager
-  if (getSymbolManager()->setExpressionName(expr, name, false)
-      == NamingResult::ERROR_IN_BINDER)
+  NamingResult nr = getSymbolManager()->setExpressionName(expr, name, false);
+  if (nr == NamingResult::ERROR_IN_BINDER)
   {
     parseError(
         "Cannot name a term in a binder (e.g., quantifiers, definitions)");
   }
-  // define the variable
+  // define the variable. This needs to be done here so that in the rest of the
+  // command we can use this name, which is required by the semantics of :named.
+  //
+  // Note that as we are defining the name to the expression here, names never
+  // show up in "-o raw-benchmark" nor in proofs. To be able to do it it'd be
+  // necessary to not define this variable here and create a
+  // DefineFunctionCommand with the binding, so that names are handled as
+  // defined functions. However, these commands would need to be processed
+  // *before* the rest of the command in which the :named attribute appears, so
+  // the name can be defined in the rest of the command. This would greatly
+  // complicate the design of the parser and provide little gain, so we opt to
+  // handle :named as a macro processed directly in the parser.
   defineVar(name, expr);
   // set the last named term, which ensures that we catch when assertions are
   // named

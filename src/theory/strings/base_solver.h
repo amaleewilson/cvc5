@@ -169,6 +169,8 @@ class BaseSolver : protected EnvObj
      * index: the child of n we are currently processing,
      * s : reference to solver state,
      * er : the representative of the empty equivalence class.
+     * overwrite : if this is set to true then an existing element at the same
+     *             index is updated to `n`
      *
      * We store the vector of terms that n was indexed by in the vector c.
      */
@@ -176,6 +178,7 @@ class BaseSolver : protected EnvObj
              unsigned index,
              const SolverState& s,
              Node er,
+             bool overwrite,
              std::vector<Node>& c);
     /** Clear this trie */
     void clear() { d_children.clear(); }
@@ -213,6 +216,12 @@ class BaseSolver : protected EnvObj
   void checkCardinalityType(TypeNode tn,
                             std::vector<std::vector<Node> >& cols,
                             std::vector<Node>& lts);
+  /**
+   * Called when a and b are constant-like terms in the same equivalence class.
+   *
+   * @return true if a conflict was discovered
+   */
+  bool processConstantLike(Node a, Node b);
   /** The solver state object */
   SolverState& d_state;
   /** The (custom) output channel of the theory of strings */

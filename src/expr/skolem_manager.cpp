@@ -98,6 +98,9 @@ const char* toString(SkolemFunId id)
     case SkolemFunId::TABLES_GROUP_PART: return "TABLES_GROUP_PART";
     case SkolemFunId::TABLES_GROUP_PART_ELEMENT:
       return "TABLES_GROUP_PART_ELEMENT";
+    case SkolemFunId::RELATIONS_GROUP_PART: return "RELATIONS_GROUP_PART";
+    case SkolemFunId::RELATIONS_GROUP_PART_ELEMENT:
+      return "RELATIONS_GROUP_PART_ELEMENT";
     case SkolemFunId::SETS_CHOOSE: return "SETS_CHOOSE";
     case SkolemFunId::SETS_DEQ_DIFF: return "SETS_DEQ_DIFF";
     case SkolemFunId::SETS_FOLD_CARD: return "SETS_FOLD_CARD";
@@ -106,6 +109,8 @@ const char* toString(SkolemFunId id)
     case SkolemFunId::SETS_FOLD_UNION: return "SETS_FOLD_UNION";
     case SkolemFunId::SETS_MAP_DOWN_ELEMENT: return "SETS_MAP_DOWN_ELEMENT";
     case SkolemFunId::HO_TYPE_MATCH_PRED: return "HO_TYPE_MATCH_PRED";
+    case SkolemFunId::IEVAL_NONE: return "IEVAL_NONE";
+    case SkolemFunId::IEVAL_SOME: return "IEVAL_SOME";
     default: return "?";
   }
 }

@@ -560,14 +560,21 @@ class Theory : protected EnvObj
    *
    * @param termSet The set to add terms to
    * @param includeShared Whether to include the shared terms of the theory
+   * @param irrKind The kinds
    */
   void collectAssertedTerms(std::set<Node>& termSet,
-                            bool includeShared = true) const;
+                            bool includeShared,
+                            const std::set<Kind>& irrKinds) const;
+  /** Same as above, using the irrelevant model kinds for irrKinds.*/
+  void collectAssertedTermsForModel(std::set<Node>& termSet,
+                                    bool includeShared = true) const;
   /**
    * Helper function for collectAssertedTerms, adds all subterms
    * belonging to this theory to termSet.
    */
-  void collectTerms(TNode n, std::set<Node>& termSet) const;
+  void collectTerms(TNode n,
+                    std::set<Node>& termSet,
+                    const std::set<Kind>& irrKinds) const;
   /**
    * Collect model values, after equality information is added to the model.
    * The argument termSet is the set of relevant terms returned by
@@ -662,18 +669,6 @@ class Theory : protected EnvObj
    * the theory.
    */
   virtual void presolve() {}
-
-  /**
-   * A Theory is called with postsolve exactly one time per user
-   * check-sat.  postsolve() is called after the query has completed
-   * (regardless of whether sat, unsat, or unknown), and after any
-   * model-querying related to the query has been performed.
-   * After this call, the theory will not get another check() or
-   * propagate() call until presolve() is called again.  A Theory
-   * cannot raise conflicts, add lemmas, or propagate literals during
-   * postsolve().
-   */
-  virtual void postsolve() {}
 
   /**
    * Notification sent to the theory wheneven the search restarts.
