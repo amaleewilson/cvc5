@@ -52,15 +52,13 @@ PartitionGenerator::PartitionGenerator(Env& env,
   }
 }
 
-bool PartitionGenerator::emittedCubes() {
-  return d_emittedCubes;
-}
+bool PartitionGenerator::emittedCubes() { return d_emittedCubes; }
 std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
 {
   std::vector<Node> filteredLiterals;
   std::vector<Node> unfilteredLiterals;
-  
-  // Filter out the types of literals we don't want. 
+
+  // Filter out the types of literals we don't want.
   // Make sure the literal does not have a boolean term or skolem in it.
   const std::unordered_set<Kind, kind::KindHashFunction> kinds = {
       kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
@@ -73,8 +71,8 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
       break;
     }
     case HEAP:
-    { 
-      unfilteredLiterals = d_propEngine->getPropOrderHeap(); 
+    {
+      unfilteredLiterals = d_propEngine->getPropOrderHeap();
       break;
     }
     case ZLL:
@@ -95,12 +93,16 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
 
       // If the literal is the not of some node, do the checks for the child
       // of the not instead of the not itself.
-      Node original = originalN.getKind() == kind::NOT ? originalN[0] : originalN;
+      Node original =
+          originalN.getKind() == kind::NOT ? originalN[0] : originalN;
 
       if (expr::hasSubtermKinds(kinds, original)
+          || original.getKind() == kind::BOOLEAN_TERM_VARIABLE
+          || original.getKind() == kind::CONST_BOOLEAN
           || !d_valuation->isSatLiteral(original)
           || Theory::theoryOf(original) == THEORY_BOOL || n.isConst()
-          || nType != modes::LEARNED_LIT_INPUT
+          || (nType != modes::LEARNED_LIT_SOLVABLE
+              && nType != modes::LEARNED_LIT_INPUT)
           || !d_valuation->isDecision(original))
       {
         continue;
@@ -108,8 +110,8 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
       filteredLiterals.push_back(originalN);
     }
   }
-  // else it must be zll 
-  else 
+  // else it must be zll
+  else
   {
     for (const Node& n : unfilteredLiterals)
     {
@@ -117,19 +119,19 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
 
       // If the literal is the not of some node, do the checks for the child
       // of the not instead of the not itself.
-      Node original = originalN.getKind() == kind::NOT ? originalN[0] : originalN;
+      Node original =
+          originalN.getKind() == kind::NOT ? originalN[0] : originalN;
 
       if (expr::hasSubtermKinds(kinds, original)
           || !d_valuation->isSatLiteral(original)
-          || Theory::theoryOf(original) == THEORY_BOOL
-          || n.isConst())
+          || Theory::theoryOf(original) == THEORY_BOOL || n.isConst())
       {
         continue;
       }
       filteredLiterals.push_back(originalN);
     }
   }
-  
+
   return filteredLiterals;
 }
 
@@ -187,7 +189,7 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
     if (strict)
     {
       vector<Node> toEmit;
-      for (const Node& c : d_cubes) 
+      for (const Node& c : d_cubes)
       {
         toEmit.push_back(c.notNode());
       }
@@ -200,18 +202,19 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
         // just increment and don't actually output the cube yet
         d_numPartitionsSoFar++;
       }
-      else 
+      else
       {
         emitCube(strict_cube);
       }
     }
-    else {
+    else
+    {
       if (emitZLL)
       {
         // just increment and don't actually output the cube yet
         d_numPartitionsSoFar++;
       }
-      else 
+      else
       {
         emitCube(conj);
       }
@@ -223,12 +226,12 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
   // At the last cube
   else
   {
-    if (emitZLL) 
+    if (emitZLL)
     {
       std::vector<Node> zllLiterals =
           d_propEngine->getLearnedZeroLevelLiterals(modes::LEARNED_LIT_INPUT);
       std::vector<Node>* cubes = strict ? &d_strict_cubes : &d_cubes;
-      
+
       for (const auto& c : *cubes)
       {
         zllLiterals.push_back(c);
@@ -245,7 +248,7 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
     }
     Node lemma = NodeManager::currentNM()->mkAnd(nots);
     // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1)
-    if (emitZLL) 
+    if (emitZLL)
     {
       std::vector<Node> zllLiterals =
           d_propEngine->getLearnedZeroLevelLiterals(modes::LEARNED_LIT_INPUT);
@@ -253,7 +256,8 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
       Node zllLemma = NodeManager::currentNM()->mkAnd(zllLiterals);
       emitCube(zllLemma);
     }
-    else {
+    else
+    {
       emitCube(lemma);
     }
     d_emittedCubes = true;
@@ -261,7 +265,8 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
   }
 }
 
-TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, bool emitZLL)
+TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType,
+                                                      bool emitZLL)
 {
   std::vector<Node> literals = collectLiterals(litType);
   uint64_t numVar = static_cast<uint64_t>(log2(d_numPartitions));
@@ -281,13 +286,13 @@ TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, b
     // total number of cubes/rows
     size_t total = pow(2, numVar);
 
-    // resultNodeLists is built column by column. 
+    // resultNodeLists is built column by column.
     std::vector<std::vector<Node> > resultNodeLists(total);
 
     // t is used to determine whether to push the node or its not_node.
     bool t = false;
 
-    // numConsecutiveTF tracks how many times the node should be consectuively 
+    // numConsecutiveTF tracks how many times the node should be consectuively
     // true or false in a column.
     // For example, if numVar=3:
     // x y z
@@ -299,14 +304,14 @@ TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, b
     // F T F
     // F F T
     // F F F
-    // For the first column, numConsecutiveTF = 4, then 2 for the second column, 
+    // For the first column, numConsecutiveTF = 4, then 2 for the second column,
     // and 1 for the third column.
     size_t numConsecutiveTF = total / 2;
     for (Node n : literals)
     {
       Node not_n = n.notNode();
 
-      // loc tracks which row/cube we're on 
+      // loc tracks which row/cube we're on
       size_t loc = 0;
       for (size_t z = 0; z < total / numConsecutiveTF; ++z)
       {
@@ -327,12 +332,13 @@ TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType, b
       {
         std::vector<Node> zllLiterals = collectLiterals(ZLL);
         zllLiterals.push_back(conj);
-        Node zllConj = NodeManager::currentNM()->mkAnd(zllLiterals); 
+        Node zllConj = NodeManager::currentNM()->mkAnd(zllLiterals);
         emitCube(zllConj);
       }
-      else {
+      else
+      {
         emitCube(conj);
-      } 
+      }
     }
     d_emittedCubes = true;
     return stopPartitioning();
@@ -354,8 +360,8 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
   d_numChecks = d_numChecks + 1;
   d_betweenChecks = d_betweenChecks + 1;
 
-  if (d_numChecks < options().parallel.checksBeforePartitioning || 
-      d_betweenChecks < options().parallel.checksBetweenPartitions)
+  if (d_numChecks < options().parallel.checksBeforePartitioning
+      || d_betweenChecks < options().parallel.checksBetweenPartitions)
   {
     return TrustNode::null();
   }

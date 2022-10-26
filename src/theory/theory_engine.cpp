@@ -736,41 +736,45 @@ void TheoryEngine::postsolve()
       std::vector<Node> regular_cubes = d_partitionGen->getPartitions();
       std::vector<Node> strict_cubes = d_partitionGen->getStrictPartitions();
 
-      if (emitZLL)
+      if (regular_cubes.size() != 0 || strict_cubes.size() != 0)
       {
-        std::vector<Node> zllLiterals =
-            d_propEngine->getLearnedZeroLevelLiterals(
-                modes::LearnedLitType::LEARNED_LIT_INPUT);
-        std::vector<Node>* cubes = strict ? &strict_cubes : &regular_cubes;
-
-        for (const auto& c : *cubes)
+        if (emitZLL)
         {
-          zllLiterals.push_back(c);
-          Node lemma = NodeManager::currentNM()->mkAnd(zllLiterals);
-          d_partitionGen->emitCube(lemma);
-          zllLiterals.pop_back();
-        }
-      }
+          std::vector<Node> zllLiterals =
+              d_propEngine->getLearnedZeroLevelLiterals(
+                  modes::LearnedLitType::LEARNED_LIT_INPUT);
+          std::vector<Node>* cubes = strict ? &strict_cubes : &regular_cubes;
 
-      vector<Node> nots;
-      for (const Node& c : regular_cubes)
-      {
-        nots.push_back(c.notNode());
-      }
-      Node lemma = NodeManager::currentNM()->mkAnd(nots);
-      // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1)
-      if (emitZLL)
-      {
-        std::vector<Node> zllLiterals =
-            d_propEngine->getLearnedZeroLevelLiterals(
-                modes::LearnedLitType::LEARNED_LIT_INPUT);
-        zllLiterals.push_back(lemma);
-        Node zllLemma = NodeManager::currentNM()->mkAnd(zllLiterals);
-        d_partitionGen->emitCube(zllLemma);
-      }
-      else
-      {
-        d_partitionGen->emitCube(lemma);
+          for (const auto& c : *cubes)
+          {
+            zllLiterals.push_back(c);
+            Node lemma = NodeManager::currentNM()->mkAnd(zllLiterals);
+            d_partitionGen->emitCube(lemma);
+            zllLiterals.pop_back();
+          }
+        }
+
+        vector<Node> nots;
+        for (const Node& c : regular_cubes)
+        {
+          nots.push_back(c.notNode());
+        }
+
+        Node lemma = NodeManager::currentNM()->mkAnd(nots);
+        // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1)
+        if (emitZLL)
+        {
+          std::vector<Node> zllLiterals =
+              d_propEngine->getLearnedZeroLevelLiterals(
+                  modes::LearnedLitType::LEARNED_LIT_INPUT);
+          zllLiterals.push_back(lemma);
+          Node zllLemma = NodeManager::currentNM()->mkAnd(zllLiterals);
+          d_partitionGen->emitCube(zllLemma);
+        }
+        else
+        {
+          d_partitionGen->emitCube(lemma);
+        }
       }
     }
   }
