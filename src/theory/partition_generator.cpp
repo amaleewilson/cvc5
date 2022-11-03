@@ -96,13 +96,14 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
       Node original =
           originalN.getKind() == kind::NOT ? originalN[0] : originalN;
 
+      // TODO: make theory_bool optional,
+      // figure out why we still sometimes fail to partition.
       if (expr::hasSubtermKinds(kinds, original)
           || original.getKind() == kind::BOOLEAN_TERM_VARIABLE
           || original.getKind() == kind::CONST_BOOLEAN
           || !d_valuation->isSatLiteral(original)
           || Theory::theoryOf(original) == THEORY_BOOL || n.isConst()
-          || (nType != modes::LEARNED_LIT_SOLVABLE
-              && nType != modes::LEARNED_LIT_INPUT)
+          || (nType != modes::LEARNED_LIT_INPUT)
           || !d_valuation->isDecision(original))
       {
         continue;
