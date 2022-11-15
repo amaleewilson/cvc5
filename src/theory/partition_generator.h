@@ -18,6 +18,8 @@
 #ifndef CVC5__THEORY__SPLITTER_H
 #define CVC5__THEORY__SPLITTER_H
 
+#include <set>
+#include <unordered_map>
 #include <vector>
 
 #include "proof/trust_node.h"
@@ -60,32 +62,34 @@ class PartitionGenerator : protected EnvObj
   {
     HEAP,
     DECISION,
-    ZLL
+    ZLL,
+    LEMMA
   };
   /**
    * Get a list of literals.
-   * litType specifies whether to pull from the decision trail in the sat solver,
-   * from the order heap in the sat solver, or from the zero level learned literals.
+   * litType specifies whether to pull from the decision trail in the sat
+   * solver, from the order heap in the sat solver, or from the zero level
+   * learned literals.
    */
   std::vector<Node> collectLiterals(LiteralListType litType);
 
-/**
- * Returns the d_cubes, the cubes that have been created for partitioning the
- * original problem.
- */
+  /**
+   * Returns the d_cubes, the cubes that have been created for partitioning the
+   * original problem.
+   */
 
-std::vector<Node> getPartitions() const { return d_cubes; }
-std::vector<Node> getStrictPartitions() const { return d_strict_cubes; }
-
+  std::vector<Node> getPartitions() const { return d_cubes; }
+  std::vector<Node> getStrictPartitions() const { return d_strict_cubes; }
 
   /**
-   * Increment d_numPartitionsSoFar and print the cube to 
-   * the output file specified by --write-partitions-to. 
+   * Increment d_numPartitionsSoFar and print the cube to
+   * the output file specified by --write-partitions-to.
    */
   void emitCube(Node toEmit);
+  void addLemmaLiteral(TrustNode toAdd);
+  static bool compareNodes(Node a, Node b) { return a.getId() < b.getId(); }
 
  private:
-
   /**
    * Partition using the "revised" strategy, which emits cubes such as C1, C2,
    * C3, !C1 & !C2 & !C3. If strict is set to true, a modified version of this
@@ -97,7 +101,7 @@ std::vector<Node> getStrictPartitions() const { return d_strict_cubes; }
 
   /**
    * Partition by taking a list of literals and emitting mutually exclusive
-   * cubes that resemble entries in a truth table: 
+   * cubes that resemble entries in a truth table:
    * C1: { l1, !l2}
    * C2: { l1,  l2}
    * C3: {!l1, !l2}
@@ -118,59 +122,88 @@ std::vector<Node> getStrictPartitions() const { return d_strict_cubes; }
    */
   TrustNode stopPartitioning() const;
 
-/**
- * Current propEngine.
- */
-prop::PropEngine* d_propEngine;
+  /**
+   * Current propEngine.
+   */
+  prop::PropEngine* d_propEngine;
 
-/**
- * Valuation of the theory engine.
- */
-std::unique_ptr<Valuation> d_valuation;
+  /**
+   * Valuation of the theory engine.
+   */
+  std::unique_ptr<Valuation> d_valuation;
 
-/**
- * The number of partitions requested through the compute-partitions option.
- */
-const uint64_t d_numPartitions;
+  /**
+   * The number of partitions requested through the compute-partitions option.
+   */
+  const uint64_t d_numPartitions;
 
-/**
- * Number of standard or full (depending on partition check mode) checks that
- * have occured.
- */
-uint64_t d_numChecks;
+  /**
+   * Number of standard or full (depending on partition check mode) checks that
+   * have occured.
+   */
+  uint64_t d_numChecks;
 
-bool d_emittedCubes;
+  bool d_emittedCubes;
 
-/**
- * Number of standard checks that have occured since the last partition that was emitted. 
- */
-uint64_t d_betweenChecks;
+  /**
+   * Number of standard checks that have occured since the last partition that
+   * was emitted.
+   */
+  uint64_t d_betweenChecks;
 
-/**
- * The number of partitions that have been created.
- */
-uint64_t d_numPartitionsSoFar;
+  /**
+   * The number of partitions that have been created.
+   */
+  uint64_t d_numPartitionsSoFar;
 
-/**
- * Lemmas that have been sent to the SAT solver.
- */
-std::vector<Node> d_assertedLemmas;
+  /**
+   * Lemmas that have been sent to the SAT solver.
+   */
+  std::vector<Node> d_assertedLemmas;
 
-/**
- * List of the cubes that have been created.
- */
-std::vector<Node> d_cubes;
+  /**
+   * Lemmas that have been sent to the SAT solver by the theory engine.
+   */
+  std::set<Node> d_lemmaLiterals;
 
-/**
- * List of the strict cubes that have been created.
- */
-std::vector<Node> d_strict_cubes;
+  struct cmpByNodeId
+  {
+    bool operator()(const Node& a, const Node& b) const
+    {
+      return a.getId() < b.getId();
+    }
+  };
 
-/**
- * Minimum number of literals required in the list of decisions for cubes to
- * be made.
- */
-uint64_t d_conflictSize;
+  struct hashNode
+  {
+    std::size_t operator()(Node const& n) const noexcept { return n.getId(); }
+  };
+
+  struct nodeEqual
+  {
+    constexpr bool operator()(const Node& lhs, const Node& rhs) const
+    {
+      return lhs.getId() == rhs.getId();
+    }
+  };
+
+  std::unordered_map<Node, int, hashNode, nodeEqual> d_lemmaMap;
+
+  /**
+   * List of the cubes that have been created.
+   */
+  std::vector<Node> d_cubes;
+
+  /**
+   * List of the strict cubes that have been created.
+   */
+  std::vector<Node> d_strict_cubes;
+
+  /**
+   * Minimum number of literals required in the list of decisions for cubes to
+   * be made.
+   */
+  uint64_t d_conflictSize;
 };
 }  // namespace theory
 }  // namespace cvc5::internal

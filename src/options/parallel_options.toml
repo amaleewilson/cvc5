@@ -54,6 +54,9 @@ name   = "Parallel"
 [[option.mode.HEAP_TRAIL]]
   name = "heap-trail"
   help = "Creates mutually exclusive cubes from the order heap in the SAT solver."
+[[option.mode.LEMMA_CUBES]]
+  name = "lemma-cubes"
+  help = "Make cubes from most commonly occurring literals in lemmas."
 
 [[option]]
   name       = "partitionCheck"

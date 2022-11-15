@@ -17,6 +17,8 @@
 
 #include <math.h>
 
+#include <algorithm>
+
 #include "expr/node_algorithm.h"
 #include "expr/node_builder.h"
 #include "options/parallel_options.h"
@@ -53,6 +55,56 @@ PartitionGenerator::PartitionGenerator(Env& env,
 }
 
 bool PartitionGenerator::emittedCubes() { return d_emittedCubes; }
+
+void PartitionGenerator::addLemmaLiteral(TrustNode toAdd)
+{
+  // std::cout << "addinglemma literl" << std::endl;
+  Node n = toAdd.getNode();
+  Node originalN = SkolemManager::getOriginalForm(n);
+  Node original = originalN.getKind() == kind::NOT ? originalN[0] : originalN;
+
+  // TODO: will need to rework how we track nodes, but can do that later.
+  // May be able to maintain a list of node IDs, find the most frequent,
+  // and then somehow get by id.
+  std::vector<Node> nodes;
+
+  size_t len = original.getNumChildren();
+  for (int i = 0; i < len; ++i)
+  {
+    d_lemmaLiterals.insert(original[i]);
+
+    Node cn = original[i];
+    if (d_lemmaMap.count(cn) == 1)
+    {
+      d_lemmaMap.insert_or_assign(cn, d_lemmaMap[cn] + 1);
+    }
+    else
+    {
+      d_lemmaMap.insert({cn, 1});
+    }
+    // std::cout << originalN[i] << std::endl;
+    // std::cout << originalN[i].getId() << std::endl;
+  }
+  // std::cout << "toAdd " << std::endl;
+
+  // if (originalN.getKind() == kind::NOT)
+  // {
+  //   std::cout << "NOT" << std::endl;
+  // }
+  // else if (originalN.getKind() == kind::OR)
+  // {
+  //   std::cout << "OR" << std::endl;
+  // }
+  // else if (originalN.getKind() == kind::AND)
+  // {
+  //   std::cout << "AND" << std::endl;
+  // }
+  // else
+  // {
+  //   std::cout << "toAdd (lemma literal) = " << originalN << std::endl;
+  // }
+}
+
 std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
 {
   std::vector<Node> filteredLiterals;
@@ -81,10 +133,34 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
           d_propEngine->getLearnedZeroLevelLiterals(modes::LEARNED_LIT_INPUT);
       break;
     }
+    case LEMMA:
+    {
+      std::vector<Node> lemmaNodes(d_lemmaLiterals.size());
+      std::copy(
+          d_lemmaLiterals.begin(), d_lemmaLiterals.end(), lemmaNodes.begin());
+      unfilteredLiterals = lemmaNodes;
+      break;
+    }
     default: return filteredLiterals;
   }
 
-  if (litType == HEAP || litType == DECISION)
+  if (litType == LEMMA)
+  {
+    // std::cout << "sorting lemma literals" << std::endl;
+    // Sort based on d_lemmaMap
+    std::sort(unfilteredLiterals.begin(),
+              unfilteredLiterals.end(),
+              [this](Node a, Node b) -> bool {
+                return d_lemmaMap[a] > d_lemmaMap[b];
+              });
+    // for (auto f : unfilteredLiterals)
+    // {
+    //   std::cout << "id: " << f.getId() << " , count: " << d_lemmaMap[f]
+    //             << std::endl;
+    // }
+    return unfilteredLiterals;
+  }
+  else if (litType == HEAP || litType == DECISION)
   {
     for (const Node& n : unfilteredLiterals)
     {
@@ -96,6 +172,55 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
       Node original =
           originalN.getKind() == kind::NOT ? originalN[0] : originalN;
 
+      // std::cout << "node ID " << original.getId() << std::endl;
+      // if (expr::hasSubtermKinds(kinds, original))
+      // {
+      //   std::cout << "subterm" << std::endl;
+      // }
+      // if (original.getKind() == kind::BOOLEAN_TERM_VARIABLE)
+      // {
+      //   std::cout << "booltermvar" << std::endl;
+      // }
+      // if (original.getKind() == kind::CONST_BOOLEAN)
+      // {
+      //   std::cout << "const bool" << std::endl;
+      // }
+      // if (!d_valuation->isSatLiteral(original))
+      // {
+      //   std::cout << "not sat literl" << std::endl;
+      // }
+      // if (Theory::theoryOf(original) == THEORY_BOOL)
+      // {
+      //   std::cout << "theory bool" << std::endl;
+      // }
+      // if (n.isConst())
+      // {
+      //   std::cout << "n is const" << std::endl;
+      // }
+      // if ((nType != modes::LEARNED_LIT_INPUT))
+      // {
+      //   std::cout << " not learned lit input type" << std::endl;
+      // }
+      // segfault????
+      // if (!d_valuation->isDecision(original))
+      // {
+      //   std::cout << "not decision" << std::endl;
+      // }
+
+      // Ideally we use learned_lit_input as a first pass,
+      // but if not then we don't use that filter.
+      // ! - just make it a priority thing, rather than a filter.
+      // See if you can meet Andy this week.
+      // Partitioner that always succeeds no matter what (unless solved)
+
+      // Things we want:
+      //  - partition fast
+      //  - succeed at partitioning
+
+      // should be a traversal mechanism for getting the leaves/literals.
+
+      // Ask Andy about priority vs things we should never use in partitions.
+
       // TODO: make theory_bool optional,
       // figure out why we still sometimes fail to partition.
       if (expr::hasSubtermKinds(kinds, original)
@@ -104,7 +229,8 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
           || !d_valuation->isSatLiteral(original)
           || Theory::theoryOf(original) == THEORY_BOOL || n.isConst()
           || (nType != modes::LEARNED_LIT_INPUT)
-          || !d_valuation->isDecision(original))
+          // || !d_valuation->isDecision(original)
+      )
       {
         continue;
       }
@@ -381,6 +507,8 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
       return makeRevisedPartitions(/*strict=*/true, emitZLL);
     case options::PartitionMode::REVISED:
       return makeRevisedPartitions(/*strict=*/false, emitZLL);
+    case options::PartitionMode::LEMMA_CUBES:
+      return makeFullTrailPartitions(/*litType=*/LEMMA, emitZLL);
     default: return TrustNode::null();
   }
 }
