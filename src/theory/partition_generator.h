@@ -181,7 +181,7 @@ class PartitionGenerator : protected EnvObj
 
   struct nodeEqual
   {
-    constexpr bool operator()(const Node& lhs, const Node& rhs) const
+    constexpr bool operator()(Node const& lhs, Node const& rhs) const
     {
       return lhs.getId() == rhs.getId();
     }
