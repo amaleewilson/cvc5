@@ -10,12 +10,41 @@ name   = "Parallel"
   help       = "make n partitions. n <2 disables computing partitions entirely"
 
 [[option]]
+  name       = "partitionTimeLimit"
+  category   = "expert"
+  long       = "partition-tlimit=N"
+  type       = "uint64_t"
+  default    = "30"
+  help       = "time limit for partitioning in seconds"
+
+[[option]]
   name       = "checksBeforePartitioning"
   category   = "expert"
   long       = "checks-before-partition=N"
   type       = "uint64_t"
   default    = "1"
   help       = "number of standard or full effort checks until partitioning"
+
+[[option]]
+  name       = "partitionWhen"
+  category   = "expert"
+  long       = "partition-when=MODE"
+  type       = "PartitionWhenMode"
+  default    = "TLIMIT"
+  help       = "choose when to partition"
+  help_mode  = "PartitionWhen modes."
+[[option.mode.TLIMIT]]
+  name = "tlimit"
+  help = "Partition when the time limit is exceeded."
+[[option.mode.CLIMIT]]
+  name = "climit"
+  help = "Partition when number of checks is exceeded."
+[[option.mode.CLIMIT_TBACKUP]]
+  name = "climit-tbackup"
+  help = "Partition when number of checks is exceeded, unless the time limit is exceeded first."
+[[option.mode.TLIMIT_CBACKUP]]
+  name = "tlimit-cbackup"
+  help = "Partition when time limit is exceeded, unless the check limit is exceeded first."
 
 [[option]]
   name       = "checksBetweenPartitions"
@@ -35,7 +64,6 @@ name   = "Parallel"
 
 [[option]]
   name       = "partitionStrategy"
-  alias      = ["partition"]
   category   = "expert"
   long       = "partition-strategy=MODE"
   type       = "PartitionMode"
@@ -48,12 +76,15 @@ name   = "Parallel"
 [[option.mode.STRICT_CUBE]]
   name = "strict-cube"
   help = "For 4 partitions, creates cubes C1, !C1 & C2, !C1 & !C2 & C3, !C1 & !C2 & !C3"
-[[option.mode.DECISION_TRAIL]]
-  name = "decision-trail"
+[[option.mode.DECISION_CUBES]]
+  name = "decision-cubes"
   help = "Creates mutually exclusive cubes from the decisions in the SAT solver."
-[[option.mode.HEAP_TRAIL]]
-  name = "heap-trail"
+[[option.mode.HEAP_CUBES]]
+  name = "heap-cubes"
   help = "Creates mutually exclusive cubes from the order heap in the SAT solver."
+[[option.mode.LEMMA_CUBES]]
+  name = "lemma-cubes"
+  help = "Creates mutually exclusive cubes from the lemmas sent to the SAT solver."
 
 [[option]]
   name       = "partitionCheck"
@@ -88,4 +119,12 @@ name   = "Parallel"
   type       = "bool"
   default    = "false"
   help       = "emit learned literals with the cubes"
+
+[[option]]
+  name       = "prioritizeLiterals"
+  category   = "expert"
+  long       = "prioritize-literals"
+  type       = "bool"
+  default    = "false"
+  help       = "prioritize literals with our input/noninput/skolem/noskolem heuristic"
 

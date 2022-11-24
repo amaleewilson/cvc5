@@ -18,6 +18,8 @@
 #ifndef CVC5__THEORY__SPLITTER_H
 #define CVC5__THEORY__SPLITTER_H
 
+#include <chrono>
+#include <unordered_map>
 #include <vector>
 
 #include "proof/trust_node.h"
@@ -49,6 +51,11 @@ class PartitionGenerator : protected EnvObj
    */
   TrustNode check(Theory::Effort e);
 
+  /**
+   * Add the literals from the toAdd Node to our list of literals from lemmas.
+   */
+  void addLemmaLiteral(TrustNode toAdd);
+
  private:
   /* LiteralListType is used to specify where to pull literals from when calling
    * collectLiterals. HEAP for the order_heap in the SAT solver, DECISION for
@@ -59,6 +66,7 @@ class PartitionGenerator : protected EnvObj
   {
     HEAP,
     DECISION,
+    LEMMA,
     ZLL
   };
   /**
@@ -114,6 +122,23 @@ class PartitionGenerator : protected EnvObj
 std::vector<Node> getPartitions() const { return d_cubes; }
 
 /**
+ * Apply the priority heuristic to the set of literals.
+ */
+void usePriorityHeuristic(std::vector<Node>& unfilteredLiterals,
+                          std::vector<Node>& filteredLiterals);
+
+/**
+ * Check if we can use the literal/var represented by node.
+ */
+bool isUnusable(Node n);
+
+/**
+ * The time point when this partition generator was instantiated, used to
+ * compute elapsed time.
+ */
+std::chrono::time_point<std::chrono::steady_clock> d_startTime;
+
+/**
  * Current propEngine.
  */
 prop::PropEngine* d_propEngine;
@@ -164,6 +189,21 @@ std::vector<Node> d_strict_cubes;
  * be made.
  */
 uint64_t d_conflictSize;
+
+/**
+ * Track whether any partitions have been emitted.
+ */
+bool d_emittedAnyPartitions;
+
+/**
+ * Track lemma literals that we have seen and their frequency.
+ */
+std::unordered_map<Node, int> d_lemmaMap;
+
+/**
+ * Track lemma literals we have seen.
+ */
+std::set<Node> d_lemmaLiterals;
 };
 }  // namespace theory
 }  // namespace cvc5::internal
