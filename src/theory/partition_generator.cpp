@@ -82,7 +82,9 @@ void PartitionGenerator::addLemmaLiteral(TrustNode toAdd)
           {
             // If we have already seen this chld node, then it is not theory
             // bool, so we update its entry. No need to visit again.
-            d_lemmaMap.insert_or_assign(childNode, d_lemmaMap[childNode] + 1);
+            int new_count = d_lemmaMap[childNode] + 1; 
+            d_lemmaMap.erase(childNode);
+            d_lemmaMap.insert({childNode, new_count});
           }
         }
       }
@@ -95,7 +97,9 @@ void PartitionGenerator::addLemmaLiteral(TrustNode toAdd)
         }
         else
         {
-          d_lemmaMap.insert_or_assign(current, d_lemmaMap[current] + 1);
+          int new_count = d_lemmaMap[current] + 1;
+          d_lemmaMap.erase(current);
+          d_lemmaMap.insert({current, new_count});
         }
       }
     }
@@ -177,16 +181,8 @@ void PartitionGenerator::usePriorityHeuristic(
 
     // A segfault is getting produced when we try to get the learned lit type
     // for the nodes with skolems (not all of them, but some of them.)
-    modes::LearnedLitType nType = modes::LEARNED_LIT_UNKNOWN;
-    if (!expr::hasSubtermKinds(skolemKinds, n))
-    {
-      nType = d_propEngine->getLiteralType(n);
-    }
-    modes::LearnedLitType originalNType = modes::LEARNED_LIT_UNKNOWN;
-    if (!expr::hasSubtermKinds(skolemKinds, originalN))
-    {
-      originalNType = d_propEngine->getLiteralType(originalN);
-    }
+    modes::LearnedLitType nType = d_propEngine->getLiteralType(n);
+    modes::LearnedLitType originalNType = d_propEngine->getLiteralType(originalN);
 
     // inputNoSkolems
     if (!expr::hasSubtermKinds(skolemKinds, n)
@@ -216,6 +212,8 @@ void PartitionGenerator::usePriorityHeuristic(
     }
   }
 
+  // Here we sort the potential literals/atoms for splitting. 
+  // TODO: Experiment with this ordering?
   for (auto candidateNode : inputNoSkolems)
   {
     filteredLiterals.push_back(candidateNode);
@@ -239,9 +237,7 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
   std::vector<Node> filteredLiterals;
   std::vector<Node> unfilteredLiterals;
 
-  // Filter out the types of literals we don't want.
-  // Make sure the literal does not have a boolean term or skolem in it.
-  // TODO: separate filter for unusable inst_constant.
+  // These kinds are used to filter out the types of literals we don't want.
   const std::unordered_set<Kind, kind::KindHashFunction> kinds = {
       kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
   const std::unordered_set<Kind, kind::KindHashFunction> unusableKinds = {
@@ -261,9 +257,6 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
     }
     case LEMMA:
     {
-      // TODO: use option to determine whether we prioritize literals based
-      // on the input/skolem heuristic.
-      // Additionally, make the heuristic order tweakable.
       std::vector<Node> lemmaNodes(d_lemmaLiterals.size());
       std::copy(
           d_lemmaLiterals.begin(), d_lemmaLiterals.end(), lemmaNodes.begin());
@@ -290,11 +283,7 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
       for (const Node& n : unfilteredLiterals)
       {
         Node originalN = SkolemManager::getOriginalForm(n);
-        Node nonNegated =
-            originalN.getKind() == kind::NOT ? originalN[0] : originalN;
-        if (n.isConst() || Theory::theoryOf(nonNegated) == THEORY_BOOL
-            || expr::hasSubtermKinds(unusableKinds, n)
-            || expr::hasSubtermKinds(unusableKinds, originalN))
+        if (isUnusable(n))
         {
           continue;
         }
@@ -310,6 +299,7 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
               [this](Node a, Node b) -> bool {
                 return d_lemmaMap[a] > d_lemmaMap[b];
               });
+    // TODO: Priority heuristic NOT WORKING for atoms from the lemmas. 
     if (options().parallel.prioritizeLiterals)
     {
       usePriorityHeuristic(unfilteredLiterals, filteredLiterals);
@@ -318,7 +308,7 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
     {
       for (auto lit : unfilteredLiterals)
       {
-        if (lit.isConst() || expr::hasSubtermKinds(unusableKinds, lit))
+        if (isUnusable(lit))
         {
           continue;
         }
@@ -332,15 +322,7 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
     for (const Node& n : unfilteredLiterals)
     {
       Node originalN = SkolemManager::getOriginalForm(n);
-
-      // If the literal is the not of some node, do the checks for the child
-      // of the not instead of the not itself.
-      Node original =
-          originalN.getKind() == kind::NOT ? originalN[0] : originalN;
-
-      if (expr::hasSubtermKinds(kinds, original)
-          || !d_valuation->isSatLiteral(original)
-          || Theory::theoryOf(original) == THEORY_BOOL || n.isConst())
+      if (isUnusable(n))
       {
         continue;
       }
