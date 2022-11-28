@@ -23,6 +23,7 @@
 #include "prop/prop_engine.h"
 #include "prop/theory_proxy.h"
 #include "prop/zero_level_learner.h"
+#include "theory/rewriter.h"
 #include "theory/theory_engine.h"
 #include "theory/theory_id.h"
 #include "theory/theory_traits.h"
@@ -299,10 +300,17 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
               [this](Node a, Node b) -> bool {
                 return d_lemmaMap[a] > d_lemmaMap[b];
               });
-    // TODO: Priority heuristic NOT WORKING for atoms from the lemmas. 
+
     if (options().parallel.prioritizeLiterals)
     {
-      usePriorityHeuristic(unfilteredLiterals, filteredLiterals);
+      // Need to use rewriter to avoid segfault issue here.
+      Rewriter rewriter;
+      std::vector<Node> rewritten;
+      for (auto l : unfilteredLiterals)
+      {
+        rewritten.push_back(rewriter.rewrite(l));
+      }
+      usePriorityHeuristic(rewritten, filteredLiterals);
     }
     else
     {
