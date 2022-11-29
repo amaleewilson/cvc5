@@ -369,7 +369,8 @@ TrustNode PartitionGenerator::stopPartitioning() const
 // C2 = l2_{1} & .... & l2_{d_conflictSize}
 // C3 = l3_{1} & .... & l3_{d_conflictSize}
 // C4 = !C1 & !C2 & !C3
-TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
+TrustNode PartitionGenerator::makeDisjointNonCubePartitions(bool strict,
+                                                            bool emitZLL)
 {
   // If we're not at the last cube
   if (d_numPartitionsSoFar < d_numPartitions - 1)
@@ -471,8 +472,8 @@ TrustNode PartitionGenerator::makeRevisedPartitions(bool strict, bool emitZLL)
   }
 }
 
-TrustNode PartitionGenerator::makeFullTrailPartitions(LiteralListType litType,
-                                                      bool emitZLL)
+TrustNode PartitionGenerator::makeCubePartitions(LiteralListType litType,
+                                                 bool emitZLL)
 {
   std::vector<Node> literals = collectLiterals(litType);
   uint64_t numVar = static_cast<uint64_t>(log2(d_numPartitions));
@@ -633,15 +634,15 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
   switch (options().parallel.partitionStrategy)
   {
     case options::PartitionMode::HEAP_CUBES:
-      return makeFullTrailPartitions(/*litType=*/HEAP, emitZLL);
+      return makeCubePartitions(/*litType=*/HEAP, emitZLL);
     case options::PartitionMode::DECISION_CUBES:
-      return makeFullTrailPartitions(/*litType=*/DECISION, emitZLL);
+      return makeCubePartitions(/*litType=*/DECISION, emitZLL);
     case options::PartitionMode::LEMMA_CUBES:
-      return makeFullTrailPartitions(/*litType=*/LEMMA, emitZLL);
+      return makeCubePartitions(/*litType=*/LEMMA, emitZLL);
     case options::PartitionMode::STRICT_CUBE:
-      return makeRevisedPartitions(/*strict=*/true, emitZLL);
+      return makeDisjointNonCubePartitions(/*strict=*/true, emitZLL);
     case options::PartitionMode::REVISED:
-      return makeRevisedPartitions(/*strict=*/false, emitZLL);
+      return makeDisjointNonCubePartitions(/*strict=*/false, emitZLL);
     default: return TrustNode::null();
   }
 }
