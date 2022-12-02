@@ -258,6 +258,12 @@ class TheoryEngine : protected EnvObj
   bool presolve();
 
   /**
+   * Emit any pending partitions
+   *
+   */
+  void emitPendingPartitions();
+
+  /**
    * Resets the internal state.
    */
   void postsolve();

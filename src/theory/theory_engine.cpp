@@ -670,6 +670,11 @@ bool TheoryEngine::presolve() {
   return false;
 }/* TheoryEngine::presolve() */
 
+void TheoryEngine::emitPendingPartitions()
+{
+  d_partitionGen->emitPendingPartitions(/*solved=*/true);
+}
+
 void TheoryEngine::postsolve() {
   // Reset the interrupt flag
   d_interrupted = false;

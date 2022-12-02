@@ -14,8 +14,24 @@ name   = "Parallel"
   category   = "expert"
   long       = "partition-tlimit=N"
   type       = "uint64_t"
-  default    = "30"
+  default    = "60"
   help       = "time limit for partitioning in seconds"
+
+[[option]]
+  name       = "partitionStartTime"
+  category   = "expert"
+  long       = "partition-start-time=N"
+  type       = "uint64_t"
+  default    = "30"
+  help       = "time to start creating partitions in seconds"
+
+[[option]]
+  name       = "partitionTimeInterval"
+  category   = "expert"
+  long       = "partition-time-interval=N"
+  type       = "uint64_t"
+  default    = "3"
+  help       = "time to wait between DNC partitions"
 
 [[option]]
   name       = "checksBeforePartitioning"
@@ -67,15 +83,18 @@ name   = "Parallel"
   category   = "expert"
   long       = "partition-strategy=MODE"
   type       = "PartitionMode"
-  default    = "REVISED"
+  default    = "HEAP_CUBES"
   help       = "choose partition strategy mode"
   help_mode  = "Partition strategy modes."
-[[option.mode.REVISED]]
-  name = "revised"
-  help = "For 4 partitions, creates cubes C1, C2, C3, !C1 & !C2 & !C3"
-[[option.mode.STRICT_CUBE]]
-  name = "strict-cube"
-  help = "For 4 partitions, creates cubes C1, !C1 & C2, !C1 & !C2 & C3, !C1 & !C2 & !C3"
+[[option.mode.DECISION_DNCS]]
+  name = "decision-dncs"
+  help = "For 4 partitions, creates cubes C1, !C1 & C2, !C1 & !C2 & C3, !C1 & !C2 & !C3, from decisions"
+[[option.mode.HEAP_DNCS]]
+  name = "heap-dncs"
+  help = "For 4 partitions, creates cubes C1, !C1 & C2, !C1 & !C2 & C3, !C1 & !C2 & !C3, from heap"
+[[option.mode.LEMMA_DNCS]]
+  name = "lemma-dncs"
+  help = "For 4 partitions, creates cubes C1, !C1 & C2, !C1 & !C2 & C3, !C1 & !C2 & !C3, from lemmas"
 [[option.mode.DECISION_CUBES]]
   name = "decision-cubes"
   help = "Creates mutually exclusive cubes from the decisions in the SAT solver."
@@ -127,4 +146,20 @@ name   = "Parallel"
   type       = "bool"
   default    = "false"
   help       = "prioritize literals with our input/noninput/skolem/noskolem heuristic"
+
+[[option]]
+  name       = "useBackupCubes"
+  category   = "expert"
+  long       = "use-backup-cubes"
+  type       = "bool"
+  default    = "false"
+  help       = "if DNC strategy does not create enough partitions, cube on what's available"
+
+[[option]]
+  name       = "clearAllLemmas"
+  category   = "expert"
+  long       = "clear-all-lemmas"
+  type       = "bool"
+  default    = "false"
+  help       = "When using lemmas for DNC strategy, clear all lemmas"
 

@@ -56,6 +56,11 @@ class PartitionGenerator : protected EnvObj
    */
   void addLemmaLiteral(TrustNode toAdd);
 
+  /**
+   * Emit any pending partitions that were not emitted during solving.
+   */
+  void emitPendingPartitions(bool solved);
+
  private:
   /* LiteralListType is used to specify where to pull literals from when calling
    * collectLiterals. HEAP for the order_heap in the SAT solver, DECISION for
@@ -73,7 +78,7 @@ class PartitionGenerator : protected EnvObj
    * Increment d_numPartitionsSoFar and print the cube to 
    * the output file specified by --write-partitions-to. 
    */
-  void emitCube(Node toEmit);
+  void emitPartition(Node toEmit);
 
   /**
    * Partition using the "revised" strategy, which emits cubes such as C1, C2,
@@ -82,7 +87,9 @@ class PartitionGenerator : protected EnvObj
    * emitZLL is set to true, then zero-level learned literals will be appended
    * to the cubes.
    */
-  TrustNode makeDisjointNonCubePartitions(bool strict, bool emitZLL);
+  TrustNode makeDisjointNonCubePartitions(LiteralListType litType,
+                                          bool emitZLL,
+                                          bool timedOut);
 
   /**
    * Partition by taking a list of literals and emitting mutually exclusive
@@ -105,7 +112,7 @@ class PartitionGenerator : protected EnvObj
   /**
    * Stop partitioning and return unsat.
    */
-  TrustNode stopPartitioning() const;
+  TrustNode stopPartitioning();
 
   /**
    * Get a list of literals.
@@ -137,6 +144,12 @@ bool isUnusable(Node n);
  * compute elapsed time.
  */
 std::chrono::time_point<std::chrono::steady_clock> d_startTime;
+
+/**
+ * Used to track the inter-partition time.
+ */
+std::chrono::time_point<std::chrono::steady_clock>
+    d_startTimeOfPreviousPartition;
 
 /**
  * Current propEngine.
@@ -182,7 +195,7 @@ std::vector<Node> d_cubes;
 /**
  * List of the strict cubes that have been created.
  */
-std::vector<Node> d_strict_cubes;
+std::vector<Node> d_dncs;
 
 /**
  * Minimum number of literals required in the list of decisions for cubes to
@@ -193,7 +206,12 @@ uint64_t d_conflictSize;
 /**
  * Track whether any partitions have been emitted.
  */
-bool d_emittedAnyPartitions;
+bool d_createdAnyPartitions;
+
+/**
+ * Track whether any partitions have been emitted.
+ */
+bool d_emittedAllPartitions;
 
 /**
  * Track lemma literals that we have seen and their frequency.
@@ -204,6 +222,11 @@ std::unordered_map<Node, int> d_lemmaMap;
  * Track lemma literals we have seen.
  */
 std::set<Node> d_lemmaLiterals;
+
+/**
+ * Track lemma literals we have used in DNCs.
+ */
+std::set<Node> d_usedLemmaLiterals;
 };
 }  // namespace theory
 }  // namespace cvc5::internal

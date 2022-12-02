@@ -17,6 +17,7 @@
 
 #include "options/base_options.h"
 #include "options/main_options.h"
+#include "options/parallel_options.h"
 #include "options/smt_options.h"
 #include "prop/prop_engine.h"
 #include "smt/assertions.h"
@@ -156,6 +157,13 @@ Result SmtSolver::checkSatInternal()
       }
     }
     Trace("smt") << "SmtSolver::global negate returned " << result << std::endl;
+  }
+
+  // Handle emitting partitions if necessary.
+  if (options().parallel.computePartitions > 1
+      && result.getStatus() == Result::UNSAT)
+  {
+    d_theoryEngine->emitPendingPartitions();
   }
   return result;
 }

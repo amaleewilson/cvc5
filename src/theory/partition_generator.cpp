@@ -41,9 +41,11 @@ PartitionGenerator::PartitionGenerator(Env& env,
       d_numChecks(0),
       d_betweenChecks(0),
       d_numPartitionsSoFar(0),
-      d_emittedAnyPartitions(false)
+      d_createdAnyPartitions(false),
+      d_emittedAllPartitions(false)
 {
   d_startTime = std::chrono::steady_clock::now();
+  d_startTimeOfPreviousPartition = std::chrono::steady_clock::now();
   d_valuation = std::make_unique<Valuation>(theoryEngine);
   d_propEngine = propEngine;
 
@@ -57,7 +59,9 @@ PartitionGenerator::PartitionGenerator(Env& env,
 void PartitionGenerator::addLemmaLiteral(TrustNode toAdd)
 {
   if (options().parallel.partitionStrategy
-      == options::PartitionMode::LEMMA_CUBES)
+          == options::PartitionMode::LEMMA_CUBES
+      || options().parallel.partitionStrategy
+             == options::PartitionMode::LEMMA_DNCS)
   {
     Node n = toAdd.getNode();
     std::vector<Node> toVisit;
@@ -320,6 +324,11 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
         {
           continue;
         }
+        // Skip lemma literals that we have used.
+        if (d_usedLemmaLiterals.count(lit) != 0)
+        {
+          continue;
+        }
         filteredLiterals.push_back(lit);
       }
     }
@@ -327,6 +336,7 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
   // else it must be zll
   else
   {
+    // I'm pretty sure that these checks are unnecessary for ZLL.
     for (const Node& n : unfilteredLiterals)
     {
       Node originalN = SkolemManager::getOriginalForm(n);
@@ -337,15 +347,201 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
       filteredLiterals.push_back(originalN);
     }
   }
-
   return filteredLiterals;
 }
 
-void PartitionGenerator::emitCube(Node toEmit)
+// Here we want to make sure that the proper number of partitions are emitted.
+void PartitionGenerator::emitPendingPartitions(bool solved)
+{
+  if (!d_emittedAllPartitions)
+  {
+    bool emitZLL = options().parallel.appendLearnedLiteralsToCubes;
+    if (options().parallel.useBackupCubes)
+    {
+      // If we have not emitted all partitions, then we need to
+      // decide what partitions we will emit. The most straightforward
+      // backup strategy is to cube on the available partitions.
+      // Now this can be done in two ways: either we have enough DNCs
+      // to cube on the DNCs themselves, or we don't, and we will cube on the
+      // literals available in the first DNC. Note a major assumption here:
+      // We are assuming that the number of literals in the first DNC is at
+      // least log2 of the requested number of partitions, which is the default.
+      // We will need to update this code to be more robust in the event that
+      // the number of literals in the first DNC is less than log2 of the
+      // requested number of partitions.
+
+      std::vector<Node> literals;
+
+      if (d_cubes.size() < d_conflictSize)
+      {
+        // Then we must cube on the literals in the first cube.
+        size_t numChildren = d_cubes[0].getNumChildren();
+        for (size_t i = 0; i < numChildren; ++i)
+        {
+          literals.push_back(d_cubes[0][i]);
+        }
+      }
+      else
+      {
+        // Then we can cube on the cubes themselves.
+        for (size_t i = 0; i < d_conflictSize; ++i)
+        {
+          literals.push_back(d_cubes[i]);
+        }
+      }
+
+      uint64_t numVar = static_cast<uint64_t>(log2(d_numPartitions));
+      if (literals.size() >= numVar)
+      {
+        // total number of cubes/rows
+        size_t total = pow(2, numVar);
+
+        // resultNodeLists is built column by column.
+        std::vector<std::vector<Node> > resultNodeLists(total);
+
+        // t is used to determine whether to push the node or its not_node.
+        bool t = false;
+
+        size_t numConsecutiveTF = total / 2;
+        for (Node n : literals)
+        {
+          Node notN;
+          if (n.getKind() != kind::NOT)
+          {
+            notN = n.notNode();
+          }
+          else if (n.getKind() == kind::NOT)
+          {
+            notN = n[0];
+          }
+
+          // loc tracks which row/cube we're on
+          size_t loc = 0;
+          for (size_t z = 0; z < total / numConsecutiveTF; ++z)
+          {
+            t = !t;
+            for (size_t j = 0; j < numConsecutiveTF; ++j)
+            {
+              resultNodeLists[loc].push_back(t ? n : notN);
+              ++loc;
+            }
+          }
+
+          numConsecutiveTF = numConsecutiveTF / 2;
+        }
+        for (const std::vector<Node>& row : resultNodeLists)
+        {
+          Node conj = NodeManager::currentNM()->mkAnd(row);
+          if (emitZLL)
+          {
+            std::vector<Node> zllLiterals = collectLiterals(ZLL);
+            zllLiterals.push_back(conj);
+            Node zllConj = NodeManager::currentNM()->mkAnd(zllLiterals);
+            emitPartition(zllConj);
+          }
+          else
+          {
+            emitPartition(conj);
+          }
+        }
+      }
+      else
+      {
+        std::cout
+            << "error: not enough children in first cube for backup strategy"
+            << std::endl;
+      }
+    }
+    // If not using backup cubing, then we just emit the partitions that we
+    // have. If we have solved the partition, then we emit the partitions
+    // available, but if not, then we must emit the final partition as well.
+    else
+    {
+      if (solved)
+      {
+        // If solved, then we can just emit the partitions in d_dncs because
+        // the final partition has already been solved by our current instance.
+        if (emitZLL)
+        {
+          std::vector<Node> zllLiterals =
+              d_propEngine->getLearnedZeroLevelLiterals(
+                  modes::LEARNED_LIT_INPUT);
+
+          // Add the ZLL literals to each of the partitions
+          for (const auto& partition : d_dncs)
+          {
+            zllLiterals.push_back(partition);
+            Node lemma = NodeManager::currentNM()->mkAnd(zllLiterals);
+            emitPartition(lemma);
+            zllLiterals.pop_back();
+          }
+        }
+        else
+        {
+          for (const auto& partition : d_dncs)
+          {
+            emitPartition(partition);
+          }
+        }
+      }
+      else
+      {
+        // First, emit the first n-1 partitions.
+        if (emitZLL)
+        {
+          std::vector<Node> zllLiterals =
+              d_propEngine->getLearnedZeroLevelLiterals(
+                  modes::LEARNED_LIT_INPUT);
+
+          // Add the ZLL literals to each of the partitions
+          for (const auto& partition : d_dncs)
+          {
+            zllLiterals.push_back(partition);
+            Node lemma = NodeManager::currentNM()->mkAnd(zllLiterals);
+            emitPartition(lemma);
+            zllLiterals.pop_back();
+          }
+        }
+        else
+        {
+          for (const auto& partition : d_dncs)
+          {
+            emitPartition(partition);
+          }
+        }
+
+        // Now emit the final partition.
+        vector<Node> nots;
+        for (const Node& cube : d_cubes)
+        {
+          nots.push_back(cube.notNode());
+        }
+
+        Node finalPartition = NodeManager::currentNM()->mkAnd(nots);
+        // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1)
+        if (emitZLL)
+        {
+          std::vector<Node> zllLiterals =
+              d_propEngine->getLearnedZeroLevelLiterals(
+                  modes::LEARNED_LIT_INPUT);
+          zllLiterals.push_back(finalPartition);
+          Node zllFinalPartition = NodeManager::currentNM()->mkAnd(zllLiterals);
+          emitPartition(zllFinalPartition);
+        }
+        else
+        {
+          emitPartition(finalPartition);
+        }
+      }
+    }
+  }
+}
+
+void PartitionGenerator::emitPartition(Node toEmit)
 {
   *options().parallel.partitionsOut << toEmit << std::endl;
   ++d_numPartitionsSoFar;
-  d_emittedAnyPartitions = true;
+  d_createdAnyPartitions = true;
 }
 
 TrustNode PartitionGenerator::blockPath(TNode toBlock)
@@ -358,24 +554,27 @@ TrustNode PartitionGenerator::blockPath(TNode toBlock)
 }
 
 // Send lemma that is the negation of all previously asserted lemmas.
-TrustNode PartitionGenerator::stopPartitioning() const
+TrustNode PartitionGenerator::stopPartitioning()
 {
+  d_emittedAllPartitions = true;
   return TrustNode::mkTrustLemma(NodeManager::currentNM()->mkConst(false));
 }
 
-// This is the revised version of the old splitting strategy.
-// Cubes look like the following:
-// C1 = l1_{1} & .... & l1_{d_conflictSize}
-// C2 = l2_{1} & .... & l2_{d_conflictSize}
-// C3 = l3_{1} & .... & l3_{d_conflictSize}
-// C4 = !C1 & !C2 & !C3
-TrustNode PartitionGenerator::makeDisjointNonCubePartitions(bool strict,
-                                                            bool emitZLL)
+// For the DNC strategy, we make the following kinds of partitions:
+// P1 =              C1 = l1_{1} & ... & l1_{d_conflictSize}
+// P2 = !C1 &        C2 = l2_{1} & ... & l2_{d_conflictSize}
+// P3 = !C1 & !C2 &  C3 = l3_{1} & ... & l3_{d_conflictSize}
+// P4 = !C1 & !C2 & !C3
+// Note that we want to simply collect the partitions until we get to the
+// timeout or total number of requested partitions.
+// Once we reach that point, we dump all the partitions.
+TrustNode PartitionGenerator::makeDisjointNonCubePartitions(
+    LiteralListType litType, bool emitZLL, bool timedOut)
 {
   // If we're not at the last cube
   if (d_numPartitionsSoFar < d_numPartitions - 1)
   {
-    std::vector<Node> literals = collectLiterals(DECISION);
+    std::vector<Node> literals = collectLiterals(litType);
 
     // Make sure we have enough literals.
     // Conflict size can be set through options, but the default is log base 2
@@ -386,87 +585,98 @@ TrustNode PartitionGenerator::makeDisjointNonCubePartitions(bool strict,
     }
 
     literals.resize(d_conflictSize);
-    // Make cube from literals
+
+    // Add literals to the seen list if we are using lemmas
+    if (options().parallel.partitionStrategy
+        == options::PartitionMode::LEMMA_DNCS)
+    {
+      for (auto l : literals)
+      {
+        d_usedLemmaLiterals.insert(l);
+      }
+    }
+
+    // Make a cube from the literals
     Node conj = NodeManager::currentNM()->mkAnd(literals);
 
     // For the strict-cube strategy, cubes look like the following:
-    // C1 =             l1_{1} & .... & l1_{d_conflictSize}
-    // C2 = !C1 &       l2_{1} & .... & l2_{d_conflictSize}
-    // C3 = !C1 & !C2 & l3_{1} & .... & l3_{d_conflictSize}
-    // C4 = !C1 & !C2 & !C3
-    if (strict)
+    // P1 =              C1 = l1_{1} & .... & l1_{d_conflictSize}
+    // P2 = !C1 &        C2 = l2_{1} & .... & l2_{d_conflictSize}
+    // P3 = !C1 & !C2 &  C3 = l3_{1} & .... & l3_{d_conflictSize}
+    // P4 = !C1 & !C2 & !C3
+    vector<Node> toEmit;
+    // Collect negation of the previously used cubes.
+    for (const Node& c : d_cubes)
     {
-      vector<Node> toEmit;
-      for (const Node& c : d_cubes)
-      {
-        toEmit.push_back(c.notNode());
-      }
-      toEmit.push_back(conj);
-      Node strict_cube = NodeManager::currentNM()->mkAnd(toEmit);
-      d_strict_cubes.push_back(strict_cube);
+      toEmit.push_back(c.notNode());
+    }
+    toEmit.push_back(conj);
+    Node dnc = NodeManager::currentNM()->mkAnd(toEmit);
+    d_dncs.push_back(dnc);
 
-      if (emitZLL)
-      {
-        // just increment and don't actually output the cube yet
-        d_numPartitionsSoFar++;
-      }
-      else
-      {
-        emitCube(strict_cube);
-      }
-    }
-    else
-    {
-      if (emitZLL)
-      {
-        // just increment and don't actually output the cube yet
-        d_numPartitionsSoFar++;
-      }
-      else
-      {
-        emitCube(conj);
-      }
-    }
-    // Add to the list of cubes.
+    // just increment and don't actually output the partition yet
+    d_numPartitionsSoFar++;
+
+    // Add the conjunction to the list of cubes.
     d_cubes.push_back(conj);
+
+    // Track that we have created at least one partition
+    d_createdAnyPartitions = true;
+
+    if (timedOut)
+    {
+      emitPendingPartitions(/*solved=*/false);
+      return stopPartitioning();
+    }
+
     return blockPath(conj);
   }
   // At the last cube
   else
   {
+    // First, emit the first n-1 partitions.
     if (emitZLL)
     {
       std::vector<Node> zllLiterals =
           d_propEngine->getLearnedZeroLevelLiterals(modes::LEARNED_LIT_INPUT);
-      std::vector<Node>* cubes = strict ? &d_strict_cubes : &d_cubes;
 
-      for (const auto& c : *cubes)
+      // Add the ZLL literals to each of the partitions
+      for (const auto& partition : d_dncs)
       {
-        zllLiterals.push_back(c);
+        zllLiterals.push_back(partition);
         Node lemma = NodeManager::currentNM()->mkAnd(zllLiterals);
-        emitCube(lemma);
+        emitPartition(lemma);
         zllLiterals.pop_back();
       }
     }
-
-    vector<Node> nots;
-    for (const Node& c : d_cubes)
+    else
     {
-      nots.push_back(c.notNode());
+      for (const auto& partition : d_dncs)
+      {
+        emitPartition(partition);
+      }
     }
-    Node lemma = NodeManager::currentNM()->mkAnd(nots);
+
+    // Now emit the final partition.
+    vector<Node> nots;
+    for (const Node& cube : d_cubes)
+    {
+      nots.push_back(cube.notNode());
+    }
+
+    Node finalPartition = NodeManager::currentNM()->mkAnd(nots);
     // Emit not(cube_one) and not(cube_two) and ... and not(cube_n-1)
     if (emitZLL)
     {
       std::vector<Node> zllLiterals =
           d_propEngine->getLearnedZeroLevelLiterals(modes::LEARNED_LIT_INPUT);
-      zllLiterals.push_back(lemma);
-      Node zllLemma = NodeManager::currentNM()->mkAnd(zllLiterals);
-      emitCube(zllLemma);
+      zllLiterals.push_back(finalPartition);
+      Node zllFinalPartition = NodeManager::currentNM()->mkAnd(zllLiterals);
+      emitPartition(zllFinalPartition);
     }
     else
     {
-      emitCube(lemma);
+      emitPartition(finalPartition);
     }
     return stopPartitioning();
   }
@@ -548,11 +758,11 @@ TrustNode PartitionGenerator::makeCubePartitions(LiteralListType litType,
         std::vector<Node> zllLiterals = collectLiterals(ZLL);
         zllLiterals.push_back(conj);
         Node zllConj = NodeManager::currentNM()->mkAnd(zllLiterals);
-        emitCube(zllConj);
+        emitPartition(zllConj);
       }
       else
       {
-        emitCube(conj);
+        emitPartition(conj);
       }
     }
     return stopPartitioning();
@@ -572,23 +782,35 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
   }
 
   auto now = std::chrono::steady_clock::now();
-  std::chrono::duration<double> elapsedTime = now - d_startTime;
-  bool timeLimitExceeded =
-      elapsedTime.count() >= options().parallel.partitionTimeLimit;
+  std::chrono::duration<double> totalElapsedTime = now - d_startTime;
+  std::chrono::duration<double> interElapsedTime =
+      now - d_startTimeOfPreviousPartition;
+  bool startTimeExceeded =
+      totalElapsedTime.count() >= options().parallel.partitionStartTime;
+  bool interTimeExceeded =
+      interElapsedTime.count() >= options().parallel.partitionTimeInterval;
+  bool timeOutExceeded =
+      totalElapsedTime.count() >= options().parallel.partitionTimeLimit;
+
+  // When using time limits, we partition if the partition start time is
+  // exceeded and no partitions have been made, or when at least one partition
+  // has been created and the inter-partition time limit has been exceeded
+  bool timeToPartition = ((d_createdAnyPartitions && interTimeExceeded)
+                          || (!d_createdAnyPartitions && startTimeExceeded));
 
   d_numChecks = d_numChecks + 1;
   d_betweenChecks = d_betweenChecks + 1;
   bool checkLimitExceeded =
-      ((d_emittedAnyPartitions
+      ((d_createdAnyPartitions
         && d_betweenChecks >= options().parallel.checksBetweenPartitions)
-       || (!d_emittedAnyPartitions
+       || (!d_createdAnyPartitions
            && d_numChecks >= options().parallel.checksBeforePartitioning));
 
   switch (options().parallel.partitionWhen)
   {
     case options::PartitionWhenMode::TLIMIT:
     {
-      if (!timeLimitExceeded)
+      if (!timeToPartition)
       {
         return TrustNode::null();
       }
@@ -607,7 +829,7 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
     {
       if (!checkLimitExceeded)
       {
-        if (!timeLimitExceeded)
+        if (!timeToPartition)
         {
           return TrustNode::null();
         }
@@ -616,7 +838,7 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
     }
     case options::PartitionWhenMode::CLIMIT_TBACKUP:
     {
-      if (!timeLimitExceeded)
+      if (!timeToPartition)
       {
         if (!checkLimitExceeded)
         {
@@ -630,19 +852,27 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
   // Reset betweenChecks
   d_betweenChecks = 0;
 
+  // Reset start time of previous partition
+  d_startTimeOfPreviousPartition = std::chrono::steady_clock::now();
+
   bool emitZLL = options().parallel.appendLearnedLiteralsToCubes;
   switch (options().parallel.partitionStrategy)
   {
-    case options::PartitionMode::HEAP_CUBES:
-      return makeCubePartitions(/*litType=*/HEAP, emitZLL);
     case options::PartitionMode::DECISION_CUBES:
       return makeCubePartitions(/*litType=*/DECISION, emitZLL);
+    case options::PartitionMode::HEAP_CUBES:
+      return makeCubePartitions(/*litType=*/HEAP, emitZLL);
     case options::PartitionMode::LEMMA_CUBES:
       return makeCubePartitions(/*litType=*/LEMMA, emitZLL);
-    case options::PartitionMode::STRICT_CUBE:
-      return makeDisjointNonCubePartitions(/*strict=*/true, emitZLL);
-    case options::PartitionMode::REVISED:
-      return makeDisjointNonCubePartitions(/*strict=*/false, emitZLL);
+    case options::PartitionMode::DECISION_DNCS:
+      return makeDisjointNonCubePartitions(
+          /*litType=*/DECISION, emitZLL, timeOutExceeded);
+    case options::PartitionMode::HEAP_DNCS:
+      return makeDisjointNonCubePartitions(
+          /*litType=*/HEAP, emitZLL, timeOutExceeded);
+    case options::PartitionMode::LEMMA_DNCS:
+      return makeDisjointNonCubePartitions(
+          /*litType=*/LEMMA, emitZLL, timeOutExceeded);
     default: return TrustNode::null();
   }
 }
