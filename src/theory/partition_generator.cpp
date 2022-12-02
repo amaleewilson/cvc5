@@ -595,6 +595,12 @@ TrustNode PartitionGenerator::makeDisjointNonCubePartitions(
         d_usedLemmaLiterals.insert(l);
       }
     }
+    // If clearing all lemmas between partitions, do so
+    if (options().parallel.clearAllLemmas)
+    {
+      d_lemmaMap.clear();
+      d_lemmaLiterals.clear();
+    }
 
     // Make a cube from the literals
     Node conj = NodeManager::currentNM()->mkAnd(literals);
