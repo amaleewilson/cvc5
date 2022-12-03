@@ -163,3 +163,35 @@ name   = "Parallel"
   default    = "false"
   help       = "When using lemmas for DNC strategy, clear all lemmas"
 
+[[option]]
+  name       = "progressiveDNCs"
+  category   = "expert"
+  long       = "progressive-dncs"
+  type       = "bool"
+  default    = "false"
+  help       = "When using DNC strategy, change number of literals in successive partitions"
+
+[[option]]
+  name       = "maxConflictSize"
+  category   = "expert"
+  long       = "max-conflict-size=N"
+  type       = "uint64_t"
+  default    = "3"
+  help       = "Maximum number of literals to use when doing progressive DNC"
+
+[[option]]
+  name       = "minConflictSize"
+  category   = "expert"
+  long       = "min-conflict-size=N"
+  type       = "uint64_t"
+  default    = "1"
+  help       = "Minimum number of literals to use when doing progressive DNC"
+
+[[option]]
+  name       = "conflictSizeInterval"
+  category   = "expert"
+  long       = "conflict-size-interval=N"
+  type       = "uint64_t"
+  default    = "1"
+  help       = "Difference in the number of literals when doing progressive DNC"
+

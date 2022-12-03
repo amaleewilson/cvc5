@@ -571,6 +571,25 @@ TrustNode PartitionGenerator::stopPartitioning()
 TrustNode PartitionGenerator::makeDisjointNonCubePartitions(
     LiteralListType litType, bool emitZLL, bool timedOut)
 {
+  size_t conflictSize = d_conflictSize;
+  if (options().parallel.progressiveDNCs)
+  {
+    size_t numPartitionsMade = d_cubes.size();
+    size_t maxConflictSize = options().parallel.maxConflictSize;
+    size_t minConflictSize = options().parallel.minConflictSize;
+    size_t conflictSizeInterval = options().parallel.conflictSizeInterval;
+
+    if ((numPartitionsMade * conflictSizeInterval) >= maxConflictSize)
+    {
+      conflictSize = minConflictSize;
+    }
+    else
+    {
+      conflictSize =
+          maxConflictSize - (numPartitionsMade * conflictSizeInterval);
+    }
+  }
+
   // If we're not at the last cube
   if (d_numPartitionsSoFar < d_numPartitions - 1)
   {
@@ -579,12 +598,12 @@ TrustNode PartitionGenerator::makeDisjointNonCubePartitions(
     // Make sure we have enough literals.
     // Conflict size can be set through options, but the default is log base 2
     // of the requested number of partitions.
-    if (literals.size() < d_conflictSize)
+    if (literals.size() < conflictSize)
     {
       return TrustNode::null();
     }
 
-    literals.resize(d_conflictSize);
+    literals.resize(conflictSize);
 
     // Add literals to the seen list if we are using lemmas
     if (options().parallel.partitionStrategy
