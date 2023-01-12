@@ -329,7 +329,7 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
         {
           continue;
         }
-        filteredLiterals.push_back(lit);
+        filteredLiterals.push_back(SkolemManager::getOriginalForm(lit));
       }
     }
   }
