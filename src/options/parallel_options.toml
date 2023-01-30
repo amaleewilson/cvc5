@@ -29,8 +29,8 @@ name   = "Parallel"
   name       = "partitionTimeInterval"
   category   = "expert"
   long       = "partition-time-interval=N"
-  type       = "uint64_t"
-  default    = "3"
+  type       = "double"
+  default    = "1.0"
   help       = "time to wait between DNC partitions"
 
 [[option]]
