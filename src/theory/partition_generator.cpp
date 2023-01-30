@@ -600,10 +600,23 @@ TrustNode PartitionGenerator::makeDisjointNonCubePartitions(
     // of the requested number of partitions.
     if (literals.size() < conflictSize)
     {
-      return TrustNode::null();
+      if (options().parallel.takeWhatYouCan)
+      {
+        if (literals.size() < options().parallel.minConflictSize)
+        {
+          return TrustNode::null();
+        }
+        // else continue
+      }
+      else
+      {
+        return TrustNode::null();
+      }
     }
-
-    literals.resize(conflictSize);
+    else
+    {
+      literals.resize(conflictSize);
+    }
 
     // Add literals to the seen list if we are using lemmas
     if (options().parallel.partitionStrategy

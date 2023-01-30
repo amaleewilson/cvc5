@@ -140,6 +140,14 @@ name   = "Parallel"
   help       = "emit learned literals with the cubes"
 
 [[option]]
+  name       = "takeWhatYouCan"
+  category   = "expert"
+  long       = "take-what-you-can"
+  type       = "bool"
+  default    = "false"
+  help       = "ignore conflict size to prioritize fast partitioning"
+
+[[option]]
   name       = "prioritizeLiterals"
   category   = "expert"
   long       = "prioritize-literals"
