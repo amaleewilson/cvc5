@@ -812,8 +812,6 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
 {
   if ((options().parallel.partitionCheck == options::CheckMode::FULL
        && !Theory::fullEffort(e))
-      || (options().parallel.partitionCheck == options::CheckMode::STANDARD
-          && Theory::fullEffort(e))
       || (options().parallel.computePartitions < 2))
   {
     return TrustNode::null();
