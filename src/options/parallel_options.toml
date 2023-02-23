@@ -172,6 +172,14 @@ name   = "Parallel"
   help       = "When using lemmas for DNC strategy, clear all lemmas"
 
 [[option]]
+  name       = "useTail"
+  category   = "expert"
+  long       = "use-tail"
+  type       = "bool"
+  default    = "false"
+  help       = "Option to use the last n literals instead of the first n for partitioning"
+
+[[option]]
   name       = "progressiveDNCs"
   category   = "expert"
   long       = "progressive-dncs"
