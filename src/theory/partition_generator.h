@@ -89,7 +89,8 @@ class PartitionGenerator : protected EnvObj
    */
   TrustNode makeDisjointNonCubePartitions(LiteralListType litType,
                                           bool emitZLL,
-                                          bool timedOut);
+                                          bool timedOut,
+                                          bool useTrailTail);
 
   /**
    * Partition by taking a list of literals and emitting mutually exclusive
@@ -101,7 +102,9 @@ class PartitionGenerator : protected EnvObj
    * If emitZLL is set to true, then zero-level learned literals will be
    * appended to the cubes.
    */
-  TrustNode makeCubePartitions(LiteralListType litType, bool emitZLL);
+  TrustNode makeCubePartitions(LiteralListType litType,
+                               bool emitZLL,
+                               bool useTrailTail);
 
   /**
    * Generate a lemma that is the negation of toBlock which ultimately blocks
