@@ -273,7 +273,11 @@ std::vector<SatLiteral> MinisatSatSolver::getDecisions() const
       d_minisat->getMiniSatAssignmentTrail();
   for (size_t i = 0, ndec = miniDecisions.size(); i < ndec; ++i)
   {
-    decisions.push_back(toSatLiteral(miniDecisions[i]));
+    auto satLit = toSatLiteral(miniDecisions[i]);
+    if (isDecision(satLit.getSatVariable()))
+    {
+      decisions.push_back(satLit);
+    }
   }
   return decisions;
 }
