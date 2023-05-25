@@ -90,7 +90,8 @@ class PartitionGenerator : protected EnvObj
   TrustNode makeDisjointNonCubePartitions(LiteralListType litType,
                                           bool emitZLL,
                                           bool timedOut,
-                                          bool useTrailTail);
+                                          bool useTrailTail,
+                                          bool randomize);
 
   /**
    * Partition by taking a list of literals and emitting mutually exclusive
@@ -104,7 +105,8 @@ class PartitionGenerator : protected EnvObj
    */
   TrustNode makeCubePartitions(LiteralListType litType,
                                bool emitZLL,
-                               bool useTrailTail);
+                               bool useTrailTail,
+                               bool randomize);
 
   /**
    * Generate a lemma that is the negation of toBlock which ultimately blocks

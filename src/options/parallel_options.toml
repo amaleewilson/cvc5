@@ -140,6 +140,14 @@ name   = "Parallel"
   help       = "emit learned literals with the cubes"
 
 [[option]]
+  name       = "randomPartitioning"
+  category   = "expert"
+  long       = "random-partitioning"
+  type       = "bool"
+  default    = "false"
+  help       = "create random partitions"
+
+[[option]]
   name       = "takeWhatYouCan"
   category   = "expert"
   long       = "take-what-you-can"

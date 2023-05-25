@@ -16,6 +16,8 @@
 #include "theory/partition_generator.h"
 
 #include <math.h>
+#include <random>
+#include <algorithm>
 
 #include "expr/node_algorithm.h"
 #include "expr/node_builder.h"
@@ -569,7 +571,7 @@ TrustNode PartitionGenerator::stopPartitioning()
 // timeout or total number of requested partitions.
 // Once we reach that point, we dump all the partitions.
 TrustNode PartitionGenerator::makeDisjointNonCubePartitions(
-    LiteralListType litType, bool emitZLL, bool timedOut, bool useTrailTail)
+    LiteralListType litType, bool emitZLL, bool timedOut, bool useTrailTail, bool randomize)
 {
   size_t conflictSize = d_conflictSize;
   if (options().parallel.progressiveDNCs)
@@ -620,6 +622,11 @@ TrustNode PartitionGenerator::makeDisjointNonCubePartitions(
         std::vector<Node> tailLits(literals.end() - conflictSize,
                                    literals.end());
         literals = tailLits;
+      }
+      else if (randomize)
+      {
+        std::shuffle(literals.begin(), literals.end(), std::mt19937(std::random_device()()));
+        literals.resize(conflictSize);
       }
       else
       {
@@ -731,7 +738,8 @@ TrustNode PartitionGenerator::makeDisjointNonCubePartitions(
 
 TrustNode PartitionGenerator::makeCubePartitions(LiteralListType litType,
                                                  bool emitZLL,
-                                                 bool useTrailTail)
+                                                 bool useTrailTail,
+                                                 bool randomize)
 {
   std::vector<Node> literals = collectLiterals(litType);
   uint64_t numVar = static_cast<uint64_t>(log2(d_numPartitions));
@@ -741,6 +749,11 @@ TrustNode PartitionGenerator::makeCubePartitions(LiteralListType litType,
     {
       std::vector<Node> tailLits(literals.end() - numVar, literals.end());
       literals = tailLits;
+    }
+    else if (randomize)
+    {
+      std::shuffle(literals.begin(), literals.end(), std::mt19937(std::random_device()()));
+      literals.resize(numVar);
     }
     else
     {
@@ -910,23 +923,24 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
 
   bool emitZLL = options().parallel.appendLearnedLiteralsToCubes;
   bool useTail = options().parallel.useTail;
+  bool randomize = options().parallel.randomPartitioning;
   switch (options().parallel.partitionStrategy)
   {
     case options::PartitionMode::DECISION_CUBES:
-      return makeCubePartitions(/*litType=*/DECISION, emitZLL, useTail);
+      return makeCubePartitions(/*litType=*/DECISION, emitZLL, useTail, randomize);
     case options::PartitionMode::HEAP_CUBES:
-      return makeCubePartitions(/*litType=*/HEAP, emitZLL, useTail);
+      return makeCubePartitions(/*litType=*/HEAP, emitZLL, useTail, randomize);
     case options::PartitionMode::LEMMA_CUBES:
-      return makeCubePartitions(/*litType=*/LEMMA, emitZLL, useTail);
+      return makeCubePartitions(/*litType=*/LEMMA, emitZLL, useTail, randomize);
     case options::PartitionMode::DECISION_DNCS:
       return makeDisjointNonCubePartitions(
-          /*litType=*/DECISION, emitZLL, timeOutExceeded, useTail);
+          /*litType=*/DECISION, emitZLL, timeOutExceeded, useTail, randomize);
     case options::PartitionMode::HEAP_DNCS:
       return makeDisjointNonCubePartitions(
-          /*litType=*/HEAP, emitZLL, timeOutExceeded, useTail);
+          /*litType=*/HEAP, emitZLL, timeOutExceeded, useTail, randomize);
     case options::PartitionMode::LEMMA_DNCS:
       return makeDisjointNonCubePartitions(
-          /*litType=*/LEMMA, emitZLL, timeOutExceeded, useTail);
+          /*litType=*/LEMMA, emitZLL, timeOutExceeded, useTail, randomize);
     default: return TrustNode::null();
   }
 }
