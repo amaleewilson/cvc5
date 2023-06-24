@@ -224,6 +224,11 @@ bool d_emittedAllPartitions;
 std::unordered_map<Node, int> d_lemmaMap;
 
 /**
+ * Tracks the next value for lemma literals based on recency.
+*/
+unsigned d_lemmaPosition;
+
+/**
  * Track lemma literals we have seen.
  */
 std::set<Node> d_lemmaLiterals;

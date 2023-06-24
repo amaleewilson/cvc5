@@ -44,7 +44,8 @@ PartitionGenerator::PartitionGenerator(Env& env,
       d_betweenChecks(0),
       d_numPartitionsSoFar(0),
       d_createdAnyPartitions(false),
-      d_emittedAllPartitions(false)
+      d_emittedAllPartitions(false),
+      d_lemmaPosition(1)
 {
   d_startTime = std::chrono::steady_clock::now();
   d_startTimeOfPreviousPartition = std::chrono::steady_clock::now();
@@ -65,48 +66,99 @@ void PartitionGenerator::addLemmaLiteral(TrustNode toAdd)
       || options().parallel.partitionStrategy
              == options::PartitionMode::LEMMA_DNCS)
   {
-    Node n = toAdd.getNode();
-    std::vector<Node> toVisit;
-    toVisit.push_back(n);
-
-    for (unsigned i = 0; i < toVisit.size(); ++i)
+    // Most Recent Lemmas
+    if (options().parallel.useRecentLemmas)
     {
-      Node current = toVisit[i];
-      // If current node is theory bool, visit the children.
-      if (Theory::theoryOf(current) == THEORY_BOOL)
+      Node n = toAdd.getNode();
+      std::vector<Node> toVisit;
+      toVisit.push_back(n);
+      
+      for (unsigned i = 0; i < toVisit.size(); ++i)
       {
-        for (unsigned child = 0, childEnd = current.getNumChildren();
-             child < childEnd;
-             ++child)
+        Node current = toVisit[i];
+        // If current node is theory bool, visit the children.
+        if (Theory::theoryOf(current) == THEORY_BOOL)
         {
-          auto childNode = current[child];
-          // If we haven't seens the child, we should visit it.
-          if (d_lemmaMap.count(childNode) == 0)
+          for (unsigned child = 0, childEnd = current.getNumChildren();
+              child < childEnd;
+              ++child)
           {
-            toVisit.push_back(childNode);
+            auto childNode = current[child];
+            // If we haven't seens the child, we should visit it.
+            if (d_lemmaMap.count(childNode) == 0)
+            {
+              toVisit.push_back(childNode);
+            }
+            else
+            {
+              //If we have seen the child, then remove it from its previous spot.
+              //and push it to the most recent spot in the map/stack
+              d_lemmaMap.erase(childNode);
+              d_lemmaMap.insert({childNode, d_lemmaPosition++});
+            }
           }
-          else
-          {
-            // If we have already seen this chld node, then it is not theory
-            // bool, so we update its entry. No need to visit again.
-            int new_count = d_lemmaMap[childNode] + 1; 
-            d_lemmaMap.erase(childNode);
-            d_lemmaMap.insert({childNode, new_count});
-          }
-        }
-      }
-      else
-      {
-        if (d_lemmaMap.count(current) == 0)
-        {
-          d_lemmaMap.insert({current, 1});
-          d_lemmaLiterals.insert(current);
         }
         else
         {
-          int new_count = d_lemmaMap[current] + 1;
-          d_lemmaMap.erase(current);
-          d_lemmaMap.insert({current, new_count});
+          if (d_lemmaMap.count(current) == 0)
+          {
+            d_lemmaMap.insert({current, d_lemmaPosition++});
+            d_lemmaLiterals.insert(current);
+          }
+          else
+          {
+            d_lemmaMap.erase(current);
+            d_lemmaMap.insert({current, d_lemmaPosition++});
+          }
+        }
+      }
+    }
+    // Most Frequent Lemmas
+    else
+    {
+      Node n = toAdd.getNode();
+      std::vector<Node> toVisit;
+      toVisit.push_back(n);
+
+      for (unsigned i = 0; i < toVisit.size(); ++i)
+      {
+        Node current = toVisit[i];
+        // If current node is theory bool, visit the children.
+        if (Theory::theoryOf(current) == THEORY_BOOL)
+        {
+          for (unsigned child = 0, childEnd = current.getNumChildren();
+              child < childEnd;
+              ++child)
+          {
+            auto childNode = current[child];
+            // If we haven't seens the child, we should visit it.
+            if (d_lemmaMap.count(childNode) == 0)
+            {
+              toVisit.push_back(childNode);
+            }
+            else
+            {
+              // If we have already seen this chld node, then it is not theory
+              // bool, so we update its entry. No need to visit again.
+              int new_count = d_lemmaMap[childNode] + 1; 
+              d_lemmaMap.erase(childNode);
+              d_lemmaMap.insert({childNode, new_count});
+            }
+          }
+        }
+        else
+        {
+          if (d_lemmaMap.count(current) == 0)
+          {
+            d_lemmaMap.insert({current, 1});
+            d_lemmaLiterals.insert(current);
+          }
+          else
+          {
+            int new_count = d_lemmaMap[current] + 1;
+            d_lemmaMap.erase(current);
+            d_lemmaMap.insert({current, new_count});
+          }
         }
       }
     }
@@ -254,16 +306,19 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
   {
     case DECISION:
     {
+      // Is used to get all decisions from SAT solver, ordered so earlier in list represents earlier decisions
       unfilteredLiterals = d_propEngine->getPropDecisions();
       break;
     }
     case HEAP:
     {
+      // Earlier in list means more active (activity), further in list means less active
       unfilteredLiterals = d_propEngine->getPropOrderHeap();
       break;
     }
     case LEMMA:
     {
+      // Ranked by frequency, earlier in list means occurs more 
       std::vector<Node> lemmaNodes(d_lemmaLiterals.size());
       std::copy(
           d_lemmaLiterals.begin(), d_lemmaLiterals.end(), lemmaNodes.begin());
@@ -838,15 +893,19 @@ TrustNode PartitionGenerator::makeCubePartitions(LiteralListType litType,
   return TrustNode::null();
 }
 
+
 TrustNode PartitionGenerator::check(Theory::Effort e)
 {
+  // Deprecated - Asking if a full-effort check or standard-effort check
+  // Full-effort: Doing all the work
+  // Standard-effort: Not as much work
   if ((options().parallel.partitionCheck == options::CheckMode::FULL
        && !Theory::fullEffort(e))
       || (options().parallel.computePartitions < 2))
   {
     return TrustNode::null();
   }
-
+  // Collecting information to determine if it is time to partition
   auto now = std::chrono::steady_clock::now();
   std::chrono::duration<double> totalElapsedTime = now - d_startTime;
   std::chrono::duration<double> interElapsedTime =

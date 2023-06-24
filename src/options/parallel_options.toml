@@ -172,6 +172,14 @@ name   = "Parallel"
   help       = "if DNC strategy does not create enough partitions, cube on what's available"
 
 [[option]]
+  name       = "useRecentLemmas"
+  category   = "expert"
+  long       = "use-recent-lemmas"
+  type       = "bool"
+  default    = "false"
+  help       = "When using lemmas (whether for DNC or cube strategy), use most recent rather than most frequent"
+
+[[option]]
   name       = "clearAllLemmas"
   category   = "expert"
   long       = "clear-all-lemmas"
