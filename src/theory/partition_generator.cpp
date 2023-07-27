@@ -65,9 +65,8 @@ void PartitionGenerator::addLemmaLiteral(Node toAdd)
       || options().parallel.partitionStrategy
              == options::PartitionMode::LEMMA_DNCS)
   {
-    Node n = toAdd.getNode();
     std::vector<Node> toVisit;
-    toVisit.push_back(n);
+    toVisit.push_back(toAdd);
 
     for (unsigned i = 0; i < toVisit.size(); ++i)
     {
