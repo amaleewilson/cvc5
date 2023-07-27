@@ -557,7 +557,7 @@ Node PartitionGenerator::blockPath(TNode toBlock)
 Node PartitionGenerator::stopPartitioning()
 {
   d_emittedAllPartitions = true;
-  return NodeManager::currentNM->mkConst(false);
+  return NodeManager::currentNM()->mkConst(false);
 }
 
 // For the DNC strategy, we make the following kinds of partitions:
