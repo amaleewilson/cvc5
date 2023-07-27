@@ -877,7 +877,6 @@ TrustNode PartitionGenerator::makeTwoPartitions(LiteralListType litType,
       emitPartition(n);
       emitPartition(notN);
     }
-    }
     return stopPartitioning();
   }
   return TrustNode::null();
