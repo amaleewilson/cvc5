@@ -555,7 +555,7 @@ Node PartitionGenerator::blockPath(TNode toBlock)
 }
 
 // Send lemma that is the negation of all previously asserted lemmas.
-Node PartitionGenerator::stopPartitioning() const
+Node PartitionGenerator::stopPartitioning()
 {
   d_emittedAllPartitions = true;
   return NodeManager::currentNM->mkConst(false);

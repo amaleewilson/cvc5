@@ -52,7 +52,7 @@ class PartitionGenerator : public TheoryEngineModule
   /**
    * Add the literals from the toAdd Node to our list of literals from lemmas.
    */
-  void addLemmaLiteral(TrustNode toAdd);
+  void addLemmaLiteral(Node toAdd);
 
   /**
    * Emit any pending partitions that were not emitted during solving.
