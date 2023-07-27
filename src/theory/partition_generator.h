@@ -59,16 +59,6 @@ class PartitionGenerator : public TheoryEngineModule
    */
   void emitPendingPartitions(bool solved);
 
-  /**
-   * Add the literals from the toAdd Node to our list of literals from lemmas.
-   */
-  void addLemmaLiteral(TrustNode toAdd);
-
-  /**
-   * Emit any pending partitions that were not emitted during solving.
-   */
-  void emitPendingPartitions(bool solved);
-
  private:
   /* LiteralListType is used to specify where to pull literals from when calling
    * collectLiterals. HEAP for the order_heap in the SAT solver, DECISION for
