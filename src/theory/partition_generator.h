@@ -115,7 +115,7 @@ class PartitionGenerator : public TheoryEngineModule
   /**
    * Stop partitioning and return unsat.
    */
-  Node stopPartitioning() const;
+  Node stopPartitioning();
 
   /**
    * Get a list of literals.
