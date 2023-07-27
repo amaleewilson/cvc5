@@ -107,6 +107,11 @@ class PartitionGenerator : protected EnvObj
                                bool emitZLL,
                                bool useTrailTail,
                                bool randomize);
+  
+  TrustNode makeTwoPartitions(LiteralListType litType,
+                               bool emitZLL,
+                               bool useTrailTail,
+                               bool randomize);
 
   /**
    * Generate a lemma that is the negation of toBlock which ultimately blocks

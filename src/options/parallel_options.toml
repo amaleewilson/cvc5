@@ -98,6 +98,9 @@ name   = "Parallel"
 [[option.mode.DECISION_CUBES]]
   name = "decision-cubes"
   help = "Creates mutually exclusive cubes from the decisions in the SAT solver."
+[[option.mode.DECISION_TWO]]
+  name = "decision-two"
+  help = "Creates sets of two partitions"
 [[option.mode.HEAP_CUBES]]
   name = "heap-cubes"
   help = "Creates mutually exclusive cubes from the order heap in the SAT solver."

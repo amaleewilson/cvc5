@@ -838,6 +838,51 @@ TrustNode PartitionGenerator::makeCubePartitions(LiteralListType litType,
   return TrustNode::null();
 }
 
+TrustNode PartitionGenerator::makeTwoPartitions(LiteralListType litType,
+                                                 bool emitZLL,
+                                                 bool useTrailTail,
+                                                 bool randomize)
+{
+  std::vector<Node> literals = collectLiterals(litType);
+  uint64_t numVar = static_cast<uint64_t>(d_numPartitions/2);
+  if (literals.size() >= numVar)
+  {
+    if (useTrailTail)
+    {
+      std::vector<Node> tailLits(literals.end() - numVar, literals.end());
+      literals = tailLits;
+    }
+    else if (randomize)
+    {
+      std::shuffle(literals.begin(), literals.end(), std::mt19937(std::random_device()()));
+      literals.resize(numVar);
+    }
+    else
+    {
+      literals.resize(numVar);
+    }
+
+    // for each literal, emit its positive and negative version
+    for (Node n : literals)
+    {
+      Node notN;
+      if (n.getKind() != kind::NOT)
+      {
+        notN = n.notNode();
+      }
+      else if (n.getKind() == kind::NOT)
+      {
+        notN = n[0];
+      } 
+      emitPartition(n);
+      emitPartition(notN);
+    }
+    }
+    return stopPartitioning();
+  }
+  return TrustNode::null();
+}
+
 TrustNode PartitionGenerator::check(Theory::Effort e)
 {
   if ((options().parallel.partitionCheck == options::CheckMode::FULL
@@ -928,6 +973,8 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
   {
     case options::PartitionMode::DECISION_CUBES:
       return makeCubePartitions(/*litType=*/DECISION, emitZLL, useTail, randomize);
+    case options::PartitionMode::DECISION_TWO:
+      return makeTwoPartitions(/*litType=*/DECISION, emitZLL, useTail, randomize);
     case options::PartitionMode::HEAP_CUBES:
       return makeCubePartitions(/*litType=*/HEAP, emitZLL, useTail, randomize);
     case options::PartitionMode::LEMMA_CUBES:
