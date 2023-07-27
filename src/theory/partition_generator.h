@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Amalee Wilson, Andrew Wu
+ *   Amalee Wilson, Andrew Reynolds
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -23,13 +23,11 @@
 #include <vector>
 
 #include "proof/trust_node.h"
-#include "smt/env_obj.h"
 #include "theory/theory.h"
+#include "theory/theory_engine_module.h"
 #include "theory/valuation.h"
 
 namespace cvc5::internal {
-
-class TheoryEngine;
 
 namespace prop {
 class PropEngine;
@@ -37,7 +35,7 @@ class PropEngine;
 
 namespace theory {
 
-class PartitionGenerator : protected EnvObj
+class PartitionGenerator : public TheoryEngineModule
 {
  public:
   PartitionGenerator(Env& env,
@@ -49,7 +47,17 @@ class PartitionGenerator : protected EnvObj
    * check was called. Returns a lemma blocking off the emitted cube from the
    * search.
    */
-  TrustNode check(Theory::Effort e);
+  void check(Theory::Effort e) override;
+
+  /**
+   * Add the literals from the toAdd Node to our list of literals from lemmas.
+   */
+  void addLemmaLiteral(TrustNode toAdd);
+
+  /**
+   * Emit any pending partitions that were not emitted during solving.
+   */
+  void emitPendingPartitions(bool solved);
 
   /**
    * Add the literals from the toAdd Node to our list of literals from lemmas.
@@ -117,7 +125,7 @@ class PartitionGenerator : protected EnvObj
    * Generate a lemma that is the negation of toBlock which ultimately blocks
    * that path in the search.
    */
-  TrustNode blockPath(TNode toBlock);
+  Node blockPath(TNode toBlock);
 
   /**
    * Stop partitioning and return unsat.

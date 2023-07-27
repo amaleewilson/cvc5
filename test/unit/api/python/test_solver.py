@@ -4,7 +4,7 @@
 #
 # This file is part of the cvc5 project.
 #
-# Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+# Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
 # in the top-level source directory and their institutional affiliations.
 # All rights reserved.  See the file COPYING in the top-level source
 # directory for licensing information.
@@ -15,7 +15,7 @@ import pytest
 import cvc5
 import sys
 
-from cvc5 import Kind, BlockModelsMode, RoundingMode, LearnedLitType, ProofComponent
+from cvc5 import Kind, SortKind, BlockModelsMode, RoundingMode, LearnedLitType, ProofComponent
 
 
 @pytest.fixture
@@ -283,6 +283,16 @@ def test_mk_sequence_sort(solver):
     slv.mkSequenceSort(solver.getIntegerSort())
 
 
+
+def test_mk_abstract_sort(solver):
+    solver.mkAbstractSort(SortKind.ARRAY_SORT)
+    solver.mkAbstractSort(SortKind.BITVECTOR_SORT)
+    solver.mkAbstractSort(SortKind.TUPLE_SORT)
+    solver.mkAbstractSort(SortKind.SET_SORT)
+    with pytest.raises(RuntimeError):
+        solver.mkAbstractSort(SortKind.BOOLEAN_SORT)
+
+
 def test_mk_uninterpreted_sort(solver):
     solver.mkUninterpretedSort("u")
     solver.mkUninterpretedSort("")
@@ -429,6 +439,14 @@ def test_mk_floating_point(solver):
     with pytest.raises(RuntimeError):
         solver.mkFloatingPoint(3, 5, t2)
 
+    sign = solver.mkBitVector(1)
+    exp = solver.mkBitVector(5)
+    sig = solver.mkBitVector(10)
+    bv = solver.mkBitVector(16)
+    a = solver.mkFloatingPoint(
+            sign, exp, sig)
+    assert solver.mkFloatingPoint(
+            sign, exp, sig) == solver.mkFloatingPoint(5, 11, bv)
     slv = cvc5.Solver()
     slv.mkFloatingPoint(3, 5, t1)
 
@@ -448,7 +466,8 @@ def test_mk_cardinality_constraint(solver):
 def test_mk_empty_set(solver):
     slv = cvc5.Solver()
     s = solver.mkSetSort(solver.getBooleanSort())
-    solver.mkEmptySet(cvc5.Sort(solver))
+    with pytest.raises(RuntimeError):
+        solver.mkEmptySet(cvc5.Sort(solver))
     solver.mkEmptySet(s)
     with pytest.raises(RuntimeError):
         solver.mkEmptySet(solver.getBooleanSort())
@@ -458,7 +477,8 @@ def test_mk_empty_set(solver):
 def test_mk_empty_bag(solver):
     slv = cvc5.Solver()
     s = solver.mkBagSort(solver.getBooleanSort())
-    solver.mkEmptyBag(cvc5.Sort(solver))
+    with pytest.raises(RuntimeError):
+        solver.mkEmptyBag(cvc5.Sort(solver))
     solver.mkEmptyBag(s)
     with pytest.raises(RuntimeError):
         solver.mkEmptyBag(solver.getBooleanSort())
@@ -788,6 +808,7 @@ def test_mk_term(solver):
         [s_bool, s_bool, s_bool], s_bool))
     solver.mkTerm(Kind.HO_APPLY, t_fun, t_bool, t_bool, t_bool)
     solver.mkTerm(solver.mkOp(Kind.HO_APPLY), t_fun, t_bool, t_bool, t_bool)
+    
 
 def test_mk_term_from_op(solver):
     bv32 = solver.mkBitVectorSort(32)
@@ -889,23 +910,12 @@ def test_mk_true(solver):
 
 
 def test_mk_tuple(solver):
-    solver.mkTuple([solver.mkBitVectorSort(3)],
-                   [solver.mkBitVector(3, "101", 2)])
-    with pytest.raises(RuntimeError):
-      solver.mkTuple([solver.getRealSort()], [solver.mkInteger("5")])
-
-    with pytest.raises(RuntimeError):
-        solver.mkTuple([], [solver.mkBitVector(3, "101", 2)])
-    with pytest.raises(RuntimeError):
-        solver.mkTuple([solver.mkBitVectorSort(4)],
-                       [solver.mkBitVector(3, "101", 2)])
-    with pytest.raises(RuntimeError):
-        solver.mkTuple([solver.getIntegerSort()], [solver.mkReal("5.3")])
+    solver.mkTuple([solver.mkBitVector(3, "101", 2)])
+    solver.mkTuple([solver.mkInteger("5")])
+    solver.mkTuple([solver.mkReal("5.3")])
     slv = cvc5.Solver()
-    slv.mkTuple([solver.mkBitVectorSort(3)],
-                [slv.mkBitVector(3, "101", 2)])
-    slv.mkTuple([slv.mkBitVectorSort(3)],
-                [solver.mkBitVector(3, "101", 2)])
+    slv.mkTuple([slv.mkBitVector(3, "101", 2)])
+    slv.mkTuple([solver.mkBitVector(3, "101", 2)])
 
 
 def test_mk_universe_set(solver):
@@ -1469,6 +1479,33 @@ def test_learned_literals2(solver):
     solver.checkSat()
     solver.getLearnedLiterals(LearnedLitType.LEARNED_LIT_INPUT)
 
+def test_get_timeout_core_unsat(solver):
+  solver.setOption("timeout-core-timeout", "100")
+  solver.setOption("produce-unsat-cores", "true")
+  intSort = solver.getIntegerSort()
+  x = solver.mkConst(intSort, "x")
+  tt = solver.mkBoolean(True)
+  hard = solver.mkTerm(Kind.EQUAL,
+                       solver.mkTerm(Kind.MULT, x, x),
+                       solver.mkInteger("501240912901901249014210220059591"))
+  solver.assertFormula(tt)
+  solver.assertFormula(hard)
+  res = solver.getTimeoutCore()
+  assert res[0].isUnknown()
+  assert len(res[1]) == 1
+  assert res[1][0] == hard
+
+def test_get_timeout_core(solver):
+  solver.setOption("produce-unsat-cores", "true")
+  ff = solver.mkBoolean(False)
+  tt = solver.mkBoolean(True)
+  solver.assertFormula(tt)
+  solver.assertFormula(ff)
+  solver.assertFormula(tt)
+  res = solver.getTimeoutCore()
+  assert res[0].isUnsat()
+  assert len(res[1]) == 1
+  assert res[1][0] == ff
 
 def test_get_value1(solver):
     solver.setOption("produce-models", "false")
@@ -2035,33 +2072,6 @@ def test_mk_sygus_grammar(solver):
     slv.mkGrammar([boolVar2], [intVar])
 
 
-def test_synth_inv(solver):
-    solver.setOption("sygus", "true")
-    boolean = solver.getBooleanSort()
-    integer = solver.getIntegerSort()
-
-    nullTerm = cvc5.Term(solver)
-    x = solver.mkVar(boolean)
-
-    start1 = solver.mkVar(boolean)
-    start2 = solver.mkVar(integer)
-
-    g1 = solver.mkGrammar([x], [start1])
-    g1.addRule(start1, solver.mkBoolean(False))
-
-    g2 = solver.mkGrammar([x], [start2])
-    g2.addRule(start2, solver.mkInteger(0))
-
-    solver.synthInv("", [])
-    solver.synthInv("i1", [x])
-    solver.synthInv("i2", [x], g1)
-
-    with pytest.raises(RuntimeError):
-        solver.synthInv("i3", [nullTerm])
-    with pytest.raises(RuntimeError):
-        solver.synthInv("i4", [x], g2)
-
-
 def test_add_sygus_constraint(solver):
     solver.setOption("sygus", "true")
     nullTerm = cvc5.Term(solver)
@@ -2078,6 +2088,17 @@ def test_add_sygus_constraint(solver):
     with pytest.raises(RuntimeError):
         slv.addSygusConstraint(boolTerm)
 
+
+def test_get_sygus_constraints(solver):
+    solver.setOption("sygus", "true")
+    true_term = solver.mkBoolean(True)
+    false_term = solver.mkBoolean(False)
+    solver.addSygusConstraint(true_term)
+    solver.addSygusConstraint(false_term)
+    constraints = [true_term, false_term]
+    assert solver.getSygusConstraints() == constraints
+
+
 def test_add_sygus_assume(solver):
     solver.setOption("sygus", "true")
     nullTerm = cvc5.Term(solver)
@@ -2091,6 +2112,16 @@ def test_add_sygus_assume(solver):
     slv = cvc5.Solver()
     with pytest.raises(RuntimeError):
         slv.addSygusAssume(boolTerm)
+
+
+def test_get_sygus_assumptions(solver):
+    solver.setOption("sygus", "true")
+    true_term = solver.mkBoolean(True)
+    false_term = solver.mkBoolean(False)
+    solver.addSygusAssume(true_term)
+    solver.addSygusAssume(false_term)
+    assumptions = [true_term, false_term]
+    assert solver.getSygusAssumptions() == assumptions
 
 
 def test_add_sygus_inv_constraint(solver):
@@ -2615,7 +2646,6 @@ def test_mk_sygus_var(solver):
     with pytest.raises(RuntimeError):
         solver.declareSygusVar("", cvc5.Sort(solver))
     slv = cvc5.Solver()
-    solver.setOption("sygus", "true")
     with pytest.raises(RuntimeError):
         slv.declareSygusVar("", boolSort)
 
@@ -2657,17 +2687,13 @@ def test_synth_fun(solver):
 
 
 def test_tuple_project(solver):
-    sorts = [solver.getBooleanSort(),\
-                               solver.getIntegerSort(),\
-                               solver.getStringSort(),\
-                               solver.mkSetSort(solver.getStringSort())]
     elements = [\
         solver.mkBoolean(True), \
         solver.mkInteger(3),\
         solver.mkString("C"),\
         solver.mkTerm(Kind.SET_SINGLETON, solver.mkString("Z"))]
 
-    tuple = solver.mkTuple(sorts, elements)
+    tuple = solver.mkTuple(elements)
 
     indices1 = []
     indices2 = [0]
@@ -2743,7 +2769,7 @@ def test_get_difficulty3(solver):
   # difficulty should map assertions to integer values
   for key, value in dmap.items():
     assert key == f0 or key == f1
-    assert value.getKind() == Kind.CONST_RATIONAL
+    assert value.getKind() == Kind.CONST_INTEGER
 
 def test_get_model(solver):
     solver.setOption("produce-models", "true")

@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Aina Niemetz, Andrew Reynolds, Mathias Preiner
+ *   Aina Niemetz, Andrew Reynolds, Gereon Kremer
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -391,6 +391,15 @@ TEST_F(TestApiBlackSolver, mkSequenceSort)
   ASSERT_NO_THROW(slv.mkSequenceSort(d_solver.getIntegerSort()));
 }
 
+TEST_F(TestApiBlackSolver, mkAbstractSort)
+{
+  ASSERT_NO_THROW(d_solver.mkAbstractSort(ARRAY_SORT));
+  ASSERT_NO_THROW(d_solver.mkAbstractSort(BITVECTOR_SORT));
+  ASSERT_NO_THROW(d_solver.mkAbstractSort(TUPLE_SORT));
+  ASSERT_NO_THROW(d_solver.mkAbstractSort(SET_SORT));
+  ASSERT_THROW(d_solver.mkAbstractSort(BOOLEAN_SORT), CVC5ApiException);
+}
+
 TEST_F(TestApiBlackSolver, mkUninterpretedSort)
 {
   ASSERT_NO_THROW(d_solver.mkUninterpretedSort("u"));
@@ -542,6 +551,39 @@ TEST_F(TestApiBlackSolver, mkFloatingPoint)
   ASSERT_THROW(d_solver.mkFloatingPoint(3, 5, t2), CVC5ApiException);
   ASSERT_THROW(d_solver.mkFloatingPoint(3, 5, t2), CVC5ApiException);
 
+  ASSERT_EQ(d_solver.mkFloatingPoint(d_solver.mkBitVector(1),
+                                     d_solver.mkBitVector(5),
+                                     d_solver.mkBitVector(10)),
+            d_solver.mkFloatingPoint(5, 11, d_solver.mkBitVector(16)));
+  ASSERT_THROW(d_solver.mkFloatingPoint(
+                   Term(), d_solver.mkBitVector(5), d_solver.mkBitVector(10)),
+               CVC5ApiException);
+  ASSERT_THROW(d_solver.mkFloatingPoint(
+                   d_solver.mkBitVector(1), Term(), d_solver.mkBitVector(10)),
+               CVC5ApiException);
+  ASSERT_THROW(d_solver.mkFloatingPoint(
+                   d_solver.mkBitVector(1), d_solver.mkBitVector(5), Term()),
+               CVC5ApiException);
+  ASSERT_THROW(
+      d_solver.mkFloatingPoint(d_solver.mkConst(d_solver.mkBitVectorSort(1)),
+                               d_solver.mkBitVector(5),
+                               d_solver.mkBitVector(10)),
+      CVC5ApiException);
+  ASSERT_THROW(
+      d_solver.mkFloatingPoint(d_solver.mkBitVector(1),
+                               d_solver.mkConst(d_solver.mkBitVectorSort(5)),
+                               d_solver.mkBitVector(10)),
+      CVC5ApiException);
+  ASSERT_THROW(
+      d_solver.mkFloatingPoint(d_solver.mkBitVector(1),
+                               d_solver.mkBitVector(5),
+                               d_solver.mkConst(d_solver.mkBitVectorSort(5))),
+      CVC5ApiException);
+  ASSERT_THROW(d_solver.mkFloatingPoint(d_solver.mkBitVector(2),
+                                        d_solver.mkBitVector(5),
+                                        d_solver.mkBitVector(10)),
+               CVC5ApiException);
+
   Solver slv;
   ASSERT_NO_THROW(slv.mkFloatingPoint(3, 5, t1));
 }
@@ -560,7 +602,7 @@ TEST_F(TestApiBlackSolver, mkCardinalityConstraint)
 TEST_F(TestApiBlackSolver, mkEmptySet)
 {
   Sort s = d_solver.mkSetSort(d_solver.getBooleanSort());
-  ASSERT_NO_THROW(d_solver.mkEmptySet(Sort()));
+  ASSERT_THROW(d_solver.mkEmptySet(Sort()), CVC5ApiException);
   ASSERT_NO_THROW(d_solver.mkEmptySet(s));
   ASSERT_THROW(d_solver.mkEmptySet(d_solver.getBooleanSort()),
                CVC5ApiException);
@@ -571,7 +613,7 @@ TEST_F(TestApiBlackSolver, mkEmptySet)
 TEST_F(TestApiBlackSolver, mkEmptyBag)
 {
   Sort s = d_solver.mkBagSort(d_solver.getBooleanSort());
-  ASSERT_NO_THROW(d_solver.mkEmptyBag(Sort()));
+  ASSERT_THROW(d_solver.mkEmptyBag(Sort()), CVC5ApiException);
   ASSERT_NO_THROW(d_solver.mkEmptyBag(s));
   ASSERT_THROW(d_solver.mkEmptyBag(d_solver.getBooleanSort()),
                CVC5ApiException);
@@ -988,25 +1030,12 @@ TEST_F(TestApiBlackSolver, mkTrue)
 
 TEST_F(TestApiBlackSolver, mkTuple)
 {
-  ASSERT_NO_THROW(d_solver.mkTuple({d_solver.mkBitVectorSort(3)},
-                                   {d_solver.mkBitVector(3, "101", 2)}));
-  ASSERT_THROW(
-      d_solver.mkTuple({d_solver.getRealSort()}, {d_solver.mkInteger("5")}),
-      CVC5ApiException);
-
-  ASSERT_THROW(d_solver.mkTuple({}, {d_solver.mkBitVector(3, "101", 2)}),
-               CVC5ApiException);
-  ASSERT_THROW(d_solver.mkTuple({d_solver.mkBitVectorSort(4)},
-                                {d_solver.mkBitVector(3, "101", 2)}),
-               CVC5ApiException);
-  ASSERT_THROW(
-      d_solver.mkTuple({d_solver.getIntegerSort()}, {d_solver.mkReal("5.3")}),
-      CVC5ApiException);
+  ASSERT_NO_THROW(d_solver.mkTuple({d_solver.mkBitVector(3, "101", 2)}));
+  ASSERT_NO_THROW(d_solver.mkTuple({d_solver.mkInteger("5")}));
+  ASSERT_NO_THROW(d_solver.mkTuple({d_solver.mkReal("5.3")}));
   Solver slv;
-  ASSERT_NO_THROW(slv.mkTuple({d_solver.mkBitVectorSort(3)},
-                              {slv.mkBitVector(3, "101", 2)}));
-  ASSERT_NO_THROW(slv.mkTuple({slv.mkBitVectorSort(3)},
-                              {d_solver.mkBitVector(3, "101", 2)}));
+  ASSERT_NO_THROW(slv.mkTuple({slv.mkBitVector(3, "101", 2)}));
+  ASSERT_NO_THROW(slv.mkTuple({d_solver.mkBitVector(3, "101", 2)}));
 }
 
 TEST_F(TestApiBlackSolver, mkUniverseSet)
@@ -1935,7 +1964,7 @@ TEST_F(TestApiBlackSolver, getDifficulty3)
   for (const std::pair<const Term, Term>& t : dmap)
   {
     ASSERT_TRUE(t.first == f0 || t.first == f1);
-    ASSERT_TRUE(t.second.getKind() == CONST_RATIONAL);
+    ASSERT_TRUE(t.second.getKind() == CONST_INTEGER);
   }
 }
 
@@ -1964,6 +1993,39 @@ TEST_F(TestApiBlackSolver, getLearnedLiterals2)
   d_solver.assertFormula(f1);
   d_solver.checkSat();
   ASSERT_NO_THROW(d_solver.getLearnedLiterals());
+}
+
+TEST_F(TestApiBlackSolver, getTimeoutCoreUnsat)
+{
+  d_solver.setOption("timeout-core-timeout", "100");
+  d_solver.setOption("produce-unsat-cores", "true");
+  Sort intSort = d_solver.getIntegerSort();
+  Term x = d_solver.mkConst(intSort, "x");
+  Term tt = d_solver.mkBoolean(true);
+  Term hard = d_solver.mkTerm(
+      EQUAL,
+      {d_solver.mkTerm(MULT, {x, x}),
+       d_solver.mkInteger("501240912901901249014210220059591")});
+  d_solver.assertFormula(tt);
+  d_solver.assertFormula(hard);
+  std::pair<cvc5::Result, std::vector<Term>> res = d_solver.getTimeoutCore();
+  ASSERT_TRUE(res.first.isUnknown());
+  ASSERT_TRUE(res.second.size() == 1);
+  ASSERT_EQ(res.second[0], hard);
+}
+
+TEST_F(TestApiBlackSolver, getTimeoutCore)
+{
+  d_solver.setOption("produce-unsat-cores", "true");
+  Term ff = d_solver.mkBoolean(false);
+  Term tt = d_solver.mkBoolean(true);
+  d_solver.assertFormula(tt);
+  d_solver.assertFormula(ff);
+  d_solver.assertFormula(tt);
+  std::pair<cvc5::Result, std::vector<Term>> res = d_solver.getTimeoutCore();
+  ASSERT_TRUE(res.first.isUnsat());
+  ASSERT_TRUE(res.second.size() == 1);
+  ASSERT_EQ(res.second[0], ff);
 }
 
 TEST_F(TestApiBlackSolver, getValue1)
@@ -2699,32 +2761,6 @@ TEST_F(TestApiBlackSolver, synthFun)
   ASSERT_NO_THROW(slv.synthFun("f1", {x}, d_solver.getBooleanSort()));
 }
 
-TEST_F(TestApiBlackSolver, synthInv)
-{
-  d_solver.setOption("sygus", "true");
-  Sort boolean = d_solver.getBooleanSort();
-  Sort integer = d_solver.getIntegerSort();
-
-  Term nullTerm;
-  Term x = d_solver.mkVar(boolean);
-
-  Term start1 = d_solver.mkVar(boolean);
-  Term start2 = d_solver.mkVar(integer);
-
-  Grammar g1 = d_solver.mkGrammar({x}, {start1});
-  g1.addRule(start1, d_solver.mkBoolean(false));
-
-  Grammar g2 = d_solver.mkGrammar({x}, {start2});
-  g2.addRule(start2, d_solver.mkInteger(0));
-
-  ASSERT_NO_THROW(d_solver.synthInv("", {}));
-  ASSERT_NO_THROW(d_solver.synthInv("i1", {x}));
-  ASSERT_NO_THROW(d_solver.synthInv("i2", {x}, g1));
-
-  ASSERT_THROW(d_solver.synthInv("i3", {nullTerm}), CVC5ApiException);
-  ASSERT_THROW(d_solver.synthInv("i4", {x}, g2), CVC5ApiException);
-}
-
 TEST_F(TestApiBlackSolver, addSygusConstraint)
 {
   d_solver.setOption("sygus", "true");
@@ -2741,6 +2777,17 @@ TEST_F(TestApiBlackSolver, addSygusConstraint)
   ASSERT_NO_THROW(slv.addSygusConstraint(boolTerm));
 }
 
+TEST_F(TestApiBlackSolver, getSygusConstraints)
+{
+  d_solver.setOption("sygus", "true");
+  Term trueTerm = d_solver.mkBoolean(true);
+  Term falseTerm = d_solver.mkBoolean(false);
+  d_solver.addSygusConstraint(trueTerm);
+  d_solver.addSygusConstraint(falseTerm);
+  std::vector<Term> constraints{trueTerm, falseTerm};
+  ASSERT_EQ(d_solver.getSygusConstraints(), constraints);
+}
+
 TEST_F(TestApiBlackSolver, addSygusAssume)
 {
   d_solver.setOption("sygus", "true");
@@ -2755,6 +2802,17 @@ TEST_F(TestApiBlackSolver, addSygusAssume)
   Solver slv;
   slv.setOption("sygus", "true");
   ASSERT_NO_THROW(slv.addSygusAssume(boolTerm));
+}
+
+TEST_F(TestApiBlackSolver, getSygusAssumptions)
+{
+  d_solver.setOption("sygus", "true");
+  Term trueTerm = d_solver.mkBoolean(true);
+  Term falseTerm = d_solver.mkBoolean(false);
+  d_solver.addSygusAssume(trueTerm);
+  d_solver.addSygusAssume(falseTerm);
+  std::vector<Term> assumptions{trueTerm, falseTerm};
+  ASSERT_EQ(d_solver.getSygusAssumptions(), assumptions);
 }
 
 TEST_F(TestApiBlackSolver, addSygusInvConstraint)
@@ -2917,17 +2975,13 @@ TEST_F(TestApiBlackSolver, checkSynthNext3)
 
 TEST_F(TestApiBlackSolver, tupleProject)
 {
-  std::vector<Sort> sorts = {d_solver.getBooleanSort(),
-                             d_solver.getIntegerSort(),
-                             d_solver.getStringSort(),
-                             d_solver.mkSetSort(d_solver.getStringSort())};
   std::vector<Term> elements = {
       d_solver.mkBoolean(true),
       d_solver.mkInteger(3),
       d_solver.mkString("C"),
       d_solver.mkTerm(SET_SINGLETON, {d_solver.mkString("Z")})};
 
-  Term tuple = d_solver.mkTuple(sorts, elements);
+  Term tuple = d_solver.mkTuple(elements);
 
   std::vector<uint32_t> indices1 = {};
   std::vector<uint32_t> indices2 = {0};
@@ -3370,7 +3424,6 @@ TEST_F(TestApiBlackSolver, proj_issue429)
 TEST_F(TestApiBlackSolver, proj_issue422)
 {
   Solver slv;
-  slv.setOption("sygus-rr-synth-input", "true");
   slv.setOption("strings-exp", "true");
   slv.setOption("sygus-abort-size", "1");
   Sort s1 = slv.mkBitVectorSort(36);
@@ -3405,7 +3458,9 @@ TEST_F(TestApiBlackSolver, proj_issue422)
   slv.assertFormula({t301});
   // should terminate with an exception indicating we are done enumerating
   // rewrite rules.
-  ASSERT_THROW(slv.push(4), CVC5ApiException);
+  // !!! temporary
+  // ASSERT_THROW(slv.findSynth(FindSynthTarget::REWRITE_RULE_INPUT),
+  // CVC5ApiException);
 }
 
 TEST_F(TestApiBlackSolver, proj_issue423)

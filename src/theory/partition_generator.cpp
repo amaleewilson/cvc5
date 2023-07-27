@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Amalee Wilson, Andrew Wu
+ *   Amalee Wilson, Andrew Reynolds
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2021 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -38,7 +38,7 @@ namespace theory {
 PartitionGenerator::PartitionGenerator(Env& env,
                                        TheoryEngine* theoryEngine,
                                        prop::PropEngine* propEngine)
-    : EnvObj(env),
+    : TheoryEngineModule(env, theoryEngine, "PartitionGenerator"),
       d_numPartitions(options().parallel.computePartitions),
       d_numChecks(0),
       d_betweenChecks(0),
@@ -546,13 +546,12 @@ void PartitionGenerator::emitPartition(Node toEmit)
   d_createdAnyPartitions = true;
 }
 
-TrustNode PartitionGenerator::blockPath(TNode toBlock)
+Node PartitionGenerator::blockPath(TNode toBlock)
 {
   // Now block the path in the search.
   Node lemma = toBlock.notNode();
   d_assertedLemmas.push_back(lemma);
-  TrustNode trustedLemma = TrustNode::mkTrustLemma(lemma);
-  return trustedLemma;
+  return lemma;
 }
 
 // Send lemma that is the negation of all previously asserted lemmas.
@@ -835,7 +834,7 @@ TrustNode PartitionGenerator::makeCubePartitions(LiteralListType litType,
     }
     return stopPartitioning();
   }
-  return TrustNode::null();
+  return Node::null();
 }
 
 TrustNode PartitionGenerator::makeTwoPartitions(LiteralListType litType,
@@ -888,7 +887,7 @@ TrustNode PartitionGenerator::check(Theory::Effort e)
        && !Theory::fullEffort(e))
       || (options().parallel.computePartitions < 2))
   {
-    return TrustNode::null();
+    return;
   }
 
   auto now = std::chrono::steady_clock::now();

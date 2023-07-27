@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Morgan Deters, Christopher L. Conway, Gereon Kremer
+ *   Morgan Deters, Andrew Reynolds, Christopher L. Conway
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -39,13 +39,14 @@
 #  endif /* HAVE_EXT_STDIO_FILEBUF_H */
 #endif   /* HAVE_LIBEDITLINE */
 
-#include "api/cpp/cvc5.h"
+#include <cvc5/cvc5.h>
+
 #include "base/check.h"
 #include "base/output.h"
 #include "main/command_executor.h"
 #include "parser/api/cpp/command.h"
+#include "parser/api/cpp/input_parser.h"
 #include "parser/api/cpp/symbol_manager.h"
-#include "parser/input_parser.h"
 #include "theory/logic_info.h"
 
 using namespace std;
@@ -70,10 +71,6 @@ static const std::string smt2_commands[] = {
 #include "main/smt2_tokens.h"
 };/* smt2_commands */
 
-static const std::string tptp_commands[] = {
-#include "main/tptp_tokens.h"
-};/* tptp_commands */
-
 static const std::string* commandsBegin;
 static const std::string* commandsEnd;
 
@@ -96,10 +93,10 @@ InteractiveShell::InteractiveShell(main::CommandExecutor* cexec,
   if (d_solver->getOptionInfo("force-logic").setByUser)
   {
     LogicInfo tmp(d_solver->getOption("force-logic"));
-    d_symman->forceLogic(tmp.getLogicString());
+    d_symman->setLogic(tmp.getLogicString(), true);
   }
   /* Create parser with bogus input. */
-  d_parser.reset(new cvc5::parser::InputParser(d_solver, d_symman, true));
+  d_parser.reset(new cvc5::parser::InputParser(d_solver, d_symman));
   // initialize for incremental string input
   d_parser->setIncrementalStringInput(d_solver->getOption("input-language"),
                                       INPUT_FILENAME);
@@ -115,14 +112,7 @@ InteractiveShell::InteractiveShell(main::CommandExecutor* cexec,
     ::using_history();
 
     std::string lang = d_solver->getOption("input-language");
-    if (lang == "LANG_TPTP")
-    {
-      d_historyFilename = string(getenv("HOME")) + "/.cvc5_history_tptp";
-      commandsBegin = tptp_commands;
-      commandsEnd =
-          tptp_commands + sizeof(tptp_commands) / sizeof(*tptp_commands);
-    }
-    else if (lang == "LANG_SMTLIB_V2_6")
+    if (lang == "LANG_SMTLIB_V2_6")
     {
       d_historyFilename = string(getenv("HOME")) + "/.cvc5_history_smtlib2";
       commandsBegin = smt2_commands;
@@ -326,15 +316,16 @@ restart:
   /* There may be more than one command in the input. Build up a
      sequence. */
   std::vector<std::unique_ptr<Command>> cmdSeq;
-  Command *cmd;
+  std::unique_ptr<Command> cmdp;
   // remember the scope level of the symbol manager, in case we hit an end of
   // line (when catching ParserEndOfFileException).
   size_t lastScopeLevel = d_symman->scopeLevel();
 
   try
   {
-    while ((cmd = d_parser->nextCommand()))
+    while ((cmdp = d_parser->nextCommand()))
     {
+      Command* cmd = cmdp.get();
       // execute the command immediately
       d_cexec->doCommand(cmd);
       if (cmd->interrupted())
@@ -342,7 +333,7 @@ restart:
         d_quit = true;
         return false;
       }
-      cmdSeq.emplace_back(cmd);
+      cmdSeq.emplace_back(std::move(cmdp));
       if (dynamic_cast<QuitCommand*>(cmd) != NULL)
       {
         d_quit = true;

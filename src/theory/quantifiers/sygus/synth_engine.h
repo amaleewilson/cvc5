@@ -4,7 +4,7 @@
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -80,8 +80,6 @@ class SynthEngine : public QuantifiersModule
   void ppNotifyAssertion(Node n);
 
  private:
-  /** the conjecture formula(s) we are waiting to assign */
-  std::vector<Node> d_waiting_conj;
   /** The synthesis conjectures that this class is managing. */
   std::vector<std::unique_ptr<SynthConjecture> > d_conjs;
   /**
@@ -90,10 +88,6 @@ class SynthEngine : public QuantifiersModule
    * preregisterAssertion.
    */
   SynthConjecture* d_conj;
-  /**
-   * The quantifier elimination preprocess module.
-   */
-  SygusQePreproc d_sqp;
   /** The statistics */
   SygusStatistics d_statistics;
   /** assign quantified formula q as a conjecture

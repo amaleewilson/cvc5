@@ -1,10 +1,10 @@
 /******************************************************************************
  * Top contributors (to current version):
- *   Mathias Preiner, Tim King, Morgan Deters
+ *   Mathias Preiner, Andrew Reynolds, Tim King
  *
  * This file is part of the cvc5 project.
  *
- * Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+ * Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
  * in the top-level source directory and their institutional affiliations.
  * All rights reserved.  See the file COPYING in the top-level source
  * directory for licensing information.
@@ -19,16 +19,17 @@
 
 #include "cvc5_public.h"
 
-#ifndef CVC5__PARSER__COMMAND_H
-#define CVC5__PARSER__COMMAND_H
+#ifndef CVC5__PARSER__API__CPP__COMMAND_H
+#define CVC5__PARSER__API__CPP__COMMAND_H
+
+#include <cvc5/cvc5.h>
+#include <cvc5/cvc5_export.h>
 
 #include <iosfwd>
 #include <sstream>
 #include <string>
 #include <vector>
 
-#include "api/cpp/cvc5.h"
-#include "cvc5_export.h"
 #include "options/language.h"
 
 namespace cvc5 {
@@ -317,6 +318,11 @@ class CVC5_EXPORT DeclarationDefinitionCommand : public Command
 {
  protected:
   std::string d_symbol;
+  /**
+   * Bind the symbol of this command to the given term. Return false if the
+   * binding was invalid. In this case, set command status to CommandFailure.
+   */
+  bool bindToTerm(parser::SymbolManager* sm, cvc5::Term t, bool doOverload);
 
  public:
   DeclarationDefinitionCommand(const std::string& id);
@@ -328,12 +334,10 @@ class CVC5_EXPORT DeclarationDefinitionCommand : public Command
 class CVC5_EXPORT DeclareFunctionCommand : public DeclarationDefinitionCommand
 {
  protected:
-  cvc5::Term d_func;
   cvc5::Sort d_sort;
 
  public:
   DeclareFunctionCommand(const std::string& id,
-                         cvc5::Term func,
                          cvc5::Sort sort);
   cvc5::Term getFunction() const;
   cvc5::Sort getSort() const;
@@ -346,13 +350,11 @@ class CVC5_EXPORT DeclareFunctionCommand : public DeclarationDefinitionCommand
 class CVC5_EXPORT DeclarePoolCommand : public DeclarationDefinitionCommand
 {
  protected:
-  cvc5::Term d_func;
   cvc5::Sort d_sort;
   std::vector<cvc5::Term> d_initValue;
 
  public:
   DeclarePoolCommand(const std::string& id,
-                     cvc5::Term func,
                      cvc5::Sort sort,
                      const std::vector<cvc5::Term>& initValue);
   cvc5::Term getFunction() const;
@@ -589,19 +591,13 @@ class CVC5_EXPORT SynthFunCommand : public DeclarationDefinitionCommand
 {
  public:
   SynthFunCommand(const std::string& id,
-                  cvc5::Term fun,
                   const std::vector<cvc5::Term>& vars,
                   cvc5::Sort sort,
-                  bool isInv,
                   cvc5::Grammar* g);
-  /** returns the function-to-synthesize */
-  cvc5::Term getFunction() const;
   /** returns the input variables of the function-to-synthesize */
   const std::vector<cvc5::Term>& getVars() const;
   /** returns the sygus sort of the function-to-synthesize */
   cvc5::Sort getSort() const;
-  /** returns whether the function-to-synthesize should be an invariant */
-  bool isInv() const;
   /** Get the sygus grammar given for the synth fun command */
   const cvc5::Grammar* getGrammar() const;
 
@@ -617,14 +613,10 @@ class CVC5_EXPORT SynthFunCommand : public DeclarationDefinitionCommand
   void toStream(std::ostream& out) const override;
 
  protected:
-  /** the function-to-synthesize */
-  cvc5::Term d_fun;
   /** the input variables of the function-to-synthesize */
   std::vector<cvc5::Term> d_vars;
   /** sort of the function-to-synthesize */
   cvc5::Sort d_sort;
-  /** whether the function-to-synthesize should be an invariant */
-  bool d_isInv;
   /** optional grammar for the possible values of the function-to-sytnhesize */
   cvc5::Grammar* d_grammar;
 };
@@ -1059,6 +1051,28 @@ class CVC5_EXPORT GetDifficultyCommand : public Command
   parser::SymbolManager* d_sm;
   /** the result of the get difficulty call */
   std::map<cvc5::Term, cvc5::Term> d_result;
+};
+
+class CVC5_EXPORT GetTimeoutCoreCommand : public Command
+{
+ public:
+  GetTimeoutCoreCommand();
+  cvc5::Result getResult() const;
+  const std::vector<cvc5::Term>& getTimeoutCore() const;
+
+  void invoke(cvc5::Solver* solver, parser::SymbolManager* sm) override;
+  void printResult(cvc5::Solver* solver, std::ostream& out) const override;
+
+  std::string getCommandName() const override;
+  void toStream(std::ostream& out) const override;
+
+ protected:
+  /** The solver we were invoked with */
+  cvc5::Solver* d_solver;
+  /** The symbol manager we were invoked with */
+  parser::SymbolManager* d_sm;
+  /** the result of the timeout core call */
+  std::pair<cvc5::Result, std::vector<cvc5::Term>> d_result;
 };
 
 class CVC5_EXPORT GetLearnedLiteralsCommand : public Command

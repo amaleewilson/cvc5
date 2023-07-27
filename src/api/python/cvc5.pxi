@@ -37,6 +37,7 @@ from cvc5 cimport wstring as c_wstring
 from cvc5 cimport tuple as c_tuple
 from cvc5 cimport get0, get1, get2
 from cvc5kinds cimport Kind as c_Kind
+from cvc5sortkinds cimport SortKind as c_SortKind
 from cvc5types cimport BlockModelsMode as c_BlockModelsMode
 from cvc5types cimport RoundingMode as c_RoundingMode
 from cvc5types cimport UnknownExplanation as c_UnknownExplanation
@@ -1058,6 +1059,40 @@ cdef class Solver:
         sort.csort = self.csolver.mkSequenceSort(elemSort.csort)
         return sort
 
+    def mkAbstractSort(self, k):
+        """
+            Create an abstract sort. An abstract sort represents a sort for a 
+            given kind whose parameters and arguments are unspecified.
+            
+            The kind ``k`` must be the kind of a sort that can be abstracted, i.e., 
+            a sort that has indices or argument sorts. For example, ARRAY_SORT
+            and :py:obj:`BITVECTOR_SORT <Kind.BITVECTOR_SORT>` can be
+            passed as the kind ``k`` to this method, while
+            :py:obj:`INTEGER_SORT <Kind.INTEGER_SORT>` and
+            :py:obj:`STRING_SORT <Kind.STRING_SORT>` cannot.
+            
+            .. note::
+            Providing the kind :py:obj:`ABSTRACT_SORT <Kind.ABSTRACT_SORT>`
+            as an argument to this method returns the (fully) unspecified sort,
+            denoted ``?``.
+            
+            .. note::
+            Providing a kind ``k`` of sort that has no indices and a fixed arity of
+            argument sorts will return the sort of kind ``k`` whose arguments are
+            the unspecified sort. For example, ``mkAbstractSort(ARRAY_SORT)`` will
+            return the sort ``(ARRAY_SORT ? ?)`` instead of the abstract sort whose
+            abstract kind is py:obj:`ARRAY_SORT <Kind.ARRAY_SORT>`.
+            
+            :param k: The kind of the abstract sort
+            :return: The abstract sort.
+            
+            .. warning:: This method is experimental and may change in future
+                         versions.
+        """
+        cdef Sort sort = Sort(self)
+        sort.csort = self.csolver.mkAbstractSort(<c_SortKind> k.value)
+        return sort
+
     def mkUninterpretedSort(self, str name = None):
         """
             Create an uninterpreted sort.
@@ -1148,24 +1183,20 @@ cdef class Solver:
             term.cterm = self.csolver.mkTerm((<Op?> op).cop, v)
         return term
 
-    def mkTuple(self, sorts, terms):
+    def mkTuple(self, terms):
         """
             Create a tuple term. Terms are automatically converted if sorts are
             compatible.
 
-            :param sorts: The sorts of the elements in the tuple.
             :param terms: The elements in the tuple.
             :return: The tuple Term.
         """
-        cdef vector[c_Sort] csorts
         cdef vector[c_Term] cterms
 
-        for s in sorts:
-            csorts.push_back((<Sort?> s).csort)
         for s in terms:
             cterms.push_back((<Term?> s).cterm)
         cdef Term result = Term(self)
-        result.cterm = self.csolver.mkTuple(csorts, cterms)
+        result.cterm = self.csolver.mkTuple(cterms)
         return result
 
     def mkOp(self, k, *args):
@@ -1544,17 +1575,28 @@ cdef class Solver:
         term.cterm = self.csolver.mkRoundingMode(<c_RoundingMode> rm.value)
         return term
 
-    def mkFloatingPoint(self, int exp, int sig, Term val):
+    def mkFloatingPoint(self, arg0, arg1, Term arg2):
         """
-            Create a floating-point constant.
+            Create a floating-point value from a bit-vector given in IEEE-754
+            format, or from its three IEEE-754 bit-vector value components
+            (sign bit, exponent, significand). Arguments must be either given
+            as (int, int, Term) or (Term, Term, Term).
 
-            :param exp: Size of the exponent.
-            :param sig: Size of the significand.
-            :param val: Value of the floating-point constant as a bit-vector
-                        term.
+            :param arg0  The size of the exponent or the sign bit.
+            :param arg1  The size of the signifcand or the bit-vector
+                         representing the exponent.
+            :param arg2: The value of the floating-point constant as a
+                         bit-vector term or the bit-vector representing the
+                         significand.
+            :return The floating-point value.
         """
         cdef Term term = Term(self)
-        term.cterm = self.csolver.mkFloatingPoint(exp, sig, val.cterm)
+        if isinstance(arg0, int):
+            term.cterm = self.csolver.mkFloatingPoint(
+                <int> arg0, <int> arg1, arg2.cterm)
+        else:
+            term.cterm = self.csolver.mkFloatingPoint(
+                (<Term> arg0).cterm, (<Term> arg1).cterm, arg2.cterm)
         return term
 
     def mkCardinalityConstraint(self, Sort sort, int index):
@@ -1766,6 +1808,18 @@ cdef class Solver:
         """
         self.csolver.addSygusConstraint(t.cterm)
 
+    def getSygusConstraints(self):
+        """
+            Get the list of sygus constraints.
+            :return: The list of sygus constraints.
+        """
+        constraints = []
+        for c in self.csolver.getSygusConstraints():
+            term = Term(self)
+            term.cterm = c
+            constraints.append(term)
+        return constraints
+
     def addSygusAssume(self, Term t):
         """
             Add a formula to the set of Sygus assumptions.
@@ -1779,6 +1833,18 @@ cdef class Solver:
             :param term: The formuula to add as an assumption.
         """
         self.csolver.addSygusAssume(t.cterm)
+
+    def getSygusAssumptions(self):
+        """
+            Get the list of sygus assumptions.
+            :return: The list of sygus assumptions.
+        """
+        assumptions = []
+        for a in self.csolver.getSygusAssumptions():
+            term = Term(self)
+            term.cterm = a
+            assumptions.append(term)
+        return assumptions
 
     def addSygusInvConstraint(self, Term inv_f, Term pre_f, Term trans_f, Term post_f):
         """
@@ -1901,36 +1967,6 @@ cdef class Solver:
             term.cterm = s
             result.append(term)
         return result
-
-
-    def synthInv(self, symbol, bound_vars, Grammar grammar=None):
-        """
-            Synthesize invariant.
-
-            SyGuS v2:
-
-            .. code-block:: smtlib
-
-                ( synth-inv <symbol> ( <boundVars>* ) <grammar> )
-
-            :param symbol: The name of the invariant.
-            :param boundVars: The parameters to this invariant.
-            :param grammar: The syntactic constraints.
-            :return: The invariant.
-        """
-        cdef Term term = Term(self)
-        cdef vector[c_Term] v
-        for bv in bound_vars:
-            v.push_back((<Term?> bv).cterm)
-        if grammar is None:
-            term.cterm = self.csolver.synthInv(
-                    symbol.encode(), <const vector[c_Term]&> v)
-        else:
-            term.cterm = self.csolver.synthInv(
-                    symbol.encode(),
-                    <const vector[c_Term]&> v,
-                    grammar.cgrammar)
-        return term
 
     def checkSatAssuming(self, *assumptions):
         """
@@ -2395,6 +2431,45 @@ cdef class Solver:
 
             diffi[termk] = termv
         return diffi
+
+    def getTimeoutCore(self):
+        """
+            Get a timeout core, which computes a subset of the current
+            assertions that cause a timeout. Note it does not require being
+            proceeded by a call to checkSat.
+
+            .. code-block:: smtlib
+
+                (get-timeout-core)
+
+            .. warning:: This method is experimental and may change in future
+                         versions.
+
+            :return: The result of the timeout core computation. This is a pair
+            containing a result and a list of formulas. If the result is unknown
+            and the reason is timeout, then the list of formulas correspond to a
+            subset of the current assertions that cause a timeout in the
+            specified time
+            :ref:`timeout-core-timeout <lbl-option-timeout-core-timeout>`.
+            If the result is unsat, then the list of formulas correspond to an
+            unsat core for the current assertions. Otherwise, the result is sat,
+            indicating that the current assertions are satisfiable, and
+            the list of formulas is empty.
+
+            This method may make multiple checks for satisfiability internally,
+            each limited by the timeout value given by
+            :ref:`timeout-core-timeout <lbl-option-timeout-core-timeout>`.
+        """
+        cdef pair[c_Result, vector[c_Term]] res
+        res = self.csolver.getTimeoutCore()
+        core = []
+        for a in res.second:
+            term = Term(self)
+            term.cterm = a
+            core.append(term)
+        cdef Result r = Result()
+        r.cr = res.first
+        return (r, core)
 
     def getValue(self, term_or_list):
         """
@@ -2953,6 +3028,15 @@ cdef class Sort:
     def __hash__(self):
         return csorthash(self.csort)
 
+    def getKind(self):
+        """
+            .. warning:: This method is experimental and may change in future
+                         versions.
+
+            :return: The :py:class:`SortKind` of this sort.
+        """
+        return SortKind(<int> self.csort.getKind())
+
     def hasSymbol(self):
         """
             :return: True iff this sort has a symbol.
@@ -3157,6 +3241,17 @@ cdef class Sort:
             :return: True if the sort is a sequence sort.
         """
         return self.csort.isSequence()
+
+    def isAbstract(self):
+        """
+            Determine if this is an abstract sort.
+
+            :return: True if the sort is an abstract sort.
+
+            .. warning:: This method is experimental and may change in future
+                         versions.
+        """
+        return self.csort.isAbstract()
 
     def isUninterpretedSort(self):
         """
@@ -3417,6 +3512,16 @@ cdef class Sort:
         cdef Sort sort = Sort(self.solver)
         sort.csort = self.csort.getSequenceElementSort()
         return sort
+
+    def getAbstractedKind(self):
+        """
+            :return: The sort kind of an abstract sort, which denotes the kind
+            of sorts that this abstract sort denotes.
+
+            .. warning:: This method is experimental and may change in future
+                         versions.
+        """
+        return SortKind(<int> self.csort.getAbstractedKind())
 
     def getUninterpretedSortConstructorArity(self):
         """
@@ -3977,6 +4082,8 @@ cdef class Term:
 
     def getCardinalityConstraint(self):
         """
+            .. note:: Asserts :py:meth:`isCardinalityConstraint()`.
+
             :return: The sort the cardinality constraint is for and its upper
                      bound.
 
@@ -3989,6 +4096,47 @@ cdef class Term:
         sort.csort = p.first
         return (sort, p.second)
 
+    def isRealAlgebraicNumber(self):
+        """
+            :return: True if the term is a real algebraic number.
+
+            .. warning:: This method is experimental and may change in future
+                         versions.
+        """
+        return self.cterm.isRealAlgebraicNumber()
+
+
+    def getRealAlgebraicNumberDefiningPolynomial(self, Term v):
+        """
+            .. note:: Asserts :py:meth:`isRealAlgebraicNumber()`.
+
+           :param v: The variable over which to express the polynomial
+           :return: The defining polynomial for the real algebraic number, expressed in
+                    terms of the given variable.
+        """
+        cdef Term term = Term(self.solver)
+        term.cterm = self.cterm.getRealAlgebraicNumberDefiningPolynomial(v.cterm)
+        return term
+
+    def getRealAlgebraicNumberLowerBound(self):
+        """
+            .. note:: Asserts :py:meth:`isRealAlgebraicNumber()`.
+
+	        :return: The lower bound for the value of the real algebraic number.
+        """
+        cdef Term term = Term(self.solver)
+        term.cterm = self.cterm.getRealAlgebraicNumberLowerBound()
+        return term
+
+    def getRealAlgebraicNumberUpperBound(self):
+        """
+            .. note:: Asserts :py:meth:`isRealAlgebraicNumber()`.
+
+	        :return: The upper bound for the value of the real algebraic number.
+        """
+        cdef Term term = Term(self.solver)
+        term.cterm = self.cterm.getRealAlgebraicNumberUpperBound()
+        return term
 
     def isUninterpretedSortValue(self):
         """

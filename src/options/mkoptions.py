@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 ###############################################################################
 # Top contributors (to current version):
-#   Gereon Kremer, Mathias Preiner, Andres Noetzli
+#   Gereon Kremer, Mathias Preiner, Alex Ozdemir
 #
 # This file is part of the cvc5 project.
 #
-# Copyright (c) 2009-2022 by the authors listed in the file AUTHORS
+# Copyright (c) 2009-2023 by the authors listed in the file AUTHORS
 # in the top-level source directory and their institutional affiliations.
 # All rights reserved.  See the file COPYING in the top-level source
 # directory for licensing information.
@@ -50,7 +50,10 @@ import os
 import re
 import sys
 import textwrap
-import toml
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
 
 ### Allowed attributes for module/option
 
@@ -1162,7 +1165,8 @@ def mkoptions_main():
     checker = Checker()
     modules = []
     for filename in filenames:
-        data = toml.load(filename)
+        with open(filename, "rb") as f:
+            data = tomllib.load(f)
         module = checker.check_module(data, filename)
         if 'option' in data:
             module.options = sorted(
