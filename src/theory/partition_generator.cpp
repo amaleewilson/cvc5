@@ -118,7 +118,7 @@ void PartitionGenerator::addLemmaLiteral(TrustNode toAdd)
 bool PartitionGenerator::isUnusable(Node n)
 {
   const std::unordered_set<Kind, kind::KindHashFunction> skolemKinds = {
-      kind::SKOLEM, kind::BOOLEAN_TERM_VARIABLE};
+      kind::SKOLEM};
   const std::unordered_set<Kind, kind::KindHashFunction> unusableKinds = {
       kind::INST_CONSTANT};
 
