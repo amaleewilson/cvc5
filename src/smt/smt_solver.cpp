@@ -150,6 +150,12 @@ Result SmtSolver::checkSatInternal()
     }
     Trace("smt") << "SmtSolver::global negate returned " << result << std::endl;
   }
+  // Handle emitting partitions if necessary.
+  if (options().parallel.computePartitions > 1
+      && result.getStatus() == Result::UNSAT)
+  {
+    d_theoryEngine->emitPendingPartitions();
+  }
   return result;
 }
 

@@ -716,6 +716,11 @@ bool TheoryEngine::presolve() {
   return false;
 }/* TheoryEngine::presolve() */
 
+void TheoryEngine::emitPendingPartitions()
+{
+  d_partitionGen->emitPendingPartitions(/*solved=*/true);
+}
+
 void TheoryEngine::postsolve() {
   // Reset the interrupt flag
   d_interrupted = false;
@@ -1427,6 +1432,12 @@ void TheoryEngine::lemma(TrustNode tlemma,
 
   // assert the lemma
   d_propEngine->assertLemma(tlemma, p);
+
+    // We have asserted this lemma, so we collect it in partition generator.
+  if (d_partitionGen != nullptr)
+  {
+    d_partitionGen->addLemmaLiteral(tlemma);
+  }
 
   // If specified, we must add this lemma to the set of those that need to be
   // justified, where note we pass all auxiliary lemmas in skAsserts as well,
