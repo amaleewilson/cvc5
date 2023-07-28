@@ -58,7 +58,7 @@ PartitionGenerator::PartitionGenerator(Env& env,
   }
 }
 
-void PartitionGenerator::addLemmaLiteral(Node toAdd)
+void PartitionGenerator::addLemmaLiteral(TrustNode toAdd)
 {
   if (options().parallel.partitionStrategy
           == options::PartitionMode::LEMMA_CUBES
@@ -66,7 +66,8 @@ void PartitionGenerator::addLemmaLiteral(Node toAdd)
              == options::PartitionMode::LEMMA_DNCS)
   {
     std::vector<Node> toVisit;
-    toVisit.push_back(toAdd);
+    Node n = toAdd.getNode();
+    toVisit.push_back(n);
 
     for (unsigned i = 0; i < toVisit.size(); ++i)
     {
