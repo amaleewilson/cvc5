@@ -17,6 +17,7 @@
 
 #include "options/base_options.h"
 #include "options/main_options.h"
+#include "options/parallel_options.h"
 #include "options/smt_options.h"
 #include "preprocessing/assertion_pipeline.h"
 #include "prop/prop_engine.h"
