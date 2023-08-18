@@ -814,6 +814,10 @@ Lit Solver::pickBranchLit()
                 next = secondMin;
                 order_heap.insert(firstMin);
               }
+              else {
+                order_heap.insert(secondMin);
+                next = firstMin;
+              }
             }
         }
 
