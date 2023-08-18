@@ -803,8 +803,18 @@ Lit Solver::pickBranchLit()
         if (order_heap.empty()){
             next = var_Undef;
             break;
-        }else {
-            next = order_heap.removeMin();
+        } else {
+            Var firstMin = order_heap.removeMin(); 
+            if (order_heap.empty()) {
+              next = firstMin;
+            }
+            else {
+              Var secondMin = order_heap.removeMin();
+              if (drand(random_seed) < 0.5){
+                next = secondMin;
+                order_heap.insert(firstMin);
+              }
+            }
         }
 
         if(!decision[next]) continue;

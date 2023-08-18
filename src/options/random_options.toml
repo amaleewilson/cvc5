@@ -1,0 +1,34 @@
+id     = "RANDOM"
+name   = "Random"
+
+[[option]]
+  name       = "randomSat"
+  category   = "expert"
+  long       = "random-sat"
+  type       = "bool"
+  default    = "false"
+  help       = "make more random decisions in the SAT solver"
+
+[[option]]
+  name       = "randomSatCount"
+  category   = "expert"
+  long       = "random-sat-count=N"
+  type       = "uint64_t"
+  default    = "0"
+  help       = "number of candidate choices for random sat"
+
+[[option]]
+  name       = "randomQFLRA"
+  category   = "expert"
+  long       = "random-qflra"
+  type       = "bool"
+  default    = "false"
+  help       = "make more random decisions in the theory solver"
+
+[[option]]
+  name       = "randomLRACount"
+  category   = "expert"
+  long       = "random-lra-count=N"
+  type       = "uint64_t"
+  default    = "0"
+  help       = "number of candidate choices for random theory"
