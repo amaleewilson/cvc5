@@ -810,14 +810,36 @@ Lit Solver::pickBranchLit()
             }
             else {
               Var secondMin = order_heap.removeMin();
-              if (drand(random_seed) < 0.5){
-                next = secondMin;
-                order_heap.insert(firstMin);
+
+              if (order_heap.empty()) {
+                if (drand(random_seed) < 0.5){
+                  next = secondMin;
+                  order_heap.insert(firstMin);
+                }
+                else {
+                  order_heap.insert(secondMin);
+                  next = firstMin;
+                }
               }
               else {
-                order_heap.insert(secondMin);
-                next = firstMin;
+                Var thirdMin = order_heap.removeMin();
+                if (drand(random_seed) < 0.34){ 
+                  next = firstMin;
+                  order_heap.insert(secondMin); 
+                  order_heap.insert(thirdMin); 
+                }
+                else if (drand(random_seed) < 0.67){ 
+                  next = secondMin;
+                  order_heap.insert(firstMin); 
+                  order_heap.insert(thirdMin); 
+                }
+                else {
+                  next = secondMin;
+                  order_heap.insert(firstMin); 
+                  order_heap.insert(thirdMin);  
+                }
               }
+
             }
         }
 
