@@ -239,6 +239,88 @@ void PartitionGenerator::usePriorityHeuristic(
   }
 }
 
+void PartitionGenerator::useQFLRAHeuristic(
+    std::vector<Node>& unfilteredLiterals, std::vector<Node>& filteredLiterals)
+{
+  const std::unordered_set<Kind, kind::KindHashFunction> skolemKinds = {
+      kind::SKOLEM};
+  // We select literals / theory atoms with the following priority:
+  // 1. The atom has no skolems and appears in the input.
+  // 2. The original form has no skolems and appears in the input.
+  // 3. The atom has no skolems and does not appear in the input.
+  // 4. The original form has no skolems and does not appear in the input.
+  // NOTE: we should probably experiment with these priorities.
+  //       maybe do all permutations on a small subset of problems?
+  //       seems annoying... but maybe I can make it an option.
+  //       portfolio paritioning?
+
+  std::vector<Node> inputNoSkolems;
+  std::vector<Node> inputWithSkolems;
+  std::vector<Node> notInputNoSkolems;
+  std::vector<Node> notInputWithSkolems;
+
+  for (const Node& n : unfilteredLiterals)
+  {
+    if (isUnusable(n))
+    {
+      continue;
+    }
+
+    Node originalN = SkolemManager::getOriginalForm(n);
+
+    // A segfault is getting produced when we try to get the learned lit type
+    // for the nodes with skolems (not all of them, but some of them.)
+    modes::LearnedLitType nType = d_propEngine->getLiteralType(n);
+    modes::LearnedLitType originalNType = d_propEngine->getLiteralType(originalN);
+
+    // inputNoSkolems
+    if (!expr::hasSubtermKinds(skolemKinds, n)
+        && nType == modes::LEARNED_LIT_INPUT)
+    {
+      inputNoSkolems.push_back(n);
+    }
+    // inputWithSkolems
+    else if (!expr::hasSubtermKinds(skolemKinds, originalN)
+             && originalNType == modes::LEARNED_LIT_INPUT)
+    {
+      inputWithSkolems.push_back(originalN);
+    }
+    // notInputNoSkolems
+    else if (!expr::hasSubtermKinds(skolemKinds, n))
+    {
+      notInputNoSkolems.push_back(n);
+    }
+    // notInputWithSkolems
+    else if (!expr::hasSubtermKinds(skolemKinds, originalN))
+    {
+      notInputWithSkolems.push_back(originalN);
+    }
+    else
+    {
+      continue;
+    }
+  }
+
+  // Here we sort the potential literals/atoms for splitting. 
+  // TODO: Experiment with this ordering?
+  for (auto candidateNode : inputNoSkolems)
+  {
+    filteredLiterals.push_back(candidateNode);
+  }
+  for (auto candidateNode : inputWithSkolems)
+  {
+    filteredLiterals.push_back(candidateNode);
+  }
+  for (auto candidateNode : notInputNoSkolems)
+  {
+    filteredLiterals.push_back(candidateNode);
+  }
+  for (auto candidateNode : notInputWithSkolems)
+  {
+    filteredLiterals.push_back(candidateNode);
+  }
+}
+
 std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
 {
   std::vector<Node> filteredLiterals;
@@ -284,6 +366,10 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
     if (options().parallel.prioritizeLiterals)
     {
       usePriorityHeuristic(unfilteredLiterals, filteredLiterals);
+    }
+    else if (options().parallel.qflraHeuristic) 
+    {
+      useQFLRAHeuristic(unfilteredLiterals, filteredLiterals);
     }
     else
     {

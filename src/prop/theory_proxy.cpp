@@ -17,6 +17,9 @@
  */
 #include "prop/theory_proxy.h"
 
+#include <chrono>
+#include <ctime>
+
 #include "context/context.h"
 #include "decision/decision_engine.h"
 #include "decision/justification_strategy.h"
@@ -66,6 +69,8 @@ TheoryProxy::TheoryProxy(Env& env,
   {
     d_zll = std::make_unique<ZeroLevelLearner>(env, theoryEngine);
   }
+  // TODO: guard this
+  d_snotify.reset(new SatNotify(context()));
 }
 
 TheoryProxy::~TheoryProxy() {
@@ -387,6 +392,17 @@ void TheoryProxy::notifyRestart() {
   d_theoryEngine->notifyRestart();
 }
 
+void TheoryProxy::notifyDecision(SatLiteral lit)
+{
+  Node n = getNode(lit);
+
+  // output decided n at the given timestamp
+  SatNotify::output(n, false);
+
+  // remember this decision so that we know what to output on backtrack
+  d_snotify->d_decision = n;
+}
+
 void TheoryProxy::spendResource(Resource r)
 {
   d_theoryEngine->spendResource(r);
@@ -474,6 +490,26 @@ std::vector<Node> TheoryProxy::getLearnedZeroLevelLiteralsForRestart() const
     return d_zll->getLearnedZeroLevelLiteralsForRestart();
   }
   return {};
+}
+
+TheoryProxy::SatNotify::SatNotify(context::Context* c)
+    : context::ContextNotifyObj(c), d_decision(c)
+{
+}
+TheoryProxy::SatNotify::~SatNotify() {}
+void TheoryProxy::SatNotify::contextNotifyPop()
+{
+  Assert(!d_decision.get().isNull());
+  output(d_decision.get(), true);
+}
+void TheoryProxy::SatNotify::output(const Node& n, bool wasBacktrack)
+{
+  auto now = std::chrono::high_resolution_clock::now();
+  auto now_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
+  auto epoch_time = now_ns.time_since_epoch();
+  Trace("sat::decision-timestamp") << (wasBacktrack ? "backtrack " : "decide ");
+  Trace("sat::decision-timestamp")
+      << n << " " << epoch_time.count() << std::endl;
 }
 
 }  // namespace prop

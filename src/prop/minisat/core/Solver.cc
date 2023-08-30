@@ -1697,6 +1697,9 @@ lbool Solver::search(int nof_conflicts)
         }
       }
 
+      // notify the theory proxy
+      d_proxy->notifyDecision(MinisatSatSolver::toSatLiteral(next));
+
       // Increase decision level and enqueue 'next'
       newDecisionLevel();
       uncheckedEnqueue(next);
