@@ -367,10 +367,10 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
     {
       usePriorityHeuristic(unfilteredLiterals, filteredLiterals);
     }
-    else if (options().parallel.qflraHeuristic) 
-    {
-      useQFLRAHeuristic(unfilteredLiterals, filteredLiterals);
-    }
+    // else if (options().parallel.qflraHeuristic) 
+    // {
+    //   useQFLRAHeuristic(unfilteredLiterals, filteredLiterals);
+    // }
     else
     {
       for (const Node& n : unfilteredLiterals)
