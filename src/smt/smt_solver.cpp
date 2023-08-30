@@ -157,6 +157,11 @@ Result SmtSolver::checkSatInternal()
   {
     d_theoryEngine->emitPendingPartitions();
   }
+
+  auto now = std::chrono::high_resolution_clock::now();
+  auto now_ns = std::chrono::time_point_cast<std::chrono::nanoseconds>(now);
+  auto epoch_time = now_ns.time_since_epoch();
+  Trace("sat::decision-timestamp") <<  "SOLVED at " << epoch_time.count() << std::endl;
   return result;
 }
 
