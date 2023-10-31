@@ -472,6 +472,8 @@ protected:
     vec<Lit>            analyze_stack;
     vec<Lit>            analyze_toclear;
     vec<Lit>            add_tmp;
+    Lit currentBranchLit;
+    bool useCachedDecision;
 
     double              max_learnts;
     double              learntsize_adjust_confl;
@@ -488,6 +490,9 @@ protected:
     void     insertVarOrder   (Var x);                                                 // Insert a variable in the decision order priority queue.
     Lit      pickBranchLit    ();                                                      // Return the next decision variable.
     void     newDecisionLevel ();                                                      // Begins a new decision level.
+    void specialUncheckedEnqueue(
+        Lit p, CRef from = CRef_Undef);  // Enqueue a literal. Assumes value of
+                                         // literal is undefined. SPECIAL!
     void     uncheckedEnqueue (Lit p, CRef from = CRef_Undef);                         // Enqueue a literal. Assumes value of literal is undefined.
     bool     enqueue          (Lit p, CRef from = CRef_Undef);                         // Test if fact 'p' contradicts current state, enqueue otherwise.
     bool     theoryConflict;                                                           // Was the last conflict a theory conflict
@@ -685,11 +690,13 @@ inline void     Solver::setPolarity   (Var v, bool b) { polarity[v] = b; }
 inline void     Solver::freezePolarity(Var v, bool b) { polarity[v] = int(b) | 0x2; }
 inline void     Solver::setDecisionVar(Var v, bool b)
 {
-    if      ( b && !decision[v] ) dec_vars++;
-    else if (!b &&  decision[v] ) dec_vars--;
+  if (b && !decision[v])
+    dec_vars++;
+  else if (!b && decision[v])
+    dec_vars--;
 
-    decision[v] = b;
-    insertVarOrder(v);
+  decision[v] = b;
+  insertVarOrder(v);
 }
 
 inline void     Solver::setConfBudget(int64_t x){ conflict_budget    = conflicts    + x; }

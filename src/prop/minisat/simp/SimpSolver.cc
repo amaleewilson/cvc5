@@ -129,18 +129,21 @@ lbool SimpSolver::solve_(bool do_simp, bool turn_off_simp)
     do_simp &= use_simplification;
 
     if (do_simp){
-        // Assumptions must be temporarily frozen to run variable elimination:
-        for (int i = 0; i < assumptions.size(); i++){
-            Var v = var(assumptions[i]);
+      // Assumptions must be temporarily frozen to run variable elimination:
+      for (int i = 0; i < assumptions.size(); i++)
+      {
+        Var v = var(assumptions[i]);
 
-            // If an assumption has been eliminated, remember it.
-            Assert(!isEliminated(v));
+        // If an assumption has been eliminated, remember it.
+        Assert(!isEliminated(v));
 
-            if (!frozen[v]){
-                // Freeze and store.
-                setFrozen(v, true);
-                extra_frozen.push(v);
-            } }
+        if (!frozen[v])
+        {
+          // Freeze and store.
+          setFrozen(v, true);
+          extra_frozen.push(v);
+        }
+      }
 
         result = lbool(eliminate(turn_off_simp));
     }

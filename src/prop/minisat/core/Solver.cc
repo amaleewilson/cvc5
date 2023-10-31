@@ -161,6 +161,9 @@ Solver::Solver(Env& env,
       restart_first(opt_restart_first),
       restart_inc(opt_restart_inc)
 
+      ,
+      useCachedDecision(false)
+
       // Parameters (the rest):
       //
       ,
@@ -237,25 +240,25 @@ Solver::~Solver()
 //
 Var Solver::newVar(bool sign, bool dvar, bool isTheoryAtom, bool canErase)
 {
-    int v = nVars();
+  int v = nVars();
 
-    watches  .init(mkLit(v, false));
-    watches  .init(mkLit(v, true ));
-    assigns  .push(l_Undef);
-    vardata  .push(VarData(CRef_Undef, -1, -1, assertionLevel, -1));
-    activity .push(rnd_init_act ? drand(random_seed) * 0.00001 : 0);
-    seen     .push(0);
-    polarity .push(sign);
-    decision .push();
-    trail    .capacity(v+1);
-    // push whether it corresponds to a theory atom
-    theory.push(isTheoryAtom);
+  watches.init(mkLit(v, false));
+  watches.init(mkLit(v, true));
+  assigns.push(l_Undef);
+  vardata.push(VarData(CRef_Undef, -1, -1, assertionLevel, -1));
+  activity.push(rnd_init_act ? drand(random_seed) * 0.00001 : 0);
+  seen.push(0);
+  polarity.push(sign);
+  decision.push();
+  trail.capacity(v + 1);
+  // push whether it corresponds to a theory atom
+  theory.push(isTheoryAtom);
 
-    setDecisionVar(v, dvar);
+  setDecisionVar(v, dvar);
 
-    Trace("minisat") << "new var " << v << " with assertion level "
-                     << assertionLevel << std::endl;
-    return v;
+  Trace("minisat") << "new var " << v << " with assertion level "
+                   << assertionLevel << std::endl;
+  return v;
 }
 
 void Solver::resizeVars(int newSize) {
@@ -274,6 +277,7 @@ void Solver::resizeVars(int newSize) {
     activity.shrink(shrinkSize);
     seen.shrink(shrinkSize);
     polarity.shrink(shrinkSize);
+    std::cout << "shrinking decision" << std::endl;
     decision.shrink(shrinkSize);
     theory.shrink(shrinkSize);
   }
@@ -462,23 +466,43 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
         for (int k = 0, size = ps.size(); k < size; ++k)
         {
           Trace("pf::sat") << ps[k] << " ";
+          std::cout << d_proxy->getNode(MinisatSatSolver::toSatLiteral(ps[k]))
+                    << std::endl;
+          std::cout << " currbranchlit " << currentBranchLit
+                    << d_proxy->getNode(
+                           MinisatSatSolver::toSatLiteral(currentBranchLit))
+                    << std::endl;
         }
         Trace("pf::sat") << std::endl;
       }
+
+      // for (int k = 0, size = ps.size(); k < size; ++k)
+      // {
+      //   if (ps[k] == currentBranchLit || ps[k] == ~currentBranchLit)
+      //   {
+      //     std::cout << "setting use cached to false after adding lemma"
+      //               << std::endl;
+      //     useCachedDecision = false;
+      //   }
+      // }
       lemmas.push();
       ps.copyTo(lemmas.last());
       lemmas_removable.push(removable);
-    } else {
+    }
+    else
+    {
       Assert(decisionLevel() == 0);
 
       // If all false, we're in conflict
-      if (ps.size() == falseLiteralsCount) {
+      if (ps.size() == falseLiteralsCount)
+      {
         if (options().smt.produceUnsatCores || needProof())
         {
           // Take care of false units here; otherwise, we need to
           // construct the clause below to give to the proof manager
           // as the final conflict.
-          if(falseLiteralsCount == 1) {
+          if (falseLiteralsCount == 1)
+          {
             if (needProof())
             {
               d_pfManager->finalizeProof(ps[0], true);
@@ -495,8 +519,8 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
       CRef cr = CRef_Undef;
 
       // If not unit, add the clause
-      if (ps.size() > 1) {
-
+      if (ps.size() > 1)
+      {
         lemma_lt lt(*this);
         sort(ps, lt);
 
@@ -714,6 +738,34 @@ void Solver::resetTrail() { cancelUntil(0); }
 
 Lit Solver::pickBranchLit()
 {
+  if (TraceIsOn("minisat"))
+  {
+    if (decisionLevel() == 0)
+    {
+      std::cout << "pick branch lit, decision level " << decisionLevel()
+                << std::endl;
+    }
+  }
+  if (decisionLevel() == 0 && useCachedDecision && (currentBranchLit.x != 0)
+      && value(currentBranchLit) == l_Undef)
+  {
+    if (TraceIsOn("minisat"))
+    {
+      std::cout << "using cached decision " << currentBranchLit
+                << d_proxy->getNode(
+                       MinisatSatSolver::toSatLiteral(currentBranchLit))
+                << std::endl;
+    }
+    return currentBranchLit;
+  }
+  else
+  {
+    if (TraceIsOn("minisat"))
+    {
+      std::cout << "NOT using cached decision!" << std::endl;
+    }
+  }
+
     Lit nextLit;
     bool stopSearch = false;
     bool requirePhase = false;
@@ -721,8 +773,23 @@ Lit Solver::pickBranchLit()
     // Theory requests
     nextLit = MinisatSatSolver::toMinisatLit(
         d_proxy->getNextDecisionRequest(requirePhase, stopSearch));
+
+    if (decisionLevel() == 0)
+    {
+      if (TraceIsOn("minisat"))
+      {
+        std::cout << "theory request " << nextLit << std::endl;
+      }
+    }
     if (stopSearch)
     {
+      if (TraceIsOn("minisat"))
+      {
+        if (decisionLevel() == 0)
+        {
+          std::cout << "stopSearch == true" << std::endl;
+        }
+      }
       return lit_Undef;
     }
     while (nextLit != lit_Undef)
@@ -761,6 +828,16 @@ Lit Solver::pickBranchLit()
       }
       else
       {
+        if (TraceIsOn("minisat"))
+        {
+          if (decisionLevel() == 0)
+          {
+            std::cout << "theorydecision ... already has assignment"
+                      << d_proxy->getNode(
+                             MinisatSatSolver::toSatLiteral(nextLit))
+                      << std::endl;
+          }
+        }
         Trace("theoryDecision")
             << "getNextDecisionRequest(): would decide on " << nextLit
             << " but it already has an assignment" << std::endl;
@@ -769,6 +846,13 @@ Lit Solver::pickBranchLit()
           d_proxy->getNextDecisionRequest(requirePhase, stopSearch));
       if (stopSearch)
       {
+        if (TraceIsOn("minisat"))
+        {
+          if (decisionLevel() == 0)
+          {
+            std::cout << "stopSearch == true" << std::endl;
+          }
+        }
         return lit_Undef;
       }
     }
@@ -776,29 +860,83 @@ Lit Solver::pickBranchLit()
     Var next = var_Undef;
 
     // Random decision:
-    if (drand(random_seed) < random_var_freq && !order_heap.empty()){
-        next = order_heap[irand(random_seed,order_heap.size())];
-        if (value(next) == l_Undef && decision[next])
-            rnd_decisions++; }
+    if (drand(random_seed) < random_var_freq && !order_heap.empty())
+    {
+      next = order_heap[irand(random_seed, order_heap.size())];
+      if (value(next) == l_Undef && decision[next])
+      {
+        rnd_decisions++;
+      }
+    }
 
     // Activity based decision:
     while (next >= nVars() || next == var_Undef || value(next) != l_Undef || !decision[next]) {
-        if (order_heap.empty()){
-            next = var_Undef;
-            break;
-        }else {
-            next = order_heap.removeMin();
+      if (TraceIsOn("minisat"))
+      {
+        if (decisionLevel() == 0)
+        {
+          std::cout << "activity based decision " << std::endl;
         }
+      }
+      if (order_heap.empty())
+      {
+        next = var_Undef;
+        if (TraceIsOn("minisat"))
+        {
+          if (decisionLevel() == 0)
+          {
+            std::cout << "activity based decision, next = var_undef, break "
+                      << std::endl;
+          }
+        }
+        break;
+      }
+      else
+      {
+        next = order_heap.removeMin();
+        if (TraceIsOn("minisat"))
+        {
+          if (decisionLevel() == 0)
+          {
+            std::cout << "activity based decision, next = "
+                      << "order_heap.removeMin() " << next << std::endl;
+          }
+        }
+      }
 
-        if (!decision[next]) continue;
+      if (!decision[next])
+      {
+        continue;
+      }
     }
 
     if(next == var_Undef) {
+      if (TraceIsOn("minisat"))
+      {
+        if (decisionLevel() == 0)
+        {
+          std::cout << "next == var_undef, returning lit_Undef" << std::endl;
+        }
+      }
       return lit_Undef;
-    } else {
+    }
+    else
+    {
       decisions++;
       Lit decisionLit = mkLit(
           next, rnd_pol ? drand(random_seed) < 0.5 : (polarity[next] & 0x1));
+
+      if (TraceIsOn("minisat"))
+      {
+        if (decisionLevel() == 0)
+        {
+          std::cout << "decisionlit made from " << next << std::endl;
+          std::cout << "decision lit "
+                    << d_proxy->getNode(
+                           MinisatSatSolver::toSatLiteral(decisionLit))
+                    << std::endl;
+        }
+      }
 
       // org-mode tracing -- decision engine decision
       if (TraceIsOn("dtview"))
@@ -816,10 +954,13 @@ Lit Solver::pickBranchLit()
                                       options().base.incrementalSolving);
       }
 
+      if (decisionLevel() == 0)
+      {
+        currentBranchLit = decisionLit;
+      }
       return decisionLit;
     }
 }
-
 
 /*_________________________________________________________________________________________________
 |
@@ -1000,19 +1141,52 @@ int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 
     // Find correct backtrack level:
     //
-    if (out_learnt.size() == 1)
-        out_btlevel = 0;
+    // if (out_learnt.size() == 1)
+    if (out_learnt.size() == 1
+        && (out_learnt[0] == currentBranchLit
+            || out_learnt[0] == ~currentBranchLit))
+    {
+      if (TraceIsOn("minisat"))
+      {
+        std::cout << "out_learnt[0] = "
+                  << toSatLiteral<Minisat::Solver>(out_learnt[0]) << std::endl;
+        std::cout << "currbranchlit " << currentBranchLit << std::endl;
+        std::cout << "analyze setting usecached to false" << std::endl;
+      }
+      useCachedDecision = false;
+      out_btlevel = 0;
+    }
+    else if (out_learnt.size() == 1 && out_learnt[0] != currentBranchLit
+             && out_learnt[0] != ~currentBranchLit)
+    {
+      if (TraceIsOn("minisat"))
+      {
+        std::cout << "size = 1, out_learnt[0] = "
+                  << toSatLiteral<Minisat::Solver>(out_learnt[0]) << std::endl;
+        std::cout << "size = 1, currbranchlit " << currentBranchLit
+                  << std::endl;
+        // out_learnt[0] = ~currentBranchLit;
+        std::cout << "analyze setting usecached to true" << std::endl;
+      }
+      useCachedDecision = true;
+      out_btlevel = 0;
+    }
     else{
-        int max_i = 1;
-        // Find the first literal assigned at the next-highest level:
-        for (int k = 2; k < out_learnt.size(); k++)
-          if (level(var(out_learnt[k])) > level(var(out_learnt[max_i])))
-            max_i = k;
-        // Swap-in this literal at index 1:
-        Lit p2 = out_learnt[max_i];
-        out_learnt[max_i] = out_learnt[1];
-        out_learnt[1] = p2;
-        out_btlevel = level(var(p2));
+      if (TraceIsOn("minisat"))
+      {
+        std::cout << "analyze (else) setting usecached to false" << std::endl;
+      }
+      useCachedDecision = false;
+      int max_i = 1;
+      // Find the first literal assigned at the next-highest level:
+      for (int k = 2; k < out_learnt.size(); k++)
+        if (level(var(out_learnt[k])) > level(var(out_learnt[max_i])))
+          max_i = k;
+      // Swap-in this literal at index 1:
+      Lit p2 = out_learnt[max_i];
+      out_learnt[max_i] = out_learnt[1];
+      out_learnt[1] = p2;
+      out_btlevel = level(var(p2));
     }
 
     for (int k = 0; k < analyze_toclear.size(); k++)
@@ -1102,6 +1276,45 @@ void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
     seen[var(p)] = 0;
 }
 
+void Solver::specialUncheckedEnqueue(Lit p, CRef from)
+{
+  if (TraceIsOn("minisat"))
+  {
+    Trace("minisat") << "SPECIAL unchecked enqueue of " << p << " ("
+                     << trail_index(var(p)) << ") trail size is "
+                     << trail.size() << " cap is " << trail.capacity()
+                     << ", assertion level is " << assertionLevel
+                     << ", reason is " << from << ", ";
+    if (from == CRef_Lazy)
+    {
+      Trace("minisat") << "SPECIAL CRef_Lazy";
+    }
+    else if (from == CRef_Undef)
+    {
+      Trace("minisat") << "SPECIAL CRef_Undef";
+    }
+    else
+    {
+      for (unsigned i = 0, size = ca[from].size(); i < size; ++i)
+      {
+        Trace("minisat") << "SPECIAL" << ca[from][i] << " ";
+      }
+    }
+    Trace("minisat") << "\n";
+  }
+  // Assert(value(p) == l_Undef);
+  Assert(var(p) < nVars());
+  assigns[var(p)] = lbool(!sign(p));
+  vardata[var(p)] =
+      VarData(from, 0, assertionLevel, intro_level(var(p)), trail.size());
+  trail.push_(p);
+  if (theory[var(p)])
+  {
+    // Enqueue to the theory
+    d_proxy->enqueueTheoryLiteral(MinisatSatSolver::toSatLiteral(p));
+  }
+}
+
 void Solver::uncheckedEnqueue(Lit p, CRef from)
 {
   if (TraceIsOn("minisat"))
@@ -1149,10 +1362,15 @@ CRef Solver::propagate(TheoryCheckType type)
 
     ScopedBool scoped_bool(minisat_busy, true);
 
+    if (TraceIsOn("minisat"))
+    {
+      std::cout << "lemmas.size() " << lemmas.size() << std::endl;
+    }
     // Add lemmas that we're left behind
     if (lemmas.size() > 0) {
       confl = updateLemmas();
       if (confl != CRef_Undef) {
+        std::cout << "returning confl from updateLemmas()" << std::endl;
         return confl;
       }
     }
@@ -1160,6 +1378,10 @@ CRef Solver::propagate(TheoryCheckType type)
     // If this is the final check, no need for Boolean propagation and
     // theory propagation
     if (type == CHECK_FINAL) {
+      if (TraceIsOn("minisat"))
+      {
+        std::cout << "final check " << std::endl;
+      }
       // Do the theory check
       theoryCheck(cvc5::internal::theory::Theory::EFFORT_FULL);
       // Pick up the theory propagated literals (there could be some,
@@ -1183,14 +1405,17 @@ CRef Solver::propagate(TheoryCheckType type)
         confl = propagateBool();
         // If no conflict, do the theory check
         if (confl == CRef_Undef && type != CHECK_WITHOUT_THEORY) {
-            // Do the theory check
-            theoryCheck(cvc5::internal::theory::Theory::EFFORT_STANDARD);
-            // Pick up the theory propagated literals
-            propagateTheory();
-            // If there are lemmas (or conflicts) update them
-            if (lemmas.size() > 0) {
-              confl = updateLemmas();
-            }
+          // Do the theory check
+          // std::cout << "theory check, standard effort" << std::endl;
+          theoryCheck(cvc5::internal::theory::Theory::EFFORT_STANDARD);
+          // Pick up the theory propagated literals
+          propagateTheory();
+          // If there are lemmas (or conflicts) update them
+          if (lemmas.size() > 0)
+          {
+            // std::cout << "theory check resulted in lemmas" << std::endl;
+            confl = updateLemmas();
+          }
         } else {
           // if dumping decision tree, print the conflict
           if (TraceIsOn("dtview::conflict"))
@@ -1285,67 +1510,82 @@ void Solver::theoryCheck(cvc5::internal::theory::Theory::Effort effort)
 |________________________________________________________________________________________________@*/
 CRef Solver::propagateBool()
 {
-    CRef    confl     = CRef_Undef;
-    int     num_props = 0;
-    watches.cleanAll();
+  if (TraceIsOn("minisat"))
+  {
+    std::cout << "propagateBool" << std::endl;
+  }
+  CRef confl = CRef_Undef;
+  int num_props = 0;
+  watches.cleanAll();
 
-    while (qhead < trail.size()){
-        Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
-        vec<Watcher>&  ws  = watches[p];
-        Watcher        *i, *j, *end;
-        num_props++;
+  while (qhead < trail.size())
+  {
+    Lit p = trail[qhead++];  // 'p' is enqueued fact to propagate.
+    vec<Watcher>& ws = watches[p];
+    Watcher *i, *j, *end;
+    num_props++;
 
-        // if propagation tracing enabled, print boolean propagation
-        if (TraceIsOn("dtview::prop"))
-        {
-          dtviewBoolPropagationHelper(
-              decisionLevel(), p, d_proxy, options().base.incrementalSolving);
-        }
-
-        for (i = j = (Watcher*)ws, end = i + ws.size();  i != end;){
-            // Try to avoid inspecting the clause:
-            Lit blocker = i->blocker;
-            if (value(blocker) == l_True){
-                *j++ = *i++; continue; }
-
-            // Make sure the false literal is data[1]:
-            CRef     cr        = i->cref;
-            Clause&  c         = ca[cr];
-            Lit      false_lit = ~p;
-            if (c[0] == false_lit)
-                c[0] = c[1], c[1] = false_lit;
-            Assert(c[1] == false_lit);
-            i++;
-
-            // If 0th watch is true, then clause is already satisfied.
-            Lit     first = c[0];
-            Watcher w     = Watcher(cr, first);
-            if (first != blocker && value(first) == l_True){
-                *j++ = w; continue; }
-
-            // Look for new watch:
-            Assert(c.size() >= 2);
-            for (int k = 2; k < c.size(); k++)
-                if (value(c[k]) != l_False){
-                    c[1] = c[k]; c[k] = false_lit;
-                    watches[~c[1]].push(w);
-                    goto NextClause; }
-
-            // Did not find watch -- clause is unit under assignment:
-            *j++ = w;
-            if (value(first) == l_False){
-                confl = cr;
-                qhead = trail.size();
-                // Copy the remaining watches:
-                while (i < end)
-                    *j++ = *i++;
-            }else
-                uncheckedEnqueue(first, cr);
-
-        NextClause:;
-        }
-        ws.shrink(i - j);
+    // if propagation tracing enabled, print boolean propagation
+    if (TraceIsOn("dtview::prop"))
+    {
+      dtviewBoolPropagationHelper(
+          decisionLevel(), p, d_proxy, options().base.incrementalSolving);
     }
+
+    for (i = j = (Watcher*)ws, end = i + ws.size(); i != end;)
+    {
+      // Try to avoid inspecting the clause:
+      Lit blocker = i->blocker;
+      if (value(blocker) == l_True)
+      {
+        *j++ = *i++;
+        continue;
+      }
+
+      // Make sure the false literal is data[1]:
+      CRef cr = i->cref;
+      Clause& c = ca[cr];
+      Lit false_lit = ~p;
+      if (c[0] == false_lit) c[0] = c[1], c[1] = false_lit;
+      Assert(c[1] == false_lit);
+      i++;
+
+      // If 0th watch is true, then clause is already satisfied.
+      Lit first = c[0];
+      Watcher w = Watcher(cr, first);
+      if (first != blocker && value(first) == l_True)
+      {
+        *j++ = w;
+        continue;
+      }
+
+      // Look for new watch:
+      Assert(c.size() >= 2);
+      for (int k = 2; k < c.size(); k++)
+        if (value(c[k]) != l_False)
+        {
+          c[1] = c[k];
+          c[k] = false_lit;
+          watches[~c[1]].push(w);
+          goto NextClause;
+        }
+
+      // Did not find watch -- clause is unit under assignment:
+      *j++ = w;
+      if (value(first) == l_False)
+      {
+        confl = cr;
+        qhead = trail.size();
+        // Copy the remaining watches:
+        while (i < end) *j++ = *i++;
+      }
+      else
+        uncheckedEnqueue(first, cr);
+
+    NextClause:;
+    }
+    ws.shrink(i - j);
+  }
     propagations += num_props;
     simpDB_props -= num_props;
 
@@ -1424,11 +1664,11 @@ void Solver::removeClausesAboveLevel(vec<CRef>& cs, int level)
 
 void Solver::rebuildOrderHeap()
 {
-    vec<Var> vs;
-    for (Var v = 0; v < nVars(); v++)
-        if (decision[v] && value(v) == l_Undef)
-            vs.push(v);
-    order_heap.build(vs);
+  // std::cout << "rebuilding order heap" << std::endl;
+  vec<Var> vs;
+  for (Var v = 0; v < nVars(); v++)
+    if (decision[v] && value(v) == l_Undef) vs.push(v);
+  order_heap.build(vs);
 }
 
 
@@ -1484,6 +1724,7 @@ lbool Solver::search(int nof_conflicts)
   int conflictC = 0;
   vec<Lit> learnt_clause;
   starts++;
+  // std::cout << "starts " << starts << std::endl;
 
   TheoryCheckType check_type = CHECK_WITH_THEORY;
   for (;;)
@@ -1494,6 +1735,7 @@ lbool Solver::search(int nof_conflicts)
 
     if (confl != CRef_Undef)
     {
+      // std::cout << "confl != CRef_Undef" << std::endl;
       conflicts++;
       conflictC++;
 
@@ -1516,16 +1758,30 @@ lbool Solver::search(int nof_conflicts)
       // Analyze the conflict
       learnt_clause.clear();
       int max_level = analyze(confl, learnt_clause, backtrack_level);
+      if (TraceIsOn("minisat"))
+      {
+        std::cout << "calling canceluntil in search, backtrack = "
+                  << backtrack_level << std::endl;
+      }
       cancelUntil(backtrack_level);
 
       // Assert the conflict clause and the asserting literal
       if (learnt_clause.size() == 1)
+      // if (learnt_clause.size() == 1
+      //     && (learnt_clause[0] == currentBranchLit
+      //         || learnt_clause[0] == ~currentBranchLit))
       {
-        uncheckedEnqueue(learnt_clause[0]);
-        if (needProof())
+        if (TraceIsOn("minisat"))
         {
-          d_pfManager->endResChain(learnt_clause[0]);
+          std::cout
+              << "calling uncheckedEnqueue because learnt_clause.size() == 1"
+              << std::endl;
         }
+        uncheckedEnqueue(learnt_clause[0]);
+        // if (needProof())
+        // {
+        //   d_pfManager->endResChain(learnt_clause[0]);
+        // }
       }
       else
       {
@@ -1607,6 +1863,7 @@ lbool Solver::search(int nof_conflicts)
         // Reached bound on number of conflicts:
         progress_estimate = progressEstimate();
         cancelUntil(0);
+        // std::cout << "restarting in the search code" << std::endl;
         // [mdeters] notify theory engine of restarts for deferred
         // theory processing
         d_proxy->notifyRestart();
@@ -1616,11 +1873,14 @@ lbool Solver::search(int nof_conflicts)
       // Simplify the set of problem clauses:
       if (decisionLevel() == 0 && !simplify())
       {
+        // std::cout << "decisionLevel() == 0 && !simplify()" << std::endl;
         return l_False;
       }
 
       if (clauses_removable.size() - nAssigns() >= max_learnts)
       {
+        // std::cout << "clauses_removable.size() - nAssigns() >= max_learnts"
+        //           << std::endl;
         // Reduce the set of learnt clauses:
         reduceDB();
       }
@@ -1628,20 +1888,25 @@ lbool Solver::search(int nof_conflicts)
       Lit next = lit_Undef;
       while (decisionLevel() < assumptions.size())
       {
+        // std::cout << "decisionLevel() < assumptions.size()" << std::endl;
         // Perform user provided assumption:
         Lit p = assumptions[decisionLevel()];
         if (value(p) == l_True)
         {
+          // std::cout << "value(p) == l_True" << std::endl;
           // Dummy decision level:
           newDecisionLevel();
         }
         else if (value(p) == l_False)
         {
+          // std::cout << "value(p) == l_False" << std::endl;
           analyzeFinal(~p, d_conflict);
           return l_False;
         }
         else
         {
+          // std::cout << "not value(p) == l_False and not value(p) == l_True"
+          //           << std::endl;
           next = p;
           break;
         }
@@ -1649,6 +1914,7 @@ lbool Solver::search(int nof_conflicts)
 
       if (next == lit_Undef)
       {
+        // std::cout << "next == lit_Undef, picking branch lit" << std::endl;
         // New variable decision:
         next = pickBranchLit();
 
@@ -1661,6 +1927,9 @@ lbool Solver::search(int nof_conflicts)
           continue;
         }
       }
+
+      // notify the theory proxy
+      d_proxy->notifyDecision(MinisatSatSolver::toSatLiteral(next));
 
       // Increase decision level and enqueue 'next'
       newDecisionLevel();
@@ -1729,11 +1998,19 @@ lbool Solver::solve_()
     }
 
     solves++;
+    // std::cout << "solves " << solves << std::endl;
 
     max_learnts               = nClauses() * learntsize_factor;
+    // std::cout << "nClauses " << nClauses() << std::endl;
+    // std::cout << "learntsize_factor " << learntsize_factor << std::endl;
+    // std::cout << "max_learnts " << max_learnts << std::endl;
     learntsize_adjust_confl   = learntsize_adjust_start_confl;
     learntsize_adjust_cnt     = (int)learntsize_adjust_confl;
     lbool   status            = l_Undef;
+    // std::cout << "learntsize_adjust_confl " << learntsize_adjust_confl
+    //           << std::endl;
+    // std::cout << "learntsize_adjust_cnt " << learntsize_adjust_cnt <<
+    // std::endl; std::cout << "status " << status << std::endl;
 
     if (verbosity >= 1){
         printf("============================[ Search Statistics ]==============================\n");
@@ -1745,12 +2022,22 @@ lbool Solver::solve_()
     // Search:
     int curr_restarts = 0;
     while (status == l_Undef){
-        double rest_base = luby_restart ? luby(restart_inc, curr_restarts) : pow(restart_inc, curr_restarts);
-        status = search(rest_base * restart_first);
-        if (!withinBudget(Resource::SatConflictStep))
-          break;  // FIXME add restart option?
-        curr_restarts++;
+      double rest_base = luby_restart ? luby(restart_inc, curr_restarts)
+                                      : pow(restart_inc, curr_restarts);
+      if (TraceIsOn("minisat"))
+      {
+        std::cout << "while status == l_Undef" << std::endl;
+        std::cout << "rest_base " << rest_base << " restart_first "
+                  << restart_first << " product " << rest_base * restart_first
+                  << std::endl;
+      }
+      status = search(rest_base * restart_first);
+      // status = search(-1);
+      if (!withinBudget(Resource::SatConflictStep))
+        break;  // FIXME add restart option?
+      curr_restarts++;
     }
+    // std::cout << "curr_restarts " << curr_restarts << std::endl;
 
     if (!withinBudget(Resource::SatConflictStep))
       status = l_Undef;
@@ -1760,12 +2047,14 @@ lbool Solver::solve_()
 
 
     if (status == l_True){
-        // Extend & copy model:
-        model.growTo(nVars());
-        for (int i = 0; i < nVars(); i++) {
-          model[i] = value(i);
-          Trace("minisat") << i << " = " << model[i] << std::endl;
-        }
+      // std::cout << "status == l_True " << std::endl;
+      // Extend & copy model:
+      model.growTo(nVars());
+      for (int i = 0; i < nVars(); i++)
+      {
+        model[i] = value(i);
+        Trace("minisat") << i << " = " << model[i] << std::endl;
+      }
     }
     else if (status == l_False && d_conflict.size() == 0)
       ok = false;
@@ -2024,7 +2313,58 @@ CRef Solver::updateLemmas() {
       if (lemma.size() == 1 || value(lemma[1]) == l_False) {
         Trace("minisat::lemmas") << "found unit " << lemma.size() << std::endl;
         // This lemma propagates, see which level we need to backtrack to
-        int currentBacktrackLevel = lemma.size() == 1 ? 0 : level(var(lemma[1]));
+        // if decisionLevel() == 0 or
+        // std::cout << "lemma " << lemma[0] << " "
+        //           <<
+        //           d_proxy->getNode(MinisatSatSolver::toSatLiteral(lemma[0]))
+        //           << std::endl;
+        // std::cout << "currbranchlit " << currentBranchLit << " "
+        //           << d_proxy->getNode(
+        //                  MinisatSatSolver::toSatLiteral(currentBranchLit))
+        //           << std::endl;
+        // std::cout << "negated currbranchlit " << ~currentBranchLit << " "
+        //           << d_proxy->getNode(
+        //                  MinisatSatSolver::toSatLiteral(~currentBranchLit))
+        //           << std::endl;
+
+        // int currentBacktrackLevel =
+        //     lemma.size() == 1 ? 0 : level(var(lemma[1]));
+
+        int currentBacktrackLevel;
+
+        if ((lemma[0] == currentBranchLit || lemma[0] == ~currentBranchLit)
+            && lemma.size() == 1)
+        {
+          if (TraceIsOn("minisat"))
+          {
+            std::cout << "lemmas useCachedDecision = false" << std::endl;
+          }
+          useCachedDecision = false;
+          currentBacktrackLevel = 0;
+          // currentBacktrackLevel = lemma.size() == 1 ? 0 :
+          // level(var(lemma[1]));
+        }
+        else if (lemma[0] != currentBranchLit && lemma[0] != ~currentBranchLit
+                 && lemma.size() == 1)
+        {
+          if (TraceIsOn("minisat"))
+          {
+            std::cout << "lemmas useCachedDecision = true "
+                      << " currbranchlit "
+                      << d_proxy->getNode(
+                             MinisatSatSolver::toSatLiteral(currentBranchLit))
+                      << std::endl;
+          }
+          useCachedDecision = true;
+          currentBacktrackLevel = 0;
+          // currentBacktrackLevel = lemma.size() == 1 ? 0 :
+          // level(var(lemma[1]));
+        }
+        else
+        {
+          // std::cout << "lemmas not updating cached decision" << std::endl;
+          currentBacktrackLevel = level(var(lemma[1]));
+        }
         // Even if the first literal is true, we should propagate it at this level (unless it's set at a lower level)
         if (value(lemma[0]) != l_True || level(var(lemma[0])) > currentBacktrackLevel) {
           if (currentBacktrackLevel < backtrackLevel) {
@@ -2036,6 +2376,11 @@ CRef Solver::updateLemmas() {
 
     // Pop so that propagation would be current
     Trace("minisat::lemmas") << "Solver::updateLemmas(): backtracking to " << backtrackLevel << " from " << decisionLevel() << std::endl;
+    if (TraceIsOn("minisat"))
+    {
+      std::cout << "calling canceluntil from updatelemmas, backtrack = "
+                << backtrackLevel << std::endl;
+    }
     cancelUntil(backtrackLevel);
   }
 
