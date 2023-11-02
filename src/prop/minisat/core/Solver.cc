@@ -1862,8 +1862,12 @@ lbool Solver::search(int nof_conflicts)
       {
         // Reached bound on number of conflicts:
         progress_estimate = progressEstimate();
+        useCachedDecision = true;
         cancelUntil(0);
-        // std::cout << "restarting in the search code" << std::endl;
+        if (TraceIsOn("minisat"))
+        {
+          std::cout << "restarting in the search code" << std::endl;
+        }
         // [mdeters] notify theory engine of restarts for deferred
         // theory processing
         d_proxy->notifyRestart();
