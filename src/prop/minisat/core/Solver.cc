@@ -1857,22 +1857,22 @@ lbool Solver::search(int nof_conflicts)
         }
       }
 
-      if ((nof_conflicts >= 0 && conflictC >= nof_conflicts)
-          || !withinBudget(Resource::SatConflictStep))
-      {
-        // Reached bound on number of conflicts:
-        progress_estimate = progressEstimate();
-        useCachedDecision = true;
-        cancelUntil(0);
-        if (TraceIsOn("minisat"))
-        {
-          std::cout << "restarting in the search code" << std::endl;
-        }
-        // [mdeters] notify theory engine of restarts for deferred
-        // theory processing
-        d_proxy->notifyRestart();
-        return l_Undef;
-      }
+      // if ((nof_conflicts >= 0 && conflictC >= nof_conflicts)
+      //     || !withinBudget(Resource::SatConflictStep))
+      // {
+      //   // Reached bound on number of conflicts:
+      //   progress_estimate = progressEstimate();
+      //   useCachedDecision = true;
+      //   cancelUntil(0);
+      //   if (TraceIsOn("minisat"))
+      //   {
+      //     std::cout << "restarting in the search code" << std::endl;
+      //   }
+      //   // [mdeters] notify theory engine of restarts for deferred
+      //   // theory processing
+      //   d_proxy->notifyRestart();
+      //   return l_Undef;
+      // }
 
       // Simplify the set of problem clauses:
       if (decisionLevel() == 0 && !simplify())
