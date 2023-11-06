@@ -161,8 +161,6 @@ class TheoryProxy : protected EnvObj, public Registrar
 
   void notifyRestart();
 
-  void notifyDecision(SatLiteral var);
-
   void spendResource(Resource r);
 
   bool isDecisionEngineDone();
