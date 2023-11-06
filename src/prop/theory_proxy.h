@@ -262,17 +262,6 @@ class TheoryProxy : protected EnvObj, public Registrar
    */
   bool d_activatedSkDefs;
 
-  /** */
-  class SatNotify : public context::ContextNotifyObj
-  {
-   public:
-    SatNotify(context::Context* c);
-    ~SatNotify();
-    void contextNotifyPop() override;
-    context::CDO<Node> d_decision;
-    static void output(const Node& n, bool wasUndo);
-  };
-  std::unique_ptr<SatNotify> d_snotify;
 }; /* class TheoryProxy */
 
 }  // namespace prop

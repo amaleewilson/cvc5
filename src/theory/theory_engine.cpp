@@ -415,6 +415,12 @@ void TheoryEngine::check(Theory::Effort effort) {
     {
       tem->check(effort);
     }
+    std::vector<Node> unfilteredLiterals =
+        d_propEngine->getLearnedZeroLevelLiterals(modes::LearnedLitType::INPUT);
+    for (auto zl : unfilteredLiterals)
+    {
+      std::cout << "ZLL at theory engine check " << zl << std::endl;
+    }
 
     auto rm = d_env.getResourceManager();
 

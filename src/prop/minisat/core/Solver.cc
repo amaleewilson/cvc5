@@ -369,6 +369,8 @@ CRef Solver::reason(Var x) {
       if (level(var(explanation[i])) == 0
           && user_level(var(explanation[i]) == 0))
       {
+        Trace("minisat") << "in reason, ignoring zero level literal"
+                         << std::endl;
         continue;
       }
       // Keep this literal
@@ -1531,6 +1533,17 @@ CRef Solver::propagateBool()
       dtviewBoolPropagationHelper(
           decisionLevel(), p, d_proxy, options().base.incrementalSolving);
     }
+    if (TraceIsOn("minisat") && decisionLevel() == 0)
+    {
+      // dtviewBoolPropagationHelper(
+      //     decisionLevel(), p, d_proxy, options().base.incrementalSolving);
+
+      Trace("minisat") << std::string(
+          decisionLevel() + 1 - (options().base.incrementalSolving ? 1 : 0),
+          '@') << ":BOOL-PROP: "
+                       << d_proxy->getNode(MinisatSatSolver::toSatLiteral(p))
+                       << std::endl;
+    }
 
     for (i = j = (Watcher*)ws, end = i + ws.size(); i != end;)
     {
@@ -1857,22 +1870,22 @@ lbool Solver::search(int nof_conflicts)
         }
       }
 
-      // if ((nof_conflicts >= 0 && conflictC >= nof_conflicts)
-      //     || !withinBudget(Resource::SatConflictStep))
-      // {
-      //   // Reached bound on number of conflicts:
-      //   progress_estimate = progressEstimate();
-      //   useCachedDecision = true;
-      //   cancelUntil(0);
-      //   if (TraceIsOn("minisat"))
-      //   {
-      //     std::cout << "restarting in the search code" << std::endl;
-      //   }
-      //   // [mdeters] notify theory engine of restarts for deferred
-      //   // theory processing
-      //   d_proxy->notifyRestart();
-      //   return l_Undef;
-      // }
+      if ((nof_conflicts >= 0 && conflictC >= nof_conflicts)
+          || !withinBudget(Resource::SatConflictStep))
+      {
+        // Reached bound on number of conflicts:
+        progress_estimate = progressEstimate();
+        // useCachedDecision = true;
+        cancelUntil(0);
+        if (TraceIsOn("minisat"))
+        {
+          std::cout << "restarting in the search code" << std::endl;
+        }
+        // [mdeters] notify theory engine of restarts for deferred
+        // theory processing
+        d_proxy->notifyRestart();
+        return l_Undef;
+      }
 
       // Simplify the set of problem clauses:
       if (decisionLevel() == 0 && !simplify())
@@ -1931,9 +1944,6 @@ lbool Solver::search(int nof_conflicts)
           continue;
         }
       }
-
-      // notify the theory proxy
-      d_proxy->notifyDecision(MinisatSatSolver::toSatLiteral(next));
 
       // Increase decision level and enqueue 'next'
       newDecisionLevel();
@@ -2305,6 +2315,7 @@ CRef Solver::updateLemmas() {
 
       // If it's an empty lemma, we have a conflict at zero level
       if (lemma.size() == 0) {
+        Trace("minisat") << "empty lemma, conflict at zero level" << std::endl;
         Assert(!options().smt.produceUnsatCores && !needProof());
         conflict = CRef_Lazy;
         backtrackLevel = 0;
