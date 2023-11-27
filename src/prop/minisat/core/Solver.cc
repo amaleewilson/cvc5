@@ -1875,7 +1875,7 @@ lbool Solver::search(int nof_conflicts)
       {
         // Reached bound on number of conflicts:
         progress_estimate = progressEstimate();
-        // useCachedDecision = true;
+        useCachedDecision = true;
         cancelUntil(0);
         if (TraceIsOn("minisat"))
         {
