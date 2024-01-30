@@ -932,6 +932,10 @@ void TheoryEngine::notifyPreprocessedAssertions(
     // size_t count = 0;
     for (auto i : NodeDfsIterable(a, VisitOrder::POSTORDER))
     {
+      if (i.isConst())
+      {
+        continue;
+      }
       nodeCounts[i]++;
       // ++count;
     }
