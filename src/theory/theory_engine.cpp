@@ -16,24 +16,29 @@
 #include "theory/theory_engine.h"
 
 #include <sstream>
+#include <unordered_map>
 
 #include "base/map_util.h"
 #include "decision/decision_engine.h"
 #include "expr/attribute.h"
+#include "expr/node.h"
 #include "expr/node_builder.h"
+#include "expr/node_manager.h"
+#include "expr/node_traversal.h"
+#include "expr/node_value.h"
 #include "expr/node_visitor.h"
 #include "options/parallel_options.h"
 #include "options/quantifiers_options.h"
 #include "options/smt_options.h"
 #include "options/theory_options.h"
 #include "printer/printer.h"
-#include "smt/solver_engine_state.h"
 #include "proof/lazy_proof.h"
 #include "proof/proof_checker.h"
 #include "proof/proof_ensure_closed.h"
 #include "prop/prop_engine.h"
 #include "smt/env.h"
 #include "smt/logic_exception.h"
+#include "smt/solver_engine_state.h"
 #include "theory/combination_care_graph.h"
 #include "theory/decision_manager.h"
 #include "theory/ee_manager_central.h"
@@ -914,9 +919,68 @@ TrustNode TheoryEngine::ppStaticRewrite(TNode term)
 
 void TheoryEngine::notifyPreprocessedAssertions(
     const std::vector<Node>& assertions) {
+  std::cout << "TheoryEngine::notifyPreprocessedAssertions" << std::endl;
+  std::cout << "len of assertions: " << assertions.size() << std::endl;
+
+  std::unordered_map<TNode, size_t> nodeCounts;
+
+  // Note that DAG traversal may break things.
+  // traversing as tree instead of DAG will break things.
+  // Make sure you're not trversing DAG like a tree!
+  for (auto a : assertions)
+  {
+    // size_t count = 0;
+    for (auto i : NodeDfsIterable(a, VisitOrder::POSTORDER))
+    {
+      nodeCounts[i]++;
+      // ++count;
+    }
+    // std::cout << "count " << count << std::endl;
+  }
+
+  // for (const auto& pair : nodeCounts)
+  // {
+  //   TNode node = pair.first;
+  //   size_t count = pair.second;
+  //   std::cout << "Node: " << node.getId() << " " << node << std::endl
+  //             << "deskolemed " << SkolemManager::getOriginalForm(node)
+  //             << std::endl
+  //             << " has count: " << count << std::endl;
+  // }
+
+  // Initialize with dummy nodes and minimum possible counts
+  TNode topNode;
+  size_t topCount = 0;
+
+  TNode secondTopNode;
+  size_t secondTopCount = 0;
+
+  for (const auto& pair : nodeCounts)
+  {
+    if (pair.second > topCount)
+    {
+      secondTopNode = topNode;
+      secondTopCount = topCount;
+
+      topNode = pair.first;
+      topCount = pair.second;
+    }
+    else if (pair.second > secondTopCount)
+    {
+      secondTopNode = pair.first;
+      secondTopCount = pair.second;
+    }
+  }
+
+  std::cout << "Top node: " << topNode << " with count: " << topCount
+            << std::endl;
+  std::cout << "Second top node: " << secondTopNode
+            << " with count: " << secondTopCount << std::endl;
+
   // call all the theories
   for (TheoryId theoryId = theory::THEORY_FIRST; theoryId < theory::THEORY_LAST;
-       ++theoryId) {
+       ++theoryId)
+  {
     if (d_theoryTable[theoryId]) {
       theoryOf(theoryId)->ppNotifyAssertions(assertions);
     }
