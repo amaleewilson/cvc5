@@ -919,8 +919,8 @@ TrustNode TheoryEngine::ppStaticRewrite(TNode term)
 
 void TheoryEngine::notifyPreprocessedAssertions(
     const std::vector<Node>& assertions) {
-  std::cout << "TheoryEngine::notifyPreprocessedAssertions" << std::endl;
-  std::cout << "len of assertions: " << assertions.size() << std::endl;
+  // std::cout << "TheoryEngine::notifyPreprocessedAssertions" << std::endl;
+  // std::cout << "len of assertions: " << assertions.size() << std::endl;
 
   std::unordered_map<TNode, size_t> nodeCounts;
 
@@ -932,54 +932,51 @@ void TheoryEngine::notifyPreprocessedAssertions(
     // size_t count = 0;
     for (auto i : NodeDfsIterable(a, VisitOrder::POSTORDER))
     {
-      if (i.isConst())
+      // std::cout << "i " << i << std::endl;
+      if (!i.isVar() || i.getKind() == Kind::SKOLEM)
       {
         continue;
       }
+      // if (i.isConst())
+      // {
+      //   continue;
+      // }
       nodeCounts[i]++;
       // ++count;
     }
     // std::cout << "count " << count << std::endl;
   }
 
-  // for (const auto& pair : nodeCounts)
-  // {
-  //   TNode node = pair.first;
-  //   size_t count = pair.second;
-  //   std::cout << "Node: " << node.getId() << " " << node << std::endl
-  //             << "deskolemed " << SkolemManager::getOriginalForm(node)
-  //             << std::endl
-  //             << " has count: " << count << std::endl;
-  // }
-
-  // Initialize with dummy nodes and minimum possible counts
-  TNode topNode;
-  size_t topCount = 0;
-
-  TNode secondTopNode;
-  size_t secondTopCount = 0;
-
+  std::vector<std::pair<TNode, size_t>> nodesAndCounts;
   for (const auto& pair : nodeCounts)
   {
-    if (pair.second > topCount)
-    {
-      secondTopNode = topNode;
-      secondTopCount = topCount;
-
-      topNode = pair.first;
-      topCount = pair.second;
-    }
-    else if (pair.second > secondTopCount)
-    {
-      secondTopNode = pair.first;
-      secondTopCount = pair.second;
-    }
+    nodesAndCounts.push_back(pair);
   }
 
-  std::cout << "Top node: " << topNode << " with count: " << topCount
-            << std::endl;
-  std::cout << "Second top node: " << secondTopNode
-            << " with count: " << secondTopCount << std::endl;
+  std::sort(
+      nodesAndCounts.begin(),
+      nodesAndCounts.end(),
+      [](const std::pair<TNode, size_t>& a, const std::pair<TNode, size_t>& b) {
+        return a.second > b.second;
+      });
+
+  size_t n = 8;
+  for (size_t i = 0; i < n && i < nodesAndCounts.size(); ++i)
+  {
+    TypeNode ty = nodesAndCounts[i].first.getType();
+    std::cout << nodesAndCounts[i].first << "," << ty.getBitVectorSize() << ","
+              << nodesAndCounts[i].second << std::endl;
+    // std::cout << ty.getBitVectorSize() << std::endl;
+    // std::cout << "Node: " << nodesAndCounts[i].first << ", gettype: " << ty
+    //           << ", Count: "
+    //           << nodesAndCounts[i].second
+    //           // << ", Deskolem'd "
+    //           // << SkolemManager::getOriginalForm(nodesAndCounts[i].first)
+    //           << std::endl;
+  }
+  lemma(TrustNode::mkTrustLemma(NodeManager::currentNM()->mkConst(false)),
+        InferenceId::NONE,
+        LemmaProperty::NONE);
 
   // call all the theories
   for (TheoryId theoryId = theory::THEORY_FIRST; theoryId < theory::THEORY_LAST;
