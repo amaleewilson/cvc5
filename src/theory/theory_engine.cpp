@@ -960,7 +960,7 @@ void TheoryEngine::notifyPreprocessedAssertions(
         return a.second > b.second;
       });
 
-  size_t n = 8;
+  size_t n = 64;
   for (size_t i = 0; i < n && i < nodesAndCounts.size(); ++i)
   {
     TypeNode ty = nodesAndCounts[i].first.getType();
