@@ -922,6 +922,8 @@ void TheoryEngine::notifyPreprocessedAssertions(
   // std::cout << "TheoryEngine::notifyPreprocessedAssertions" << std::endl;
   // std::cout << "len of assertions: " << assertions.size() << std::endl;
 
+  // partitioning experiments start here
+
   std::unordered_map<TNode, size_t> nodeCounts;
 
   // Note that DAG traversal may break things.
@@ -932,8 +934,18 @@ void TheoryEngine::notifyPreprocessedAssertions(
     // size_t count = 0;
     for (auto i : NodeDfsIterable(a, VisitOrder::POSTORDER))
     {
+      TypeNode ty = i.getType();
+
+      // std::cout << "i: " << i << std::endl;
+      if (i.getKind() == Kind::BITVECTOR_MULT)
+      {
+        std::cout << "found a bvmul! " << i << " type: " << ty << " size "
+                  << ty.getBitVectorSize() << std::endl;
+      }
+
       // std::cout << "i " << i << std::endl;
-      if (!i.isVar() || i.getKind() == Kind::SKOLEM)
+      if (!i.isVar() || i.getKind() == Kind::SKOLEM
+          || !(ty.getKind() == Kind::BITVECTOR_TYPE))
       {
         continue;
       }
@@ -977,6 +989,8 @@ void TheoryEngine::notifyPreprocessedAssertions(
   lemma(TrustNode::mkTrustLemma(NodeManager::currentNM()->mkConst(false)),
         InferenceId::NONE,
         LemmaProperty::NONE);
+
+  // partitioning experiments end here.
 
   // call all the theories
   for (TheoryId theoryId = theory::THEORY_FIRST; theoryId < theory::THEORY_LAST;
