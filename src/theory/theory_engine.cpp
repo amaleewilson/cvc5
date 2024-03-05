@@ -925,6 +925,7 @@ void TheoryEngine::notifyPreprocessedAssertions(
   // partitioning experiments start here
 
   std::unordered_map<TNode, size_t> nodeCounts;
+  std::unordered_map<TNode, size_t> mulCounts;
 
   // Note that DAG traversal may break things.
   // traversing as tree instead of DAG will break things.
@@ -941,6 +942,7 @@ void TheoryEngine::notifyPreprocessedAssertions(
       {
         std::cout << "found a bvmul! " << i << " type: " << ty << " size "
                   << ty.getBitVectorSize() << std::endl;
+        mulCounts[i]++;
       }
 
       // std::cout << "i " << i << std::endl;
@@ -959,6 +961,12 @@ void TheoryEngine::notifyPreprocessedAssertions(
     // std::cout << "count " << count << std::endl;
   }
 
+  std::vector<std::pair<TNode, size_t>> mulsAndCounts;
+  for (const auto& pair : mulCounts)
+  {
+    mulsAndCounts.push_back(pair);
+  }
+
   std::vector<std::pair<TNode, size_t>> nodesAndCounts;
   for (const auto& pair : nodeCounts)
   {
@@ -966,11 +974,34 @@ void TheoryEngine::notifyPreprocessedAssertions(
   }
 
   std::sort(
+      mulsAndCounts.begin(),
+      mulsAndCounts.end(),
+      [](const std::pair<TNode, size_t>& a, const std::pair<TNode, size_t>& b) {
+        return a.second > b.second;
+      });
+
+  std::sort(
       nodesAndCounts.begin(),
       nodesAndCounts.end(),
       [](const std::pair<TNode, size_t>& a, const std::pair<TNode, size_t>& b) {
         return a.second > b.second;
       });
+
+  size_t n1 = 64;
+  for (size_t i = 0; i < n1 && i < mulsAndCounts.size(); ++i)
+  {
+    TypeNode ty = mulsAndCounts[i].first.getType();
+    std::cout << "mul counts~~~ " << mulsAndCounts[i].first << ","
+              << ty.getBitVectorSize() << "," << mulsAndCounts[i].second
+              << std::endl;
+    // std::cout << ty.getBitVectorSize() << std::endl;
+    // std::cout << "Node: " << nodesAndCounts[i].first << ", gettype: " << ty
+    //           << ", Count: "
+    //           << nodesAndCounts[i].second
+    //           // << ", Deskolem'd "
+    //           // << SkolemManager::getOriginalForm(nodesAndCounts[i].first)
+    //           << std::endl;
+  }
 
   size_t n = 64;
   for (size_t i = 0; i < n && i < nodesAndCounts.size(); ++i)
