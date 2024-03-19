@@ -925,40 +925,65 @@ void TheoryEngine::notifyPreprocessedAssertions(
   // partitioning experiments start here
 
   std::unordered_map<TNode, size_t> nodeCounts;
+  std::unordered_map<TNode, size_t> parentCounts;
+  std::unordered_set<TNode> visited;
   std::unordered_map<TNode, size_t> mulCounts;
 
-  // Note that DAG traversal may break things.
-  // traversing as tree instead of DAG will break things.
-  // Make sure you're not trversing DAG like a tree!
   for (auto a : assertions)
   {
-    // size_t count = 0;
     for (auto i : NodeDfsIterable(a, VisitOrder::POSTORDER))
     {
       TypeNode ty = i.getType();
-
-      // std::cout << "i: " << i << std::endl;
       if (i.getKind() == Kind::BITVECTOR_MULT)
       {
-        std::cout << "found a bvmul! " << i << " type: " << ty << " size "
-                  << ty.getBitVectorSize() << std::endl;
+        // std::cout << "found a bvmul! " << i << " type: " << ty << " size "
+        //           << ty.getBitVectorSize() << std::endl;
         mulCounts[i]++;
       }
 
-      // std::cout << "i " << i << std::endl;
       if (!i.isVar() || i.getKind() == Kind::SKOLEM
           || !(ty.getKind() == Kind::BITVECTOR_TYPE))
       {
         continue;
       }
-      // if (i.isConst())
-      // {
-      //   continue;
-      // }
       nodeCounts[i]++;
-      // ++count;
     }
-    // std::cout << "count " << count << std::endl;
+    // parent counting
+    for (auto i : NodeDfsIterable(a, VisitOrder::POSTORDER))
+    {
+      // std::cout << "parent loop visiting i = " << i << std::endl;
+      if (!visited.insert(i).second)
+      {
+        // std::cout << " this node is in visited " << std::endl;
+        continue;
+      }
+
+      TypeNode ty = i.getType();
+      // std::cout << "got type in parent count loop " << ty << std::endl;
+
+      // std::cout << "iterating over children" << std::endl;
+      for (unsigned j = 0; j < i.getNumChildren(); j++)
+      {
+        auto child = i[j];
+        if (child.getKind() != Kind::BITVECTOR_MULT)
+        {
+          continue;
+        }
+        // if (child.isConst())
+        // {
+        //   continue;
+        // }
+        // std::cout << "parent " << i << " child " << i[j] <<
+        // std::endl;
+        parentCounts[child] += 1;
+      }
+    }
+  }
+
+  std::vector<std::pair<TNode, size_t>> parentsAndCounts;
+  for (const auto& pair : parentCounts)
+  {
+    parentsAndCounts.push_back(pair);
   }
 
   std::vector<std::pair<TNode, size_t>> mulsAndCounts;
@@ -974,6 +999,13 @@ void TheoryEngine::notifyPreprocessedAssertions(
   }
 
   std::sort(
+      parentsAndCounts.begin(),
+      parentsAndCounts.end(),
+      [](const std::pair<TNode, size_t>& a, const std::pair<TNode, size_t>& b) {
+        return a.second > b.second;
+      });
+
+  std::sort(
       mulsAndCounts.begin(),
       mulsAndCounts.end(),
       [](const std::pair<TNode, size_t>& a, const std::pair<TNode, size_t>& b) {
@@ -987,13 +1019,15 @@ void TheoryEngine::notifyPreprocessedAssertions(
         return a.second > b.second;
       });
 
-  size_t n1 = 64;
+  size_t n1 = 8;
   for (size_t i = 0; i < n1 && i < mulsAndCounts.size(); ++i)
   {
     TypeNode ty = mulsAndCounts[i].first.getType();
-    std::cout << "mul counts~~~ " << mulsAndCounts[i].first << ","
-              << ty.getBitVectorSize() << "," << mulsAndCounts[i].second
-              << std::endl;
+    // std::cout << "mul counts~~~ "
+    //           << SkolemManager::getOriginalForm(mulsAndCounts[i].first) <<
+    //           ","
+    //           << ty.getBitVectorSize() << "," << mulsAndCounts[i].second
+    //           << std::endl;
     // std::cout << ty.getBitVectorSize() << std::endl;
     // std::cout << "Node: " << nodesAndCounts[i].first << ", gettype: " << ty
     //           << ", Count: "
@@ -1003,20 +1037,25 @@ void TheoryEngine::notifyPreprocessedAssertions(
     //           << std::endl;
   }
 
-  size_t n = 64;
+  size_t n = 8;
   for (size_t i = 0; i < n && i < nodesAndCounts.size(); ++i)
   {
     TypeNode ty = nodesAndCounts[i].first.getType();
-    std::cout << nodesAndCounts[i].first << "," << ty.getBitVectorSize() << ","
-              << nodesAndCounts[i].second << std::endl;
-    // std::cout << ty.getBitVectorSize() << std::endl;
-    // std::cout << "Node: " << nodesAndCounts[i].first << ", gettype: " << ty
-    //           << ", Count: "
-    //           << nodesAndCounts[i].second
-    //           // << ", Deskolem'd "
-    //           // << SkolemManager::getOriginalForm(nodesAndCounts[i].first)
+    // std::cout << "node counts !!!" << nodesAndCounts[i].first << ","
+    //           << ty.getBitVectorSize() << "," << nodesAndCounts[i].second
     //           << std::endl;
   }
+
+  size_t n2 = 8;
+  for (size_t i = 0; i < n2 && i < parentsAndCounts.size(); ++i)
+  {
+    TypeNode ty = parentsAndCounts[i].first.getType();
+    std::cout  // << "parent counts@@@ "
+        << SkolemManager::getOriginalForm(parentsAndCounts[i].first) << ","
+        << ty.getBitVectorSize() << "," << parentsAndCounts[i].second
+        << std::endl;
+  }
+
   lemma(TrustNode::mkTrustLemma(NodeManager::currentNM()->mkConst(false)),
         InferenceId::NONE,
         LemmaProperty::NONE);
