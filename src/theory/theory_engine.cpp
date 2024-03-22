@@ -917,6 +917,37 @@ TrustNode TheoryEngine::ppStaticRewrite(TNode term)
   return d_theoryTable[tid]->ppStaticRewrite(term);
 }
 
+bool isUnusable(Node n)
+{
+  const std::unordered_set<Kind, kind::KindHashFunction> unusableKinds = {
+      Kind::INST_CONSTANT, Kind::SKOLEM};
+
+  // Check if n is constant or contains unusable kinds.
+  if (n.isConst())
+  {
+    return true;
+  }
+
+  // Check if original has unusable kinds or contains skolems.
+  Node originalN = SkolemManager::getOriginalForm(n);
+  if (expr::hasSubtermKinds(unusableKinds, originalN))
+  {
+    return true;
+  }
+
+  // Get non negated versions before testing for bool expr.
+  Node nonNegatedOriginal =
+      originalN.getKind() == Kind::NOT ? originalN[0] : originalN;
+
+  // Check if this is a boolean expression
+  if (Theory::theoryOf(nonNegatedOriginal) == THEORY_BOOL)
+  {
+    return true;
+  }
+
+  return false;
+}
+
 void TheoryEngine::notifyPreprocessedAssertions(
     const std::vector<Node>& assertions) {
   // std::cout << "TheoryEngine::notifyPreprocessedAssertions" << std::endl;
@@ -1046,10 +1077,14 @@ void TheoryEngine::notifyPreprocessedAssertions(
     //           << std::endl;
   }
 
-  size_t n2 = 8;
+  size_t n2 = 16;
   for (size_t i = 0; i < n2 && i < parentsAndCounts.size(); ++i)
   {
     TypeNode ty = parentsAndCounts[i].first.getType();
+    if (isUnusable(parentsAndCounts[i].first))
+    {
+      continue;
+    }
     std::cout  // << "parent counts@@@ "
         << SkolemManager::getOriginalForm(parentsAndCounts[i].first) << ","
         << ty.getBitVectorSize() << "," << parentsAndCounts[i].second
