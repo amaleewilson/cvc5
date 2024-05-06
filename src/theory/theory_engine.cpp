@@ -996,14 +996,14 @@ void TheoryEngine::notifyPreprocessedAssertions(
       for (unsigned j = 0; j < i.getNumChildren(); j++)
       {
         auto child = i[j];
-        if (child.getKind() != Kind::BITVECTOR_MULT)
-        {
-          continue;
-        }
-        // if (child.isConst())
+        // if (child.getKind() != Kind::BITVECTOR_MULT)
         // {
         //   continue;
         // }
+        if (child.isConst())
+        {
+          continue;
+        }
         // std::cout << "parent " << i << " child " << i[j] <<
         // std::endl;
         parentCounts[child] += 1;
@@ -1050,24 +1050,6 @@ void TheoryEngine::notifyPreprocessedAssertions(
         return a.second > b.second;
       });
 
-  size_t n1 = 8;
-  for (size_t i = 0; i < n1 && i < mulsAndCounts.size(); ++i)
-  {
-    TypeNode ty = mulsAndCounts[i].first.getType();
-    // std::cout << "mul counts~~~ "
-    //           << SkolemManager::getOriginalForm(mulsAndCounts[i].first) <<
-    //           ","
-    //           << ty.getBitVectorSize() << "," << mulsAndCounts[i].second
-    //           << std::endl;
-    // std::cout << ty.getBitVectorSize() << std::endl;
-    // std::cout << "Node: " << nodesAndCounts[i].first << ", gettype: " << ty
-    //           << ", Count: "
-    //           << nodesAndCounts[i].second
-    //           // << ", Deskolem'd "
-    //           // << SkolemManager::getOriginalForm(nodesAndCounts[i].first)
-    //           << std::endl;
-  }
-
   size_t n = 8;
   for (size_t i = 0; i < n && i < nodesAndCounts.size(); ++i)
   {
@@ -1077,7 +1059,7 @@ void TheoryEngine::notifyPreprocessedAssertions(
     //           << std::endl;
   }
 
-  size_t n2 = 16;
+  size_t n2 = 8;
   for (size_t i = 0; i < n2 && i < parentsAndCounts.size(); ++i)
   {
     TypeNode ty = parentsAndCounts[i].first.getType();
