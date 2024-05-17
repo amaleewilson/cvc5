@@ -19,6 +19,7 @@
 #include "base/check.h"
 #include "base/output.h"
 #include "parser/commands.h"
+#include "printer/enum_to_string.h"
 #include "util/floatingpoint_size.h"
 
 namespace cvc5 {
@@ -313,6 +314,102 @@ void Smt2State::addCoreSymbols()
   addClosureKind(Kind::EXISTS, "exists");
 }
 
+void Smt2State::addSkolemSymbols()
+{
+  // change this to iterate over the skolem ids, using the printer
+
+  // Iterate over the skolem ids
+  // for (SkolemId skolemId = SkolemId::INTERNAL; skolemId <= SkolemId::NONE;
+  //      skolemId = static_cast<SkolemId>(static_cast<int>(skolemId) + 1))
+  // {
+  //   if (skolemId == SkolemId::NONE || skolemId == SkolemId::INTERNAL)
+  //   {
+  //     continue;
+  //   }
+  //   // todo add the @ sign
+  //   std::string name = cvc5::internal::toString(skolemId);
+  //   std::cout << "name " << name << std::endl;
+  //   addSkolemId(skolemId, name);
+  //   std::cout << "skolemId " << skolemId << std::endl;
+  // }
+
+  // Number of skolem indices: 0
+  addSkolemId(SkolemId::BV_EMPTY, "@bv_empty");
+  // test at least one of these, "function skolem"
+  addSkolemId(SkolemId::DIV_BY_ZERO, "@div_by_zero");
+  addSkolemId(SkolemId::INT_DIV_BY_ZERO, "@int_div_by_zero");
+  addSkolemId(SkolemId::MOD_BY_ZERO, "@mod_by_zero");
+
+  // Andy will come up with an example of an indexed skolem
+  // May need some special cases for indexed skolems
+
+  // Number of skolem indices: 1
+  addSkolemId(SkolemId::PURIFY, "@purify");
+  addSkolemId(SkolemId::GROUND_TERM, "@ground_term");
+  addSkolemId(SkolemId::TRANSCENDENTAL_PURIFY, "@transcendental_purify");
+  addSkolemId(SkolemId::TRANSCENDENTAL_PURIFY_ARG,
+              "@transcendental_purify_arg");
+  addSkolemId(SkolemId::STRINGS_REPLACE_ALL_RESULT,
+              "@strings_replace_all_result");
+  addSkolemId(SkolemId::STRINGS_ITOS_RESULT, "@strings_itos_result");
+  addSkolemId(SkolemId::STRINGS_STOI_RESULT, "@strings_stoi_result");
+  addSkolemId(SkolemId::STRINGS_STOI_NON_DIGIT, "@strings_stoi_non_digit");
+  addSkolemId(SkolemId::BAGS_CARD_COMBINE, "@bags_card_combine");
+  addSkolemId(SkolemId::BAGS_DISTINCT_ELEMENTS_UNION_DISJOINT,
+              "@bags_distinct_elements_union_disjoint");
+  addSkolemId(SkolemId::BAGS_FOLD_CARD, "@bags_fold_card");
+  addSkolemId(SkolemId::BAGS_FOLD_ELEMENTS, "@bags_fold_elements");
+  addSkolemId(SkolemId::BAGS_FOLD_UNION_DISJOINT, "@bags_fold_union_disjoint");
+  addSkolemId(SkolemId::BAGS_CHOOSE, "@bags_choose");
+  addSkolemId(SkolemId::BAGS_DISTINCT_ELEMENTS, "@bags_distinct_elements");
+  addSkolemId(SkolemId::BAGS_DISTINCT_ELEMENTS_SIZE,
+              "@bags_distinct_elements_size");
+  addSkolemId(SkolemId::TABLES_GROUP_PART, "@tables_group_part");
+  addSkolemId(SkolemId::RELATIONS_GROUP_PART, "@relations_group_part");
+  addSkolemId(SkolemId::SETS_CHOOSE, "@sets_choose");
+  addSkolemId(SkolemId::SETS_FOLD_CARD, "@sets_fold_card");
+  addSkolemId(SkolemId::SETS_FOLD_ELEMENTS, "@sets_fold_elements");
+  addSkolemId(SkolemId::SETS_FOLD_UNION, "@sets_fold_union");
+  addSkolemId(SkolemId::FP_MIN_ZERO, "@fp_min_zero");
+  addSkolemId(SkolemId::FP_MAX_ZERO, "@fp_max_zero");
+  addSkolemId(SkolemId::FP_TO_REAL, "@fp_to_real");
+
+  // Number of skolem indices: 2
+  addSkolemId(SkolemId::ARRAY_DEQ_DIFF, "@array_deq_diff");
+  addSkolemId(SkolemId::QUANTIFIERS_SKOLEMIZE, "@quantifiers_skolemize");
+  addSkolemId(SkolemId::STRINGS_NUM_OCCUR, "@strings_num_occur");
+  // STRINGS_OCCUR_INDEX a skolem with indices and is a function
+  addSkolemId(SkolemId::STRINGS_OCCUR_INDEX, "@strings_occur_index");
+  addSkolemId(SkolemId::STRINGS_NUM_OCCUR_RE, "@strings_num_occur_re");
+  addSkolemId(SkolemId::STRINGS_OCCUR_INDEX_RE, "@strings_occur_index_re");
+  addSkolemId(SkolemId::STRINGS_OCCUR_LEN_RE, "@strings_occur_len_re");
+  addSkolemId(SkolemId::STRINGS_DEQ_DIFF, "@strings_deq_diff");
+  addSkolemId(SkolemId::RE_FIRST_MATCH_PRE, "@re_first_match_pre");
+  addSkolemId(SkolemId::RE_FIRST_MATCH, "@re_first_match");
+  addSkolemId(SkolemId::RE_FIRST_MATCH_POST, "@re_first_match_post");
+  addSkolemId(SkolemId::BAGS_DEQ_DIFF, "@bags_deq_diff");
+  addSkolemId(SkolemId::TABLES_GROUP_PART_ELEMENT,
+              "@tables_group_part_element");
+  addSkolemId(SkolemId::RELATIONS_GROUP_PART_ELEMENT,
+              "@relations_group_part_element");
+  addSkolemId(SkolemId::SETS_DEQ_DIFF, "@sets_deq_diff");
+  addSkolemId(SkolemId::SETS_MAP_DOWN_ELEMENT, "@sets_map_down_element");
+  addSkolemId(SkolemId::FP_TO_SBV, "@fp_to_sbv");
+  addSkolemId(SkolemId::FP_TO_UBV, "@fp_to_ubv");
+
+  // Number of skolem indices: 3
+  addSkolemId(SkolemId::SHARED_SELECTOR, "@shared_selector");
+  addSkolemId(SkolemId::RE_UNFOLD_POS_COMPONENT, "@re_unfold_pos_component");
+  addSkolemId(SkolemId::BAGS_FOLD_COMBINE, "@bags_fold_combine");
+  addSkolemId(SkolemId::BAGS_MAP_PREIMAGE_INJECTIVE,
+              "@bags_map_preimage_injective");
+  addSkolemId(SkolemId::BAGS_MAP_SUM, "@bags_map_sum");
+  addSkolemId(SkolemId::SETS_FOLD_COMBINE, "@sets_fold_combine");
+
+  // Number of skolem indices: 5
+  addSkolemId(SkolemId::BAGS_MAP_INDEX, "@bags_map_index");
+}
+
 void Smt2State::addOperator(Kind kind, const std::string& name)
 {
   Trace("parser") << "Smt2State::addOperator( " << kind << ", " << name << " )"
@@ -332,6 +429,13 @@ void Smt2State::addClosureKind(Kind tKind, const std::string& name)
   // also include it as a normal operator
   addOperator(tKind, name);
   d_closureKindMap[name] = tKind;
+}
+
+// TODO: not all skolems are indexed. Should change in addSkolemSymbols.
+void Smt2State::addSkolemId(SkolemId skolemID, const std::string& name)
+{
+  addOperator(Kind::SKOLEM, name);
+  d_skolemMap[name] = skolemID;
 }
 
 bool Smt2State::isIndexedOperatorEnabled(const std::string& name) const
@@ -757,6 +861,9 @@ void Smt2State::setLogic(std::string name)
   // Core theory belongs to every logic
   addCoreSymbols();
 
+  // Just putting this here for now
+  addSkolemSymbols();
+
   if (d_logic.isTheoryEnabled(internal::theory::THEORY_UF))
   {
     ParserState::addOperator(Kind::APPLY_UF);
@@ -1165,6 +1272,22 @@ Term Smt2State::parseOpToExpr(ParseOp& p)
 
 Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
 {
+  std::cout << " p.d_name " << p.d_name << " kind " << p.d_kind << std::endl;
+  // if (p.d_name == "@array_deq_diff")
+  // {
+  //   Kind k = getOperatorKind(p.d_name);
+  //   std::cout << "kind " << k << std::endl;
+  //   std::cout << "args.size() " << args.size() << std::endl;
+  //   std::cout << "p.d_indices.empty() " << p.d_indices.empty() << std::endl;
+  //   Term ret;
+  //   Term a = d_tm.mkSkolem(SkolemId::ARRAY_DEQ_DIFF, args);
+  //   // Tried to make a conjunction of these but it doesn't make sense in the
+  //   // parser. :(
+  //   // Term b = d_tm.mkSkolem(SkolemId::ARRAY_DEQ_DIFF, {args[1], args[0]});
+  //   // ret = d_tm.mkTerm(Kind::AND, {a, b});
+  //   return a;
+  // }
+
   bool isBuiltinOperator = false;
   // the builtin kind of the overall return expression
   Kind kind = Kind::NULL_TERM;
@@ -1179,6 +1302,7 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
   }
   if (p.d_kind == Kind::NULLABLE_LIFT)
   {
+    std::cout << "NULLABLE_LIFT" << std::endl;
     auto it = d_operatorKindMap.find(p.d_name);
     if (it == d_operatorKindMap.end())
     {
@@ -1199,10 +1323,13 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
   }
   if (!p.d_indices.empty())
   {
+    std::cout << "indices not empty" << std::endl;
     Op op;
     Kind k = getIndexedOpKind(p.d_name);
+    std::cout << " k " << k << " p.d_name " << p.d_name << std::endl;
     if (k == Kind::UNDEFINED_KIND)
     {
+      std::cout << "UNDEFINED_KIND" << std::endl;
       // Resolve indexed symbols that cannot be resolved without knowing the
       // type of the arguments. This is currently limited to `to_fp`,
       // `tuple.select`, and `tuple.update`.
@@ -1306,11 +1433,13 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
   }
   else if (p.d_kind != Kind::NULL_TERM)
   {
+    std::cout << "p.d_kind != Kind::NULL_TERM" << std::endl;
     // It is a special case, e.g. tuple.select or array constant specification.
     // We have to wait until the arguments are parsed to resolve it.
   }
   else if (!p.d_expr.isNull())
   {
+    std::cout << "!p.d_expr.isNull()" << std::endl;
     // An explicit operator, e.g. an apply function
     Kind fkind = getKindForFunction(p.d_expr);
     if (fkind != Kind::UNDEFINED_KIND)
@@ -1326,11 +1455,24 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
   }
   else
   {
+    std::cout << "else line 1361 now 1458" << std::endl;
     isBuiltinOperator = isOperatorEnabled(p.d_name);
     if (isBuiltinOperator)
     {
+      std::cout << "builtin operator " << p.d_name << std::endl;
       // a builtin operator, convert to kind
       kind = getOperatorKind(p.d_name);
+
+      // special case: skolems
+      if (kind == Kind::SKOLEM)
+      {
+        std::cout << "It's a SKOLEM!" << std::endl;
+        std::cout << " arg size  " << args.size() << std::endl;
+        std::cout << "d_skolemMap[p.d_name] " << d_skolemMap[p.d_name]
+                  << std::endl;
+        return d_tm.mkSkolem(d_skolemMap[p.d_name], args);
+      }
+
       // special case: indexed operators with zero arguments
       if (kind == Kind::TUPLE_PROJECT || kind == Kind::TABLE_PROJECT
           || kind == Kind::TABLE_AGGREGATE || kind == Kind::TABLE_JOIN
@@ -1395,6 +1537,7 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
     }
     else
     {
+      std::cout << "not builtin operator " << p.d_name << std::endl;
       // A non-built-in function application, get the expression
       checkDeclaration(p.d_name, CHECK_DECLARED, SYM_VARIABLE);
       Term v = getVariable(p.d_name);
@@ -1436,6 +1579,7 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
   // determine the operator. This handles constant arrays.
   if (p.d_kind == Kind::INTERNAL_KIND)
   {
+    std::cout << "INTERNAL_KIND" << std::endl;
     // (as const (Array T1 T2))
     if (!strictModeEnabled() && p.d_name == "const"
         && isTheoryEnabled(internal::theory::THEORY_ARRAYS))
@@ -1477,12 +1621,14 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
   }
   else if (p.d_kind == Kind::APPLY_TESTER || p.d_kind == Kind::APPLY_UPDATER)
   {
+    std::cout << "APPLY_TESTER || APPLY_UPDATER" << std::endl;
     Term iop = mkIndexedOp(p.d_kind, {p.d_name}, args);
     kind = p.d_kind;
     args.insert(args.begin(), iop);
   }
   else if (p.d_kind != Kind::NULL_TERM)
   {
+    std::cout << "p.d_kind != Kind::NULL_TERM" << std::endl;
     // it should not have an expression or type specified at this point
     if (!p.d_expr.isNull())
     {
@@ -1495,6 +1641,7 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
   }
   else if (isBuiltinOperator)
   {
+    std::cout << "isBuiltinOperator" << std::endl;
     if (kind == Kind::EQUAL || kind == Kind::DISTINCT)
     {
       bool isReal = false;
@@ -1568,6 +1715,7 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
 
   if (args.size() >= 2)
   {
+    std::cout << "args.size() >= 2" << std::endl;
     // may be partially applied function, in this case we use HO_APPLY
     Sort argt = args[0].getSort();
     if (argt.isFunction())
@@ -1594,6 +1742,7 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
   }
   if (kind == Kind::NULL_TERM)
   {
+    std::cout << "kind == Kind::NULL_TERM" << std::endl;
     // should never happen in the new API
     parseError("do not know how to process parse op");
   }

@@ -3735,6 +3735,13 @@ class CVC5_EXPORT TermManager
    */
   Sort mkFunctionSort(const std::vector<Sort>& sorts, const Sort& codomain);
   /**
+   * Make a skolem.
+   * @param id The skolem identifier.
+   * @param indices The indices of the skolem.
+   * @return The skolem.
+   */
+  Term mkSkolem(SkolemId id, const std::vector<Term>& indices);
+  /**
    * Create a sort parameter.
    *
    * @warning This function is experimental and may change in future versions.
