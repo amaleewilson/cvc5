@@ -1589,21 +1589,36 @@ Term Smt2State::applyParseOp(const ParseOp& p, std::vector<Term>& args)
     {
       Term ret;
       SkolemId skolemId = d_skolemMap[p.d_name];
-      size_t numSkolemIndices = d_tm.getNumIndicesForSkolemId(skolemId);
-      if (numSkolemIndices == args.size())
+
+      // hack for dealing with this skolem
+      if (skolemId == SkolemId::QUANTIFIERS_SKOLEMIZE)
       {
-        ret = d_tm.mkSkolem(skolemId, args);
+        Term quantifiedFormula = args[0];
+        Term boundVarList = quantifiedFormula[0];
+        int32_t indexOfBoundVariable = args[1].getInt32Value();
+        ret = d_tm.mkSkolem(skolemId,
+                            {args[0], boundVarList[indexOfBoundVariable]});
       }
+      // else is the original
       else
       {
-        std::vector<Term> skolemArgs(args.begin(),
-                                     args.begin() + numSkolemIndices);
-        Term skolem = d_tm.mkSkolem(skolemId, skolemArgs);
-        std::vector<Term> finalArgs = {skolem};
-        finalArgs.insert(
-            finalArgs.end(), args.begin() + numSkolemIndices, args.end());
-        ret = d_tm.mkTerm(Kind::APPLY_UF, finalArgs);
+        size_t numSkolemIndices = d_tm.getNumIndicesForSkolemId(skolemId);
+        if (numSkolemIndices == args.size())
+        {
+          ret = d_tm.mkSkolem(skolemId, args);
+        }
+        else
+        {
+          std::vector<Term> skolemArgs(args.begin(),
+                                       args.begin() + numSkolemIndices);
+          Term skolem = d_tm.mkSkolem(skolemId, skolemArgs);
+          std::vector<Term> finalArgs = {skolem};
+          finalArgs.insert(
+              finalArgs.end(), args.begin() + numSkolemIndices, args.end());
+          ret = d_tm.mkTerm(Kind::APPLY_UF, finalArgs);
+        }
       }
+
       Trace("parser") << "applyParseOp: return skolem " << ret << std::endl;
       return ret;
     }

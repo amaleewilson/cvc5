@@ -2092,26 +2092,54 @@ void Smt2Printer::toStreamSkolem(std::ostream& out,
 {
   auto delim = isApplied ? " " : ")";
 
-  if (!isApplied && !cacheVal.isNull())
+  // hack for quantifiers_skolemize
+  if (id == SkolemId::QUANTIFIERS_SKOLEMIZE)
   {
     out << "(";
-  }
-  out << "@" << id;
-  if (cacheVal.getKind() == Kind::SEXPR)
-  {
-    for (const Node& cv : cacheVal)
+    out << "@" << id;
+
+    Node quantifiedFormula = cacheVal[0];
+    Node boundVarList = quantifiedFormula[0];
+
+    int32_t indexOfBoundVariable = -1;
+
+    for (size_t i = 0, n = boundVarList.getNumChildren(); i < n; i++)
     {
-      out << " " << cv;
+      if (boundVarList[i] == cacheVal[1])
+      {
+        indexOfBoundVariable = i;
+        break;
+      }
     }
+
+    out << " " << quantifiedFormula;
+    out << " " << indexOfBoundVariable;
     out << delim;
   }
-  else if (!cacheVal.isNull())
-  {
-    out << " " << cacheVal << delim;
-  }
+  // original
   else
   {
-    out << delim;
+    if (!isApplied && !cacheVal.isNull())
+    {
+      out << "(";
+    }
+    out << "@" << id;
+    if (cacheVal.getKind() == Kind::SEXPR)
+    {
+      for (const Node& cv : cacheVal)
+      {
+        out << " " << cv;
+      }
+      out << delim;
+    }
+    else if (!cacheVal.isNull())
+    {
+      out << " " << cacheVal << delim;
+    }
+    else
+    {
+      out << delim;
+    }
   }
 }
 
