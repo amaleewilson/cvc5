@@ -238,28 +238,30 @@ Solver::~Solver()
 //
 Var Solver::newVar(bool sign, bool dvar, bool isTheoryAtom, bool canErase)
 {
-    int v = nVars();
+  pthread_testcancel();
+  int v = nVars();
 
-    watches  .init(mkLit(v, false));
-    watches  .init(mkLit(v, true ));
-    assigns  .push(l_Undef);
-    vardata  .push(VarData(CRef_Undef, -1, -1, assertionLevel, -1));
-    activity .push(rnd_init_act ? drand(random_seed) * 0.00001 : 0);
-    seen     .push(0);
-    polarity .push(sign);
-    decision .push();
-    trail    .capacity(v+1);
-    // push whether it corresponds to a theory atom
-    theory.push(isTheoryAtom);
+  watches.init(mkLit(v, false));
+  watches.init(mkLit(v, true));
+  assigns.push(l_Undef);
+  vardata.push(VarData(CRef_Undef, -1, -1, assertionLevel, -1));
+  activity.push(rnd_init_act ? drand(random_seed) * 0.00001 : 0);
+  seen.push(0);
+  polarity.push(sign);
+  decision.push();
+  trail.capacity(v + 1);
+  // push whether it corresponds to a theory atom
+  theory.push(isTheoryAtom);
 
-    setDecisionVar(v, dvar);
+  setDecisionVar(v, dvar);
 
-    Trace("minisat") << "new var " << v << " with assertion level "
-                     << assertionLevel << std::endl;
-    return v;
+  Trace("minisat") << "new var " << v << " with assertion level "
+                   << assertionLevel << std::endl;
+  return v;
 }
 
 void Solver::resizeVars(int newSize) {
+  pthread_testcancel();
   Assert(d_enable_incremental);
   Assert(decisionLevel() == 0);
   Assert(newSize >= 2) << "always keep true/false";
@@ -287,6 +289,7 @@ void Solver::resizeVars(int newSize) {
 }
 
 CRef Solver::reason(Var x) {
+  pthread_testcancel();
   Trace("pf::sat") << "Solver::reason(" << x << ")" << std::endl;
 
   // If we already have a reason, just return it
@@ -402,54 +405,62 @@ CRef Solver::reason(Var x) {
 
 bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
 {
-    if (!ok) return false;
+  pthread_testcancel();
+  if (!ok) return false;
 
-    // Check if clause is satisfied and remove false/duplicate literals:
-    sort(ps);
-    Lit p; int i, j;
+  // Check if clause is satisfied and remove false/duplicate literals:
+  sort(ps);
+  Lit p;
+  int i, j;
 
-    // Which user-level to assert this clause at
-    int clauseLevel = (removable && !assertionLevelOnly()) ? 0 : assertionLevel;
+  // Which user-level to assert this clause at
+  int clauseLevel = (removable && !assertionLevelOnly()) ? 0 : assertionLevel;
 
-    // Check the clause for tautologies and similar
-    int falseLiteralsCount = 0;
-    for (i = j = 0, p = lit_Undef; i < ps.size(); i++) {
-      // Update the level
-      clauseLevel = assertionLevelOnly()
-                        ? assertionLevel
-                        : std::max(clauseLevel, intro_level(var(ps[i])));
-      // Tautologies are ignored
-      if (ps[i] == ~p) {
-        id = ClauseIdUndef;
-        // Clause can be ignored
-        return true;
-      }
-      // Clauses with 0-level true literals are also ignored
-      if (value(ps[i]) == l_True && level(var(ps[i])) == 0 && user_level(var(ps[i])) == 0) {
-        id = ClauseIdUndef;
-        return true;
-      }
-      // Ignore repeated literals
-      if (ps[i] == p) {
+  // Check the clause for tautologies and similar
+  int falseLiteralsCount = 0;
+  for (i = j = 0, p = lit_Undef; i < ps.size(); i++)
+  {
+    // Update the level
+    clauseLevel = assertionLevelOnly()
+                      ? assertionLevel
+                      : std::max(clauseLevel, intro_level(var(ps[i])));
+    // Tautologies are ignored
+    if (ps[i] == ~p)
+    {
+      id = ClauseIdUndef;
+      // Clause can be ignored
+      return true;
+    }
+    // Clauses with 0-level true literals are also ignored
+    if (value(ps[i]) == l_True && level(var(ps[i])) == 0
+        && user_level(var(ps[i])) == 0)
+    {
+      id = ClauseIdUndef;
+      return true;
+    }
+    // Ignore repeated literals
+    if (ps[i] == p)
+    {
+      continue;
+    }
+    // If a literal is false at 0 level (both sat and user level) we also
+    // ignore it, unless we are tracking the SAT solver's reasoning
+    if (value(ps[i]) == l_False)
+    {
+      if (!options().smt.produceUnsatCores && !needProof()
+          && level(var(ps[i])) == 0 && user_level(var(ps[i])) == 0)
+      {
         continue;
       }
-      // If a literal is false at 0 level (both sat and user level) we also
-      // ignore it, unless we are tracking the SAT solver's reasoning
-      if (value(ps[i]) == l_False) {
-        if (!options().smt.produceUnsatCores && !needProof()
-            && level(var(ps[i])) == 0 && user_level(var(ps[i])) == 0)
-        {
-          continue;
-        }
-        else
-        {
-          // If we decide to keep it, we count it into the false literals
-          falseLiteralsCount++;
-        }
+      else
+      {
+        // If we decide to keep it, we count it into the false literals
+        falseLiteralsCount++;
       }
-      // This literal is a keeper
-      ps[j++] = p = ps[i];
     }
+    // This literal is a keeper
+    ps[j++] = p = ps[i];
+  }
 
     // Fit to size
     ps.shrink(i - j);
@@ -586,16 +597,17 @@ bool Solver::addClause_(vec<Lit>& ps, bool removable, ClauseId& id)
 
 
 void Solver::attachClause(CRef cr) {
-    const Clause& c = ca[cr];
-    if (TraceIsOn("minisat"))
+  pthread_testcancel();
+  const Clause& c = ca[cr];
+  if (TraceIsOn("minisat"))
+  {
+    Trace("minisat") << "Solver::attachClause(" << c << "): ";
+    for (unsigned i = 0, size = c.size(); i < size; ++i)
     {
-      Trace("minisat") << "Solver::attachClause(" << c << "): ";
-      for (unsigned i = 0, size = c.size(); i < size; ++i)
-      {
-        Trace("minisat") << c[i] << " ";
-      }
-      Trace("minisat") << ", level " << c.level() << "\n";
+      Trace("minisat") << c[i] << " ";
     }
+    Trace("minisat") << ", level " << c.level() << "\n";
+  }
     Assert(c.size() > 1);
     watches[~c[0]].push(Watcher(cr, c[1]));
     watches[~c[1]].push(Watcher(cr, c[0]));
@@ -605,19 +617,20 @@ void Solver::attachClause(CRef cr) {
 
 
 void Solver::detachClause(CRef cr, bool strict) {
-    const Clause& c = ca[cr];
-    Trace("minisat") << "Solver::detachClause(" << c << ")" << std::endl;
-    if (TraceIsOn("minisat"))
+  pthread_testcancel();
+  const Clause& c = ca[cr];
+  Trace("minisat") << "Solver::detachClause(" << c << ")" << std::endl;
+  if (TraceIsOn("minisat"))
+  {
+    Trace("minisat") << "Solver::detachClause(" << c << "), CRef " << cr
+                     << ", clause ";
+    for (unsigned i = 0, size = c.size(); i < size; ++i)
     {
-      Trace("minisat") << "Solver::detachClause(" << c << "), CRef " << cr
-                       << ", clause ";
-      for (unsigned i = 0, size = c.size(); i < size; ++i)
-      {
-        Trace("minisat") << c[i] << " ";
-      }
-
-      Trace("minisat") << "\n";
+      Trace("minisat") << c[i] << " ";
     }
+
+    Trace("minisat") << "\n";
+  }
     Assert(c.size() > 1);
 
     if (strict){
@@ -634,17 +647,18 @@ void Solver::detachClause(CRef cr, bool strict) {
 
 
 void Solver::removeClause(CRef cr) {
-    Clause& c = ca[cr];
-    if (TraceIsOn("minisat"))
+  pthread_testcancel();
+  Clause& c = ca[cr];
+  if (TraceIsOn("minisat"))
+  {
+    Trace("minisat") << "Solver::removeClause(" << c << "), CRef " << cr
+                     << ", clause ";
+    for (unsigned i = 0, size = c.size(); i < size; ++i)
     {
-      Trace("minisat") << "Solver::removeClause(" << c << "), CRef " << cr
-                       << ", clause ";
-      for (unsigned i = 0, size = c.size(); i < size; ++i)
-      {
-        Trace("minisat") << c[i] << " ";
-      }
-      Trace("minisat") << "\n";
+      Trace("minisat") << c[i] << " ";
     }
+    Trace("minisat") << "\n";
+  }
     detachClause(cr);
     // Don't leave pointers to free'd memory!
     if (locked(c))
@@ -684,32 +698,34 @@ bool Solver::satisfied(const Clause& c) const {
 // Revert to the state at given level (keeping all assignment at 'level' but not beyond).
 //
 void Solver::cancelUntil(int level) {
-    Trace("minisat") << "minisat::cancelUntil(" << level << ")" << std::endl;
+  pthread_testcancel();
+  Trace("minisat") << "minisat::cancelUntil(" << level << ")" << std::endl;
 
-    if (decisionLevel() > level)
+  if (decisionLevel() > level)
+  {
+    // Pop the SMT context
+    for (int l = trail_lim.size() - level; l > 0; --l)
     {
-      // Pop the SMT context
-      for (int l = trail_lim.size() - level; l > 0; --l)
-      {
-        d_context->pop();
-      }
-        for (int c = trail.size()-1; c >= trail_lim[level]; c--){
-            Var      x  = var(trail[c]);
-            assigns [x] = l_Undef;
-            vardata[x].d_trail_index = -1;
-            if ((phase_saving > 1 ||
-                 ((phase_saving == 1) && c > trail_lim.last())
-                 ) && ((polarity[x] & 0x2) == 0)) {
-              polarity[x] = sign(trail[c]);
-            }
-            insertVarOrder(x);
-        }
-        qhead = trail_lim[level];
-        trail.shrink(trail.size() - trail_lim[level]);
-        trail_lim.shrink(trail_lim.size() - level);
-        flipped.shrink(flipped.size() - level);
-        d_proxy->notifyBacktrack();
+      d_context->pop();
     }
+    for (int c = trail.size() - 1; c >= trail_lim[level]; c--)
+    {
+      Var x = var(trail[c]);
+      assigns[x] = l_Undef;
+      vardata[x].d_trail_index = -1;
+      if ((phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last()))
+          && ((polarity[x] & 0x2) == 0))
+      {
+        polarity[x] = sign(trail[c]);
+      }
+      insertVarOrder(x);
+    }
+    qhead = trail_lim[level];
+    trail.shrink(trail.size() - trail_lim[level]);
+    trail_lim.shrink(trail_lim.size() - level);
+    flipped.shrink(flipped.size() - level);
+    d_proxy->notifyBacktrack();
+  }
 }
 
 void Solver::resetTrail() { cancelUntil(0); }
@@ -720,17 +736,18 @@ void Solver::resetTrail() { cancelUntil(0); }
 
 Lit Solver::pickBranchLit()
 {
-    Lit nextLit;
-    bool stopSearch = false;
-    bool requirePhase = false;
+  pthread_testcancel();
+  Lit nextLit;
+  bool stopSearch = false;
+  bool requirePhase = false;
 
-    // Theory requests
-    nextLit = MinisatSatSolver::toMinisatLit(
-        d_proxy->getNextDecisionRequest(requirePhase, stopSearch));
-    if (stopSearch)
-    {
-      return lit_Undef;
-    }
+  // Theory requests
+  nextLit = MinisatSatSolver::toMinisatLit(
+      d_proxy->getNextDecisionRequest(requirePhase, stopSearch));
+  if (stopSearch)
+  {
+    return lit_Undef;
+  }
     while (nextLit != lit_Undef)
     {
       Var next = var(nextLit);
@@ -847,6 +864,7 @@ Lit Solver::pickBranchLit()
 |________________________________________________________________________________________________@*/
 int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 {
+  pthread_testcancel();
   Trace("pf::sat") << "Solver::analyze: starting with " << confl
                    << " with decision level " << decisionLevel() << "\n";
 
@@ -1033,38 +1051,42 @@ int Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
 // visiting literals at levels that cannot be removed later.
 bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
 {
-    analyze_stack.clear(); analyze_stack.push(p);
-    int top = analyze_toclear.size();
-    while (analyze_stack.size() > 0){
-        CRef c_reason = reason(var(analyze_stack.last()));
-        Assert(c_reason != CRef_Undef);
-        Clause& c = ca[c_reason];
-        int c_size = c.size();
-        analyze_stack.pop();
+  pthread_testcancel();
+  analyze_stack.clear();
+  analyze_stack.push(p);
+  int top = analyze_toclear.size();
+  while (analyze_stack.size() > 0)
+  {
+    CRef c_reason = reason(var(analyze_stack.last()));
+    Assert(c_reason != CRef_Undef);
+    Clause& c = ca[c_reason];
+    int c_size = c.size();
+    analyze_stack.pop();
 
-        // Since calling reason might relocate to resize, c is not necesserily the right reference, we must
-        // use the allocator each time
-        for (int i = 1; i < c_size; i++){
-          Lit p2 = ca[c_reason][i];
-          if (!seen[var(p2)] && level(var(p2)) > 0)
-          {
-            if (reason(var(p2)) != CRef_Undef
-                && (abstractLevel(var(p2)) & abstract_levels) != 0)
-            {
-              seen[var(p2)] = 1;
-              analyze_stack.push(p2);
-              analyze_toclear.push(p2);
-            }
-            else
-            {
-              for (int j = top; j < analyze_toclear.size(); j++)
-                seen[var(analyze_toclear[j])] = 0;
-              analyze_toclear.shrink(analyze_toclear.size() - top);
-              return false;
-            }
-          }
+    // Since calling reason might relocate to resize, c is not necesserily the
+    // right reference, we must use the allocator each time
+    for (int i = 1; i < c_size; i++)
+    {
+      Lit p2 = ca[c_reason][i];
+      if (!seen[var(p2)] && level(var(p2)) > 0)
+      {
+        if (reason(var(p2)) != CRef_Undef
+            && (abstractLevel(var(p2)) & abstract_levels) != 0)
+        {
+          seen[var(p2)] = 1;
+          analyze_stack.push(p2);
+          analyze_toclear.push(p2);
         }
+        else
+        {
+          for (int j = top; j < analyze_toclear.size(); j++)
+            seen[var(analyze_toclear[j])] = 0;
+          analyze_toclear.shrink(analyze_toclear.size() - top);
+          return false;
+        }
+      }
     }
+  }
 
     return true;
 }
@@ -1081,35 +1103,40 @@ bool Solver::litRedundant(Lit p, uint32_t abstract_levels)
 |________________________________________________________________________________________________@*/
 void Solver::analyzeFinal(Lit p, vec<Lit>& out_conflict)
 {
-    out_conflict.clear();
-    out_conflict.push(p);
+  pthread_testcancel();
+  out_conflict.clear();
+  out_conflict.push(p);
 
-    if (decisionLevel() == 0)
-        return;
+  if (decisionLevel() == 0) return;
 
-    seen[var(p)] = 1;
+  seen[var(p)] = 1;
 
-    for (int i = trail.size()-1; i >= trail_lim[0]; i--){
-        Var x = var(trail[i]);
-        if (seen[x]){
-            if (reason(x) == CRef_Undef){
-              Assert(level(x) > 0);
-              out_conflict.push(~trail[i]);
-            }else{
-                Clause& c = ca[reason(x)];
-                for (int j = 1; j < c.size(); j++)
-                    if (level(var(c[j])) > 0)
-                        seen[var(c[j])] = 1;
-            }
-            seen[x] = 0;
-        }
+  for (int i = trail.size() - 1; i >= trail_lim[0]; i--)
+  {
+    Var x = var(trail[i]);
+    if (seen[x])
+    {
+      if (reason(x) == CRef_Undef)
+      {
+        Assert(level(x) > 0);
+        out_conflict.push(~trail[i]);
+      }
+      else
+      {
+        Clause& c = ca[reason(x)];
+        for (int j = 1; j < c.size(); j++)
+          if (level(var(c[j])) > 0) seen[var(c[j])] = 1;
+      }
+      seen[x] = 0;
     }
+  }
 
     seen[var(p)] = 0;
 }
 
 void Solver::uncheckedEnqueue(Lit p, CRef from)
 {
+  pthread_testcancel();
   if (TraceIsOn("minisat"))
   {
     Trace("minisat") << "unchecked enqueue of " << p << " ("
@@ -1149,19 +1176,22 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
 
 CRef Solver::propagate(TheoryCheckType type)
 {
-    CRef confl = CRef_Undef;
-    recheck = false;
-    theoryConflict = false;
+  pthread_testcancel();
+  CRef confl = CRef_Undef;
+  recheck = false;
+  theoryConflict = false;
 
-    ScopedBool scoped_bool(minisat_busy, true);
+  ScopedBool scoped_bool(minisat_busy, true);
 
-    // Add lemmas that we're left behind
-    if (lemmas.size() > 0) {
-      confl = updateLemmas();
-      if (confl != CRef_Undef) {
-        return confl;
-      }
+  // Add lemmas that we're left behind
+  if (lemmas.size() > 0)
+  {
+    confl = updateLemmas();
+    if (confl != CRef_Undef)
+    {
+      return confl;
     }
+  }
 
     // If this is the final check, no need for Boolean propagation and
     // theory propagation
@@ -1232,6 +1262,7 @@ CRef Solver::propagate(TheoryCheckType type)
 }
 
 void Solver::propagateTheory() {
+  pthread_testcancel();
   SatClause propagatedLiteralsClause;
   // Doesn't actually call propagate(); that's done in theoryCheck() now that combination
   // is online.  This just incorporates those propagations previously discovered.
@@ -1275,6 +1306,7 @@ void Solver::propagateTheory() {
 |________________________________________________________________________________________________@*/
 void Solver::theoryCheck(cvc5::internal::theory::Theory::Effort effort)
 {
+  pthread_testcancel();
   d_proxy->theoryCheck(effort);
 }
 
@@ -1291,67 +1323,79 @@ void Solver::theoryCheck(cvc5::internal::theory::Theory::Effort effort)
 |________________________________________________________________________________________________@*/
 CRef Solver::propagateBool()
 {
-    CRef    confl     = CRef_Undef;
-    int     num_props = 0;
-    watches.cleanAll();
+  pthread_testcancel();
+  CRef confl = CRef_Undef;
+  int num_props = 0;
+  watches.cleanAll();
 
-    while (qhead < trail.size()){
-        Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
-        vec<Watcher>&  ws  = watches[p];
-        Watcher        *i, *j, *end;
-        num_props++;
+  while (qhead < trail.size())
+  {
+    Lit p = trail[qhead++];  // 'p' is enqueued fact to propagate.
+    vec<Watcher>& ws = watches[p];
+    Watcher *i, *j, *end;
+    num_props++;
 
-        // if propagation tracing enabled, print boolean propagation
-        if (TraceIsOn("dtview::prop"))
-        {
-          dtviewBoolPropagationHelper(
-              decisionLevel(), p, d_proxy, options().base.incrementalSolving);
-        }
-
-        for (i = j = (Watcher*)ws, end = i + ws.size();  i != end;){
-            // Try to avoid inspecting the clause:
-            Lit blocker = i->blocker;
-            if (value(blocker) == l_True){
-                *j++ = *i++; continue; }
-
-            // Make sure the false literal is data[1]:
-            CRef     cr        = i->cref;
-            Clause&  c         = ca[cr];
-            Lit      false_lit = ~p;
-            if (c[0] == false_lit)
-                c[0] = c[1], c[1] = false_lit;
-            Assert(c[1] == false_lit);
-            i++;
-
-            // If 0th watch is true, then clause is already satisfied.
-            Lit     first = c[0];
-            Watcher w     = Watcher(cr, first);
-            if (first != blocker && value(first) == l_True){
-                *j++ = w; continue; }
-
-            // Look for new watch:
-            Assert(c.size() >= 2);
-            for (int k = 2; k < c.size(); k++)
-                if (value(c[k]) != l_False){
-                    c[1] = c[k]; c[k] = false_lit;
-                    watches[~c[1]].push(w);
-                    goto NextClause; }
-
-            // Did not find watch -- clause is unit under assignment:
-            *j++ = w;
-            if (value(first) == l_False){
-                confl = cr;
-                qhead = trail.size();
-                // Copy the remaining watches:
-                while (i < end)
-                    *j++ = *i++;
-            }else
-                uncheckedEnqueue(first, cr);
-
-        NextClause:;
-        }
-        ws.shrink(i - j);
+    // if propagation tracing enabled, print boolean propagation
+    if (TraceIsOn("dtview::prop"))
+    {
+      dtviewBoolPropagationHelper(
+          decisionLevel(), p, d_proxy, options().base.incrementalSolving);
     }
+
+    for (i = j = (Watcher*)ws, end = i + ws.size(); i != end;)
+    {
+      // Try to avoid inspecting the clause:
+      Lit blocker = i->blocker;
+      if (value(blocker) == l_True)
+      {
+        *j++ = *i++;
+        continue;
+      }
+
+      // Make sure the false literal is data[1]:
+      CRef cr = i->cref;
+      Clause& c = ca[cr];
+      Lit false_lit = ~p;
+      if (c[0] == false_lit) c[0] = c[1], c[1] = false_lit;
+      Assert(c[1] == false_lit);
+      i++;
+
+      // If 0th watch is true, then clause is already satisfied.
+      Lit first = c[0];
+      Watcher w = Watcher(cr, first);
+      if (first != blocker && value(first) == l_True)
+      {
+        *j++ = w;
+        continue;
+      }
+
+      // Look for new watch:
+      Assert(c.size() >= 2);
+      for (int k = 2; k < c.size(); k++)
+        if (value(c[k]) != l_False)
+        {
+          c[1] = c[k];
+          c[k] = false_lit;
+          watches[~c[1]].push(w);
+          goto NextClause;
+        }
+
+      // Did not find watch -- clause is unit under assignment:
+      *j++ = w;
+      if (value(first) == l_False)
+      {
+        confl = cr;
+        qhead = trail.size();
+        // Copy the remaining watches:
+        while (i < end) *j++ = *i++;
+      }
+      else
+        uncheckedEnqueue(first, cr);
+
+    NextClause:;
+    }
+    ws.shrink(i - j);
+  }
     propagations += num_props;
     simpDB_props -= num_props;
 
@@ -1375,19 +1419,24 @@ struct reduceDB_lt {
 };
 void Solver::reduceDB()
 {
-    int     i, j;
-    double  extra_lim = cla_inc / clauses_removable.size();    // Remove any clause below this activity
+  pthread_testcancel();
+  int i, j;
+  double extra_lim =
+      cla_inc
+      / clauses_removable.size();  // Remove any clause below this activity
 
-    sort(clauses_removable, reduceDB_lt(ca));
-    // Don't delete binary or locked clauses. From the rest, delete clauses from the first half
-    // and clauses with activity smaller than 'extra_lim':
-    for (i = j = 0; i < clauses_removable.size(); i++){
-        Clause& c = ca[clauses_removable[i]];
-        if (c.size() > 2 && !locked(c) && (i < clauses_removable.size() / 2 || c.activity() < extra_lim))
-            removeClause(clauses_removable[i]);
-        else
-            clauses_removable[j++] = clauses_removable[i];
-    }
+  sort(clauses_removable, reduceDB_lt(ca));
+  // Don't delete binary or locked clauses. From the rest, delete clauses from
+  // the first half and clauses with activity smaller than 'extra_lim':
+  for (i = j = 0; i < clauses_removable.size(); i++)
+  {
+    Clause& c = ca[clauses_removable[i]];
+    if (c.size() > 2 && !locked(c)
+        && (i < clauses_removable.size() / 2 || c.activity() < extra_lim))
+      removeClause(clauses_removable[i]);
+    else
+      clauses_removable[j++] = clauses_removable[i];
+  }
     clauses_removable.shrink(i - j);
     checkGarbage();
 }
@@ -1395,46 +1444,54 @@ void Solver::reduceDB()
 
 void Solver::removeSatisfied(vec<CRef>& cs)
 {
-    int i, j;
-    for (i = j = 0; i < cs.size(); i++){
-        Clause& c = ca[cs[i]];
-        if (satisfied(c)) {
-          removeClause(cs[i]);
-        }
-        else
-        {
-          cs[j++] = cs[i];
-        }
+  pthread_testcancel();
+  int i, j;
+  for (i = j = 0; i < cs.size(); i++)
+  {
+    Clause& c = ca[cs[i]];
+    if (satisfied(c))
+    {
+      removeClause(cs[i]);
     }
+    else
+    {
+      cs[j++] = cs[i];
+    }
+  }
     cs.shrink(i - j);
 }
 
 void Solver::removeClausesAboveLevel(vec<CRef>& cs, int level)
 {
-    int i, j;
-    for (i = j = 0; i < cs.size(); i++){
-        Clause& c = ca[cs[i]];
-        if (c.level() > level) {
-          SatClause satClause;
-          vec<Lit> clauseLits;
-          MinisatSatSolver::toSatClause(c, satClause);
-          MinisatSatSolver::toMinisatClause(satClause, clauseLits);
-          Assert(!locked(c)) << "Locked " << clauseLits;
-          removeClause(cs[i]);
-        } else {
-            cs[j++] = cs[i];
-        }
+  pthread_testcancel();
+  int i, j;
+  for (i = j = 0; i < cs.size(); i++)
+  {
+    Clause& c = ca[cs[i]];
+    if (c.level() > level)
+    {
+      SatClause satClause;
+      vec<Lit> clauseLits;
+      MinisatSatSolver::toSatClause(c, satClause);
+      MinisatSatSolver::toMinisatClause(satClause, clauseLits);
+      Assert(!locked(c)) << "Locked " << clauseLits;
+      removeClause(cs[i]);
     }
+    else
+    {
+      cs[j++] = cs[i];
+    }
+  }
     cs.shrink(i - j);
 }
 
 void Solver::rebuildOrderHeap()
 {
-    vec<Var> vs;
-    for (Var v = 0; v < nVars(); v++)
-        if (decision[v] && value(v) == l_Undef)
-            vs.push(v);
-    order_heap.build(vs);
+  pthread_testcancel();
+  vec<Var> vs;
+  for (Var v = 0; v < nVars(); v++)
+    if (decision[v] && value(v) == l_Undef) vs.push(v);
+  order_heap.build(vs);
 }
 
 
@@ -1448,6 +1505,7 @@ void Solver::rebuildOrderHeap()
 |________________________________________________________________________________________________@*/
 bool Solver::simplify()
 {
+  pthread_testcancel();
   Assert(decisionLevel() == 0);
 
   if (!ok || propagate(CHECK_WITHOUT_THEORY) != CRef_Undef) return ok = false;
@@ -1485,6 +1543,7 @@ bool Solver::simplify()
 |________________________________________________________________________________________________@*/
 lbool Solver::search(int nof_conflicts)
 {
+  pthread_testcancel();
   Assert(ok);
   int backtrack_level;
   int conflictC = 0;
@@ -1686,14 +1745,16 @@ lbool Solver::search(int nof_conflicts)
 
 double Solver::progressEstimate() const
 {
-    double  progress = 0;
-    double  F = 1.0 / nVars();
+  pthread_testcancel();
+  double progress = 0;
+  double F = 1.0 / nVars();
 
-    for (int i = 0; i <= decisionLevel(); i++){
-        int beg = i == 0 ? 0 : trail_lim[i - 1];
-        int end = i == decisionLevel() ? trail.size() : trail_lim[i];
-        progress += pow(F, i) * (end - beg);
-    }
+  for (int i = 0; i <= decisionLevel(); i++)
+  {
+    int beg = i == 0 ? 0 : trail_lim[i - 1];
+    int end = i == decisionLevel() ? trail.size() : trail_lim[i];
+    progress += pow(F, i) * (end - beg);
+  }
 
     return progress / nVars();
 }
@@ -1711,17 +1772,19 @@ double Solver::progressEstimate() const
  */
 
 static double luby(double y, int x){
+  pthread_testcancel();
+  // Find the finite subsequence that contains index 'x', and the
+  // size of that subsequence:
+  int size, seq;
+  for (size = 1, seq = 0; size < x + 1; seq++, size = 2 * size + 1)
+    ;
 
-    // Find the finite subsequence that contains index 'x', and the
-    // size of that subsequence:
-    int size, seq;
-    for (size = 1, seq = 0; size < x+1; seq++, size = 2*size+1);
-
-    while (size-1 != x){
-        size = (size-1)>>1;
-        seq--;
-        x = x % size;
-    }
+  while (size - 1 != x)
+  {
+    size = (size - 1) >> 1;
+    seq--;
+    x = x % size;
+  }
 
     return pow(y, seq);
 }
@@ -1729,18 +1792,20 @@ static double luby(double y, int x){
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve_()
 {
-    Trace("minisat") << "nvars = " << nVars() << std::endl;
+  pthread_testcancel();
+  Trace("minisat") << "nvars = " << nVars() << std::endl;
 
-    ScopedBool scoped_bool(minisat_busy, true);
+  ScopedBool scoped_bool(minisat_busy, true);
 
-    Assert(decisionLevel() == 0);
+  Assert(decisionLevel() == 0);
 
-    model.clear();
-    d_conflict.clear();
-    if (!ok){
-      minisat_busy = false;
-      return l_False;
-    }
+  model.clear();
+  d_conflict.clear();
+  if (!ok)
+  {
+    minisat_busy = false;
+    return l_False;
+  }
 
     solves++;
 
@@ -1794,10 +1859,12 @@ lbool Solver::solve_()
 
 static Var mapVar(Var x, vec<Var>& map, Var& max)
 {
-    if (map.size() <= x || map[x] == -1){
-        map.growTo(x+1, -1);
-        map[x] = max++;
-    }
+  pthread_testcancel();
+  if (map.size() <= x || map[x] == -1)
+  {
+    map.growTo(x + 1, -1);
+    map[x] = max++;
+  }
     return map[x];
 }
 
@@ -1916,15 +1983,18 @@ void Solver::relocAll(ClauseAllocator& to)
 
 void Solver::garbageCollect()
 {
-    // Initialize the next region to a size corresponding to the estimated utilization degree. This
-    // is not precise but should avoid some unnecessary reallocations for the new region:
-    ClauseAllocator to(ca.size() - ca.wasted());
+  pthread_testcancel();
+  // Initialize the next region to a size corresponding to the estimated
+  // utilization degree. This is not precise but should avoid some unnecessary
+  // reallocations for the new region:
+  ClauseAllocator to(ca.size() - ca.wasted());
 
-    relocAll(to);
-    if (verbosity >= 2)
-        printf("|  Garbage collection:   %12d bytes => %12d bytes             |\n",
-               ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
-    to.moveTo(ca);
+  relocAll(to);
+  if (verbosity >= 2)
+    printf("|  Garbage collection:   %12d bytes => %12d bytes             |\n",
+           ca.size() * ClauseAllocator::Unit_Size,
+           to.size() * ClauseAllocator::Unit_Size);
+  to.moveTo(ca);
 }
 
 void Solver::push()
@@ -1995,7 +2065,7 @@ void Solver::pop()
 }
 
 CRef Solver::updateLemmas() {
-
+  pthread_testcancel();
   Trace("minisat::lemmas") << "Solver::updateLemmas() begin" << std::endl;
 
   // Avoid adding lemmas indefinitely without resource-out
