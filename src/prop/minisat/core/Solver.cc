@@ -21,6 +21,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "prop/minisat/core/Solver.h"
 
 #include <math.h>
+#include <pthread.h>
 
 #include <iostream>
 #include <unordered_set>
