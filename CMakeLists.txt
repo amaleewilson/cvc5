@@ -519,6 +519,7 @@ if(USE_CRYPTOMINISAT)
   add_definitions(-DCVC5_USE_CRYPTOMINISAT)
 endif()
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 if(USE_GLPK)
