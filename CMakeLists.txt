@@ -519,6 +519,8 @@ if(USE_CRYPTOMINISAT)
   add_definitions(-DCVC5_USE_CRYPTOMINISAT)
 endif()
 
+find_package(Threads REQUIRED)
+
 if(USE_GLPK)
   set(GPL_LIBS "${GPL_LIBS} glpk")
   find_package(GLPK REQUIRED)
