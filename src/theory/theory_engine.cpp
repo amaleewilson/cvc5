@@ -396,6 +396,7 @@ void TheoryEngine::printAssertions(const char* tag) {
  * @param effort the effort level to use
  */
 void TheoryEngine::check(Theory::Effort effort) {
+  pthread_testcancel();
   // spendResource();
 
   // Reset the interrupt flag
