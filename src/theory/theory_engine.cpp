@@ -612,6 +612,7 @@ void TheoryEngine::check(Theory::Effort effort) {
 
 void TheoryEngine::propagate(Theory::Effort effort)
 {
+  pthread_testcancel();
   // Reset the interrupt flag
   d_interrupted = false;
 
@@ -635,10 +636,12 @@ void TheoryEngine::propagate(Theory::Effort effort)
 
 Node TheoryEngine::getNextDecisionRequest()
 {
+  pthread_testcancel();
   return d_decManager->getNextDecisionRequest();
 }
 
 bool TheoryEngine::properConflict(TNode conflict) const {
+  pthread_testcancel();
   bool value;
   if (conflict.getKind() == Kind::AND)
   {
@@ -719,6 +722,7 @@ bool TheoryEngine::isTheoryEnabled(theory::TheoryId theoryId) const
 
 theory::TheoryId TheoryEngine::theoryExpPropagation(theory::TheoryId tid) const
 {
+  pthread_testcancel();
   if (options().theory.eeMode == options::EqEngineMode::CENTRAL)
   {
     if (EqEngineManagerCentral::usesCentralEqualityEngine(options(), tid)
@@ -781,6 +785,7 @@ void TheoryEngine::postsolve(prop::SatValue result)
 }
 
 void TheoryEngine::notifyRestart() {
+  pthread_testcancel();
   // Reset the interrupt flag
   d_interrupted = false;
 
@@ -801,6 +806,7 @@ void TheoryEngine::notifyRestart() {
 
 void TheoryEngine::ppStaticLearn(TNode in, NodeBuilder& learned)
 {
+  pthread_testcancel();
   // Reset the interrupt flag
   d_interrupted = false;
 
@@ -820,6 +826,7 @@ void TheoryEngine::ppStaticLearn(TNode in, NodeBuilder& learned)
 
 bool TheoryEngine::hasSatValue(TNode n, bool& value) const
 {
+  pthread_testcancel();
   if (d_propEngine->isSatLiteral(n))
   {
     return d_propEngine->hasValue(n, value);
@@ -829,6 +836,7 @@ bool TheoryEngine::hasSatValue(TNode n, bool& value) const
 
 bool TheoryEngine::hasSatValue(TNode n) const
 {
+  pthread_testcancel();
   if (d_propEngine->isSatLiteral(n))
   {
     bool value;
@@ -839,6 +847,7 @@ bool TheoryEngine::hasSatValue(TNode n) const
 
 bool TheoryEngine::isRelevant(Node lit) const
 {
+  pthread_testcancel();
   if (d_relManager != nullptr)
   {
     return d_relManager->isRelevant(lit);
@@ -849,6 +858,7 @@ bool TheoryEngine::isRelevant(Node lit) const
 
 bool TheoryEngine::isLegalElimination(TNode x, TNode val)
 {
+  pthread_testcancel();
   Assert(x.isVar());
   if (expr::hasSubterm(val, x))
   {
@@ -883,6 +893,7 @@ bool TheoryEngine::isLegalElimination(TNode x, TNode val)
 theory::Theory::PPAssertStatus TheoryEngine::solve(
     TrustNode tliteral, TrustSubstitutionMap& substitutionOut)
 {
+  pthread_testcancel();
   Assert(tliteral.getKind() == TrustNodeKind::LEMMA);
   // Reset the interrupt flag
   d_interrupted = false;
@@ -913,6 +924,7 @@ theory::Theory::PPAssertStatus TheoryEngine::solve(
 TrustNode TheoryEngine::ppRewrite(TNode term,
                                   std::vector<theory::SkolemLemma>& lems)
 {
+  pthread_testcancel();
   Assert(lems.empty());
   TheoryId tid = d_env.theoryOf(term);
   // We check whether the theory is enabled here (instead of only during solve),
@@ -959,6 +971,7 @@ TrustNode TheoryEngine::ppRewrite(TNode term,
 
 TrustNode TheoryEngine::ppStaticRewrite(TNode term)
 {
+  pthread_testcancel();
   TheoryId tid = d_env.theoryOf(term);
   if (!isTheoryEnabled(tid) && tid != THEORY_SAT_SOLVER)
   {
@@ -976,6 +989,7 @@ TrustNode TheoryEngine::ppStaticRewrite(TNode term)
 
 void TheoryEngine::notifyPreprocessedAssertions(
     const std::vector<Node>& assertions) {
+  pthread_testcancel();
   // call all the theories
   for (TheoryId theoryId = theory::THEORY_FIRST; theoryId < theory::THEORY_LAST;
        ++theoryId) {
@@ -990,6 +1004,7 @@ void TheoryEngine::notifyPreprocessedAssertions(
 }
 
 bool TheoryEngine::markPropagation(TNode assertion, TNode originalAssertion, theory::TheoryId toTheoryId, theory::TheoryId fromTheoryId) {
+  pthread_testcancel();
   // What and where we are asserting
   NodeTheoryPair toAssert(assertion, toTheoryId, d_propagationMapTimestamp);
   // What and where it came from
@@ -1014,6 +1029,7 @@ bool TheoryEngine::markPropagation(TNode assertion, TNode originalAssertion, the
 
 
 void TheoryEngine::assertToTheory(TNode assertion, TNode originalAssertion, theory::TheoryId toTheoryId, theory::TheoryId fromTheoryId) {
+  pthread_testcancel();
   Trace("theory::assertToTheory") << "TheoryEngine::assertToTheory(" << assertion << ", " << originalAssertion << "," << toTheoryId << ", " << fromTheoryId << ")" << endl;
 
   Assert(toTheoryId != fromTheoryId);
@@ -1163,6 +1179,7 @@ void TheoryEngine::assertToTheory(TNode assertion, TNode originalAssertion, theo
 
 void TheoryEngine::assertFact(TNode literal)
 {
+  pthread_testcancel();
   Trace("theory") << "TheoryEngine::assertFact(" << literal << ")" << endl;
 
   // spendResource();
@@ -1228,6 +1245,7 @@ void TheoryEngine::assertFact(TNode literal)
 }
 
 bool TheoryEngine::propagate(TNode literal, theory::TheoryId theory) {
+  pthread_testcancel();
   Trace("theory::propagate")
       << "TheoryEngine::propagate(" << literal << ", " << theory << ")" << endl;
 
@@ -1263,6 +1281,7 @@ bool TheoryEngine::propagate(TNode literal, theory::TheoryId theory) {
 
 theory::EqualityStatus TheoryEngine::getEqualityStatus(TNode a, TNode b)
 {
+  pthread_testcancel();
   Assert(a.getType() == b.getType());
   return d_sharedSolver->getEqualityStatus(a, b);
 }
@@ -1270,6 +1289,7 @@ theory::EqualityStatus TheoryEngine::getEqualityStatus(TNode a, TNode b)
 void TheoryEngine::getDifficultyMap(std::map<Node, Node>& dmap,
                                     bool includeLemmas)
 {
+  pthread_testcancel();
   Assert(d_relManager != nullptr);
   d_relManager->getDifficultyMap(dmap, includeLemmas);
 }
@@ -1285,6 +1305,7 @@ theory::IncompleteId TheoryEngine::getRefutationUnsoundId() const
 
 Node TheoryEngine::getCandidateModelValue(TNode var)
 {
+  pthread_testcancel();
   if (var.isConst())
   {
     // the model value of a constant must be itself
@@ -1297,6 +1318,7 @@ Node TheoryEngine::getCandidateModelValue(TNode var)
 
 std::unordered_set<TNode> TheoryEngine::getRelevantAssertions(bool& success)
 {
+  pthread_testcancel();
   // if there is no relevance manager, we fail
   if (d_relManager == nullptr)
   {
@@ -1309,6 +1331,7 @@ std::unordered_set<TNode> TheoryEngine::getRelevantAssertions(bool& success)
 
 TrustNode TheoryEngine::getExplanation(TNode node)
 {
+  pthread_testcancel();
   Trace("theory::explain") << "TheoryEngine::getExplanation(" << node
                            << "): current propagation index = "
                            << d_propagationMapTimestamp << endl;
@@ -1412,6 +1435,7 @@ struct AtomsCollect {
 
 void TheoryEngine::ensureLemmaAtoms(TNode n, theory::TheoryId atomsTo)
 {
+  pthread_testcancel();
   Assert(atomsTo != THEORY_LAST);
   Trace("theory::atoms") << "TheoryEngine::ensureLemmaAtoms(" << n << ", "
                          << atomsTo << ")" << endl;
@@ -1421,6 +1445,7 @@ void TheoryEngine::ensureLemmaAtoms(TNode n, theory::TheoryId atomsTo)
 }
 
 void TheoryEngine::ensureLemmaAtoms(const std::vector<TNode>& atoms, theory::TheoryId atomsTo) {
+  pthread_testcancel();
   for (unsigned i = 0; i < atoms.size(); ++ i) {
 
     // Non-equality atoms are either owned by theory or they don't make sense
@@ -1495,6 +1520,7 @@ void TheoryEngine::lemma(TrustNode tlemma,
                          LemmaProperty p,
                          TheoryId from)
 {
+  pthread_testcancel();
   // For resource-limiting (also does a time check).
   // spendResource();
   Assert(tlemma.getKind() == TrustNodeKind::LEMMA
@@ -1580,6 +1606,7 @@ void TheoryEngine::conflict(TrustNode tconflict,
                             InferenceId id,
                             TheoryId theoryId)
 {
+  pthread_testcancel();
   Assert(tconflict.getKind() == TrustNodeKind::CONFLICT);
 
   TNode conflict = tconflict.getNode();
@@ -2213,6 +2240,7 @@ std::pair<bool, Node> TheoryEngine::entailmentCheck(options::TheoryOfMode mode,
 
 void TheoryEngine::spendResource(Resource r)
 {
+  pthread_testcancel();
   d_env.getResourceManager()->spendResource(r);
 }
 
