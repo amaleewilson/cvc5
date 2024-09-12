@@ -63,6 +63,8 @@ class PartitionGenerator : public TheoryEngineModule
                    const std::vector<Node>& skAsserts,
                    const std::vector<Node>& sks) override;
 
+  std::vector<Node> getPartitions();
+
  private:
   /* LiteralListType is used to specify where to pull literals from when calling
    * collectLiterals. HEAP for the order_heap in the SAT solver, DECISION for
@@ -95,10 +97,10 @@ class PartitionGenerator : public TheoryEngineModule
   /**
    * Make scatter partitions: C1, !C1 & C2, !C1 & !C2 & C3, !C1 & !C2 & !C3.
    * litType: indicates the atom source.
-   * emitZLL: if set to true, then zero-level learned literals will be appended
-   * to the cubes.
-   * timedOut: indicates timeout has occurred, so partitions must be dumped.
-   * randomize: determines whether atoms are randomly chosen.
+   * emitZLL: if set to true, then zero-level learned literals will be
+   * appended to the cubes. timedOut: indicates timeout has occurred, so
+   * partitions must be dumped. randomize: determines whether atoms are
+   * randomly chosen.
    */
   Node makeScatterPartitions(LiteralListType litType,
                              bool emitZLL,
@@ -203,6 +205,8 @@ std::vector<Node> d_assertedLemmas;
  * List of the cubes that have been created.
  */
 std::vector<Node> d_cubes;
+
+std::vector<Node> d_partitions;
 
 /**
  * List of the scatter partitions that have been created.

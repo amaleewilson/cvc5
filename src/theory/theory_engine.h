@@ -441,6 +441,8 @@ class TheoryEngine : protected EnvObj
    */
   void checkTheoryAssertionsWithModel(bool hardFailure);
 
+  std::vector<Node> getPartitions() { return d_partitionGen->getPartitions(); }
+
  private:
   typedef context::
       CDHashMap<NodeTheoryPair, NodeTheoryPair, NodeTheoryPairHashFunction>

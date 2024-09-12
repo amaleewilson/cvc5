@@ -58,6 +58,8 @@ PartitionGenerator::PartitionGenerator(Env& env,
   }
 }
 
+std::vector<Node> PartitionGenerator::getPartitions() { return d_partitions; }
+
 void PartitionGenerator::incrementOrInsertLemmaAtom(Node& node)
 {
   if (d_lemmaMap.count(node) == 0)
@@ -211,6 +213,7 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
 
 void PartitionGenerator::emitPartition(Node toEmit)
 {
+  d_partitions.push_back(toEmit);
   *options().parallel.partitionsOut << toEmit << std::endl;
   ++d_numPartitionsSoFar;
   d_createdAnyPartitions = true;
