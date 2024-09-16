@@ -134,6 +134,7 @@ std::string getTheoryString(theory::TheoryId id)
 
 void TheoryEngine::finishInit()
 {
+  pthread_testcancel();
   d_modules.clear();
   Trace("theory") << "Begin TheoryEngine::finishInit" << std::endl;
   // NOTE: This seems to be required since
@@ -300,8 +301,14 @@ TheoryEngine::~TheoryEngine() {
   }
 }
 
-void TheoryEngine::interrupt() { d_interrupted = true; }
-void TheoryEngine::preRegister(TNode preprocessed) {
+void TheoryEngine::interrupt()
+{
+  pthread_testcancel();
+  d_interrupted = true;
+}
+void TheoryEngine::preRegister(TNode preprocessed)
+{
+  pthread_testcancel();
   Trace("theory") << "TheoryEngine::preRegister( " << preprocessed << ")"
                   << std::endl;
   d_preregisterQueue.push(preprocessed);
@@ -344,7 +351,9 @@ void TheoryEngine::preRegister(TNode preprocessed) {
   }
 }
 
-void TheoryEngine::printAssertions(const char* tag) {
+void TheoryEngine::printAssertions(const char* tag)
+{
+  pthread_testcancel();
   if (TraceIsOn(tag)) {
 
     for (TheoryId theoryId = THEORY_FIRST; theoryId < THEORY_LAST; ++theoryId) {
@@ -395,7 +404,9 @@ void TheoryEngine::printAssertions(const char* tag) {
  * Check all (currently-active) theories for conflicts.
  * @param effort the effort level to use
  */
-void TheoryEngine::check(Theory::Effort effort) {
+void TheoryEngine::check(Theory::Effort effort)
+{
+  pthread_testcancel();
   // spendResource();
 
   // Reset the interrupt flag
@@ -611,6 +622,7 @@ void TheoryEngine::check(Theory::Effort effort) {
 
 void TheoryEngine::propagate(Theory::Effort effort)
 {
+  pthread_testcancel();
   // Reset the interrupt flag
   d_interrupted = false;
 
@@ -634,10 +646,13 @@ void TheoryEngine::propagate(Theory::Effort effort)
 
 Node TheoryEngine::getNextDecisionRequest()
 {
+  pthread_testcancel();
   return d_decManager->getNextDecisionRequest();
 }
 
-bool TheoryEngine::properConflict(TNode conflict) const {
+bool TheoryEngine::properConflict(TNode conflict) const
+{
+  pthread_testcancel();
   bool value;
   if (conflict.getKind() == Kind::AND)
   {
@@ -686,6 +701,7 @@ bool TheoryEngine::properConflict(TNode conflict) const {
 
 TheoryModel* TheoryEngine::getModel()
 {
+  pthread_testcancel();
   Assert(d_tc != nullptr);
   TheoryModel* m = d_tc->getModel();
   Assert(m != nullptr);
@@ -694,6 +710,7 @@ TheoryModel* TheoryEngine::getModel()
 
 TheoryModel* TheoryEngine::getBuiltModel()
 {
+  pthread_testcancel();
   Assert(d_tc != nullptr);
   // If this method was called, produceModels should be true.
   AlwaysAssert(options().smt.produceModels);
@@ -707,17 +724,20 @@ TheoryModel* TheoryEngine::getBuiltModel()
 
 bool TheoryEngine::buildModel()
 {
+  pthread_testcancel();
   Assert(d_tc != nullptr);
   return d_tc->buildModel();
 }
 
 bool TheoryEngine::isTheoryEnabled(theory::TheoryId theoryId) const
 {
+  pthread_testcancel();
   return logicInfo().isTheoryEnabled(theoryId);
 }
 
 theory::TheoryId TheoryEngine::theoryExpPropagation(theory::TheoryId tid) const
 {
+  pthread_testcancel();
   if (options().theory.eeMode == options::EqEngineMode::CENTRAL)
   {
     if (EqEngineManagerCentral::usesCentralEqualityEngine(options(), tid)
@@ -729,7 +749,9 @@ theory::TheoryId TheoryEngine::theoryExpPropagation(theory::TheoryId tid) const
   return tid;
 }
 
-bool TheoryEngine::presolve() {
+bool TheoryEngine::presolve()
+{
+  pthread_testcancel();
   // Reset the interrupt flag
   d_interrupted = false;
 
@@ -765,10 +787,11 @@ bool TheoryEngine::presolve() {
 
   // return whether we have a conflict
   return false;
-}/* TheoryEngine::presolve() */
+} /* TheoryEngine::presolve() */
 
 void TheoryEngine::postsolve(prop::SatValue result)
 {
+  pthread_testcancel();
   // postsolve with the theory engine modules as well
   for (TheoryEngineModule* tem : d_modules)
   {
@@ -779,7 +802,9 @@ void TheoryEngine::postsolve(prop::SatValue result)
   d_interrupted = false;
 }
 
-void TheoryEngine::notifyRestart() {
+void TheoryEngine::notifyRestart()
+{
+  pthread_testcancel();
   // Reset the interrupt flag
   d_interrupted = false;
 
@@ -800,6 +825,7 @@ void TheoryEngine::notifyRestart() {
 
 void TheoryEngine::ppStaticLearn(TNode in, NodeBuilder& learned)
 {
+  pthread_testcancel();
   // Reset the interrupt flag
   d_interrupted = false;
 
@@ -819,6 +845,7 @@ void TheoryEngine::ppStaticLearn(TNode in, NodeBuilder& learned)
 
 bool TheoryEngine::hasSatValue(TNode n, bool& value) const
 {
+  pthread_testcancel();
   if (d_propEngine->isSatLiteral(n))
   {
     return d_propEngine->hasValue(n, value);
@@ -828,6 +855,7 @@ bool TheoryEngine::hasSatValue(TNode n, bool& value) const
 
 bool TheoryEngine::hasSatValue(TNode n) const
 {
+  pthread_testcancel();
   if (d_propEngine->isSatLiteral(n))
   {
     bool value;
@@ -838,6 +866,7 @@ bool TheoryEngine::hasSatValue(TNode n) const
 
 bool TheoryEngine::isRelevant(Node lit) const
 {
+  pthread_testcancel();
   if (d_relManager != nullptr)
   {
     return d_relManager->isRelevant(lit);
@@ -848,6 +877,7 @@ bool TheoryEngine::isRelevant(Node lit) const
 
 bool TheoryEngine::isLegalElimination(TNode x, TNode val)
 {
+  pthread_testcancel();
   Assert(x.isVar());
   if (expr::hasSubterm(val, x))
   {
@@ -958,6 +988,7 @@ TrustNode TheoryEngine::ppRewrite(TNode term,
 
 TrustNode TheoryEngine::ppStaticRewrite(TNode term)
 {
+  pthread_testcancel();
   TheoryId tid = d_env.theoryOf(term);
   if (!isTheoryEnabled(tid) && tid != THEORY_SAT_SOLVER)
   {
@@ -988,21 +1019,32 @@ void TheoryEngine::notifyPreprocessedAssertions(
   }
 }
 
-bool TheoryEngine::markPropagation(TNode assertion, TNode originalAssertion, theory::TheoryId toTheoryId, theory::TheoryId fromTheoryId) {
+bool TheoryEngine::markPropagation(TNode assertion,
+                                   TNode originalAssertion,
+                                   theory::TheoryId toTheoryId,
+                                   theory::TheoryId fromTheoryId)
+{
+  pthread_testcancel();
   // What and where we are asserting
   NodeTheoryPair toAssert(assertion, toTheoryId, d_propagationMapTimestamp);
   // What and where it came from
-  NodeTheoryPair toExplain(originalAssertion, fromTheoryId, d_propagationMapTimestamp);
+  NodeTheoryPair toExplain(
+      originalAssertion, fromTheoryId, d_propagationMapTimestamp);
 
   // See if the theory already got this literal
   PropagationMap::const_iterator find = d_propagationMap.find(toAssert);
-  if (find != d_propagationMap.end()) {
+  if (find != d_propagationMap.end())
+  {
     // The theory already knows this
-    Trace("theory::assertToTheory") << "TheoryEngine::markPropagation(): already there" << endl;
+    Trace("theory::assertToTheory")
+        << "TheoryEngine::markPropagation(): already there" << endl;
     return false;
   }
 
-  Trace("theory::assertToTheory") << "TheoryEngine::markPropagation(): marking [" << d_propagationMapTimestamp << "] " << assertion << ", " << toTheoryId << " from " << originalAssertion << ", " << fromTheoryId << endl;
+  Trace("theory::assertToTheory")
+      << "TheoryEngine::markPropagation(): marking ["
+      << d_propagationMapTimestamp << "] " << assertion << ", " << toTheoryId
+      << " from " << originalAssertion << ", " << fromTheoryId << endl;
 
   // Mark the propagation
   d_propagationMap[toAssert] = toExplain;
@@ -1011,8 +1053,12 @@ bool TheoryEngine::markPropagation(TNode assertion, TNode originalAssertion, the
   return true;
 }
 
-
-void TheoryEngine::assertToTheory(TNode assertion, TNode originalAssertion, theory::TheoryId toTheoryId, theory::TheoryId fromTheoryId) {
+void TheoryEngine::assertToTheory(TNode assertion,
+                                  TNode originalAssertion,
+                                  theory::TheoryId toTheoryId,
+                                  theory::TheoryId fromTheoryId)
+{
+  pthread_testcancel();
   Trace("theory::assertToTheory") << "TheoryEngine::assertToTheory(" << assertion << ", " << originalAssertion << "," << toTheoryId << ", " << fromTheoryId << ")" << endl;
 
   Assert(toTheoryId != fromTheoryId);
@@ -1162,6 +1208,7 @@ void TheoryEngine::assertToTheory(TNode assertion, TNode originalAssertion, theo
 
 void TheoryEngine::assertFact(TNode literal)
 {
+  pthread_testcancel();
   Trace("theory") << "TheoryEngine::assertFact(" << literal << ")" << endl;
 
   // spendResource();
@@ -1226,7 +1273,9 @@ void TheoryEngine::assertFact(TNode literal)
   }
 }
 
-bool TheoryEngine::propagate(TNode literal, theory::TheoryId theory) {
+bool TheoryEngine::propagate(TNode literal, theory::TheoryId theory)
+{
+  pthread_testcancel();
   Trace("theory::propagate")
       << "TheoryEngine::propagate(" << literal << ", " << theory << ")" << endl;
 
@@ -1262,6 +1311,7 @@ bool TheoryEngine::propagate(TNode literal, theory::TheoryId theory) {
 
 theory::EqualityStatus TheoryEngine::getEqualityStatus(TNode a, TNode b)
 {
+  pthread_testcancel();
   Assert(a.getType() == b.getType());
   return d_sharedSolver->getEqualityStatus(a, b);
 }
@@ -1275,15 +1325,18 @@ void TheoryEngine::getDifficultyMap(std::map<Node, Node>& dmap,
 
 theory::IncompleteId TheoryEngine::getModelUnsoundId() const
 {
+  pthread_testcancel();
   return d_modelUnsoundId.get();
 }
 theory::IncompleteId TheoryEngine::getRefutationUnsoundId() const
 {
+  pthread_testcancel();
   return d_refutationUnsoundId.get();
 }
 
 Node TheoryEngine::getCandidateModelValue(TNode var)
 {
+  pthread_testcancel();
   if (var.isConst())
   {
     // the model value of a constant must be itself
@@ -1296,6 +1349,7 @@ Node TheoryEngine::getCandidateModelValue(TNode var)
 
 std::unordered_set<TNode> TheoryEngine::getRelevantAssertions(bool& success)
 {
+  pthread_testcancel();
   // if there is no relevance manager, we fail
   if (d_relManager == nullptr)
   {
@@ -1308,6 +1362,7 @@ std::unordered_set<TNode> TheoryEngine::getRelevantAssertions(bool& success)
 
 TrustNode TheoryEngine::getExplanation(TNode node)
 {
+  pthread_testcancel();
   Trace("theory::explain") << "TheoryEngine::getExplanation(" << node
                            << "): current propagation index = "
                            << d_propagationMapTimestamp << endl;
@@ -1411,6 +1466,7 @@ struct AtomsCollect {
 
 void TheoryEngine::ensureLemmaAtoms(TNode n, theory::TheoryId atomsTo)
 {
+  pthread_testcancel();
   Assert(atomsTo != THEORY_LAST);
   Trace("theory::atoms") << "TheoryEngine::ensureLemmaAtoms(" << n << ", "
                          << atomsTo << ")" << endl;
@@ -1419,7 +1475,10 @@ void TheoryEngine::ensureLemmaAtoms(TNode n, theory::TheoryId atomsTo)
   ensureLemmaAtoms(collectAtoms.getAtoms(), atomsTo);
 }
 
-void TheoryEngine::ensureLemmaAtoms(const std::vector<TNode>& atoms, theory::TheoryId atomsTo) {
+void TheoryEngine::ensureLemmaAtoms(const std::vector<TNode>& atoms,
+                                    theory::TheoryId atomsTo)
+{
+  pthread_testcancel();
   for (unsigned i = 0; i < atoms.size(); ++ i) {
 
     // Non-equality atoms are either owned by theory or they don't make sense
@@ -1566,6 +1625,7 @@ void TheoryEngine::lemma(TrustNode tlemma,
 
 void TheoryEngine::markInConflict()
 {
+  pthread_testcancel();
 #ifdef CVC5_FOR_EACH_THEORY_STATEMENT
 #undef CVC5_FOR_EACH_THEORY_STATEMENT
 #endif
@@ -2053,10 +2113,13 @@ TrustNode TheoryEngine::getExplanation(
 
 bool TheoryEngine::isProofEnabled() const
 {
+  pthread_testcancel();
   return d_env.isTheoryProofProducing();
 }
 
-void TheoryEngine::checkTheoryAssertionsWithModel(bool hardFailure) {
+void TheoryEngine::checkTheoryAssertionsWithModel(bool hardFailure)
+{
+  pthread_testcancel();
   bool hasFailure = false;
   std::stringstream serror;
   // If possible, get the list of relevant assertions. Those that are not
@@ -2212,11 +2275,13 @@ std::pair<bool, Node> TheoryEngine::entailmentCheck(options::TheoryOfMode mode,
 
 void TheoryEngine::spendResource(Resource r)
 {
+  pthread_testcancel();
   d_env.getResourceManager()->spendResource(r);
 }
 
 void TheoryEngine::initializeProofChecker(ProofChecker* pc)
 {
+  pthread_testcancel();
   for (theory::TheoryId id = theory::THEORY_FIRST; id < theory::THEORY_LAST;
        ++id)
   {
@@ -2228,6 +2293,10 @@ void TheoryEngine::initializeProofChecker(ProofChecker* pc)
   }
 }
 
-theory::Rewriter* TheoryEngine::getRewriter() { return d_env.getRewriter(); }
+theory::Rewriter* TheoryEngine::getRewriter()
+{
+  pthread_testcancel();
+  return d_env.getRewriter();
+}
 
 }  // namespace cvc5::internal

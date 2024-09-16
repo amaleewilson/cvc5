@@ -1497,6 +1497,8 @@ install(FILES
 #       RT_LIBRARIES should be empty for glibc >= 2.17
 target_link_libraries(cvc5 PRIVATE ${RT_LIBRARIES})
 
+target_link_libraries(cvc5 PRIVATE Threads::Threads)
+
 if(ENABLE_VALGRIND)
   target_include_directories(cvc5-obj SYSTEM PUBLIC ${Valgrind_INCLUDE_DIR})
 endif()

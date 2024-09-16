@@ -63,6 +63,8 @@ class PartitionGenerator : public TheoryEngineModule
                    const std::vector<Node>& skAsserts,
                    const std::vector<Node>& sks) override;
 
+  std::vector<Node> getPartitions();
+
  private:
   /* LiteralListType is used to specify where to pull literals from when calling
    * collectLiterals. HEAP for the order_heap in the SAT solver, DECISION for
@@ -203,6 +205,8 @@ std::vector<Node> d_assertedLemmas;
  * List of the cubes that have been created.
  */
 std::vector<Node> d_cubes;
+
+std::vector<Node> d_partitions;
 
 /**
  * List of the scatter partitions that have been created.
