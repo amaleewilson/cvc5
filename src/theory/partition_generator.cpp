@@ -125,7 +125,7 @@ void PartitionGenerator::notifyLemma(TNode n,
 bool PartitionGenerator::isUnusable(Node n)
 {
   const std::unordered_set<Kind, kind::KindHashFunction> unusableKinds = {
-      Kind::INST_CONSTANT, Kind::SKOLEM, Kind::APPLY_UF};
+      Kind::INST_CONSTANT, Kind::SKOLEM};
 
   // Check if n is constant or contains unusable kinds.
   if (n.isConst())
@@ -214,8 +214,6 @@ std::vector<Node> PartitionGenerator::collectLiterals(LiteralListType litType)
 void PartitionGenerator::emitPartition(Node toEmit)
 {
   d_partitions.push_back(toEmit);
-  // for debugging
-  // std::cout << toEmit.getKind() << std::endl;
   *options().parallel.partitionsOut << toEmit << std::endl;
   ++d_numPartitionsSoFar;
   d_createdAnyPartitions = true;
