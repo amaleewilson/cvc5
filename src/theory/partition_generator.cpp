@@ -125,7 +125,7 @@ void PartitionGenerator::notifyLemma(TNode n,
 bool PartitionGenerator::isUnusable(Node n)
 {
   const std::unordered_set<Kind, kind::KindHashFunction> unusableKinds = {
-      Kind::INST_CONSTANT, Kind::SKOLEM};
+      Kind::INST_CONSTANT, Kind::SKOLEM, Kind::DUMMY_SKOLEM};
 
   // Check if n is constant or contains unusable kinds.
   if (n.isConst())
