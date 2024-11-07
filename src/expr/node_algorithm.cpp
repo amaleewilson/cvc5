@@ -675,12 +675,12 @@ void getComponentTypes(TypeNode t, std::unordered_set<TypeNode>& types)
     // if not already visited
     if (types.find(curr) == types.end())
     {
-      if (types.size() == types.capacity())
+      if (types.size() >= types.bucket_count() * types.max_load_factor())
       {
         resizeCount++;
-        std::cerr << "Warning: toProcess resized, current size: "
-                  << types.size() << ", resize count: " << resizeCount
-                  << std::endl;
+        std::cerr << "Warning: unordered_set 'types' resized, current size: "
+                  << types.size() << ", bucket count: " << types.bucket_count()
+                  << ", resize count: " << resizeCount << std::endl;
       }
       types.insert(curr);
       // get component types from the children
