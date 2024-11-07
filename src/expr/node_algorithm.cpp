@@ -670,18 +670,18 @@ void getComponentTypes(TypeNode t, std::unordered_set<TypeNode>& types)
   size_t resizeCount = 0;
   do
   {
-    if (toProcess.size() == toProcess.capacity())
-    {
-      resizeCount++;
-      std::cerr << "Warning: toProcess resized, current size: "
-                << toProcess.size() << ", resize count: " << resizeCount
-                << std::endl;
-    }
     TypeNode curr = toProcess.back();
     toProcess.pop_back();
     // if not already visited
     if (types.find(curr) == types.end())
     {
+      if (types.size() == types.capacity())
+      {
+        resizeCount++;
+        std::cerr << "Warning: toProcess resized, current size: "
+                  << types.size() << ", resize count: " << resizeCount
+                  << std::endl;
+      }
       types.insert(curr);
       // get component types from the children
       for (unsigned i = 0, nchild = curr.getNumChildren(); i < nchild; i++)
