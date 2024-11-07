@@ -666,20 +666,9 @@ void getTypes(TNode n,
 void getComponentTypes(TypeNode t, std::unordered_set<TypeNode>& types)
 {
   std::vector<TypeNode> toProcess;
-  constexpr size_t initialCapacity = 1024;
-  toProcess.reserve(initialCapacity);
-  size_t resizeCount = 0;
-
   toProcess.push_back(t);
   do
   {
-    if (toProcess.size() == toProcess.capacity())
-    {
-      resizeCount++;
-      std::cerr << "Warning: toProcess resized, current size: "
-                << toProcess.size() << ", resize count: " << resizeCount
-                << std::endl;
-    }
     TypeNode curr = toProcess.back();
     toProcess.pop_back();
     // if not already visited
