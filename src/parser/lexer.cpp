@@ -19,7 +19,7 @@
 
 #include <cassert>
 #include <iostream>
-#include <mutex>
+// #include <mutex>
 #include <sstream>
 
 #include "base/output.h"
@@ -41,13 +41,13 @@ Lexer::Lexer()
 {
 }
 
-std::mutex coutMutex;
+// std::mutex coutMutex;
 
 void Lexer::warning(const std::string& msg)
 {
-  std::lock_guard<std::mutex> lock(coutMutex);
-  Warning() << d_inputName << ':' << d_span.d_start.d_line << '.'
-            << d_span.d_start.d_column << ": " << msg << std::endl;
+  // std::lock_guard<std::mutex> lock(coutMutex);
+  // Warning() << d_inputName << ':' << d_span.d_start.d_line << '.'
+  //           << d_span.d_start.d_column << ": " << msg << std::endl;
 }
 
 void Lexer::parseError(const std::string& msg, bool eofException)
