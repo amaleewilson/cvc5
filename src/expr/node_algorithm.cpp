@@ -666,22 +666,25 @@ void getTypes(TNode n,
 void getComponentTypes(TypeNode t, std::unordered_set<TypeNode>& types)
 {
   std::vector<TypeNode> toProcess;
-  toProcess.push_back(t);
+  constexpr size_t initialCapacity = 1024;
+  toProcess.reserve(initialCapacity);
   size_t resizeCount = 0;
+
+  toProcess.push_back(t);
   do
   {
+    if (toProcess.size() == toProcess.capacity())
+    {
+      resizeCount++;
+      std::cerr << "Warning: toProcess resized, current size: "
+                << toProcess.size() << ", resize count: " << resizeCount
+                << std::endl;
+    }
     TypeNode curr = toProcess.back();
     toProcess.pop_back();
     // if not already visited
     if (types.find(curr) == types.end())
     {
-      if (types.size() >= types.bucket_count() * types.max_load_factor())
-      {
-        resizeCount++;
-        std::cerr << "Warning: unordered_set 'types' resized, current size: "
-                  << types.size() << ", bucket count: " << types.bucket_count()
-                  << ", resize count: " << resizeCount << std::endl;
-      }
       types.insert(curr);
       // get component types from the children
       for (unsigned i = 0, nchild = curr.getNumChildren(); i < nchild; i++)
