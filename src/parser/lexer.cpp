@@ -15,12 +15,14 @@
 
 #include "parser/lexer.h"
 
+#include <cvc5/cvc5_parser.h>
+
 #include <cassert>
 #include <iostream>
+#include <mutex>
 #include <sstream>
 
 #include "base/output.h"
-#include <cvc5/cvc5_parser.h>
 
 namespace cvc5 {
 namespace parser {
@@ -39,8 +41,11 @@ Lexer::Lexer()
 {
 }
 
+std::mutex coutMutex;
+
 void Lexer::warning(const std::string& msg)
 {
+  std::lock_guard<std::mutex> lock(coutMutex);
   Warning() << d_inputName << ':' << d_span.d_start.d_line << '.'
             << d_span.d_start.d_column << ": " << msg << std::endl;
 }
