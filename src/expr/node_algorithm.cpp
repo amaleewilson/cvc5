@@ -667,8 +667,16 @@ void getComponentTypes(TypeNode t, std::unordered_set<TypeNode>& types)
 {
   std::vector<TypeNode> toProcess;
   toProcess.push_back(t);
+  size_t resizeCount = 0;
   do
   {
+    if (toProcess.size() == toProcess.capacity())
+    {
+      resizeCount++;
+      std::cerr << "Warning: toProcess resized, current size: "
+                << toProcess.size() << ", resize count: " << resizeCount
+                << std::endl;
+    }
     TypeNode curr = toProcess.back();
     toProcess.pop_back();
     // if not already visited
