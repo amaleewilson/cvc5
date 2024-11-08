@@ -384,7 +384,7 @@ class CVC5_EXPORT Printer
   static std::unique_ptr<Printer> makePrinter(Language lang);
 
   /** Printers for each Language */
-  static std::unique_ptr<Printer>
+  thread_local static std::unique_ptr<Printer>
       d_printers[static_cast<size_t>(Language::LANG_MAX)];
 
 }; /* class Printer */
