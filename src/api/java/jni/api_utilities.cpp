@@ -82,7 +82,7 @@ cvc5::Term applyOracle(JNIEnv* env,
 
 ApiManager* ApiManager::currentAM()
 {
-  static ApiManager am;
+  static thread_local ApiManager am;
   return &am;
 }
 
