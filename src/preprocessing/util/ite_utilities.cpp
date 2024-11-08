@@ -1070,7 +1070,7 @@ static thread_local unsigned itesMade = 0;
 
 Node ITESimplifier::constantIteEqualsConstant(TNode cite, TNode constant)
 {
-  static thread_local instance = 0;
+  static thread_local int instance = 0;
   ++instance;
   Trace("ite::constantIteEqualsConstant")
       << instance << "constantIteEqualsConstant(" << cite << ", " << constant
