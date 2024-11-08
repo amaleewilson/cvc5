@@ -90,7 +90,7 @@ PreprocessingPass* PreprocessingPassRegistry::createPass(
 
 std::vector<std::string> PreprocessingPassRegistry::getAvailablePasses()
 {
-  std::vector<std::string> passes;
+  std::vector<std::string> thread_local passes;
   for (const auto& info : d_ppInfo)
   {
     passes.push_back(info.first);
