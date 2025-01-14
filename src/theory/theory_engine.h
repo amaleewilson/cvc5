@@ -447,6 +447,8 @@ class TheoryEngine : protected EnvObj
    */
   void checkTheoryAssertionsWithModel(bool hardFailure);
 
+  std::vector<Node> getPartitions() { return d_partitionGen->getPartitions(); }
+
   /** Called externally to notify that the current branch is incomplete. */
   void setModelUnsound(theory::IncompleteId id);
   /** Called externally that we are unsound (user-context). */
