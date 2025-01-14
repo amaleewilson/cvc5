@@ -720,6 +720,7 @@ void Solver::resetTrail() { cancelUntil(0); }
 
 Lit Solver::pickBranchLit()
 {
+    pthread_testcancel();
     Lit nextLit;
     bool stopSearch = false;
     bool requirePhase = false;
