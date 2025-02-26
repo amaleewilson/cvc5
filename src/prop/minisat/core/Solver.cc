@@ -691,16 +691,23 @@ void Solver::cancelUntil(int level)
 
   if (decisionLevel() > level)
   {
-    if (level == 0)
+    // if nto a restart
+    if (level != 0)
     {
       auto t = std::chrono::high_resolution_clock::now();
-      auto start_t = level_start_times.at(1);
+      auto start_t = level_start_times.at(level);
 
       auto elapsed = std::chrono::duration<double>{t - start_t}.count();
-      if (elapsed > 3)
+
+      for (int l = trail_lim.size() - 1; l > level; l--)
       {
-        std::cout << "pre-restart duration of decision level one " << elapsed
-                  << "s" << std::endl;
+        level_durations[level] = elapsed;
+      }
+
+      if (elapsed > 1)
+      {
+        std::cout << "elapsed > 1 for decision level " << level << ": "
+                  << elapsed << "s" << std::endl;
         int max_v = trail_lim[1];
         for (int c = 0; c <= max_v; c++)
         {
@@ -713,7 +720,10 @@ void Solver::cancelUntil(int level)
           }
         }
       }
+    }
 
+    if (level == 0)
+    {
       // reset the map
       level_start_times.clear();
     }
