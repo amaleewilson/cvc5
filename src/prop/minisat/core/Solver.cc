@@ -708,7 +708,7 @@ void Solver::cancelUntil(int level)
       {
         std::cout << "elapsed > 1 for decision level " << level << ": "
                   << elapsed << "s" << std::endl;
-        int max_v = trail_lim[1];
+        int max_v = trail.size();
         for (int c = 0; c <= max_v; c++)
         {
           if (isDecision(var(trail[c])))
