@@ -704,10 +704,13 @@ void Solver::cancelUntil(int level)
         int max_v = trail_lim[1];
         for (int c = 0; c <= max_v; c++)
         {
-          std::cout << "trail[" << c << "] = " << trail[c] << " node "
-                    << d_proxy->getNode(
-                           MinisatSatSolver::toSatLiteral(trail[c]))
-                    << std::endl;
+          if (isDecision(var(trail[c])))
+          {
+            std::cout << "trail[" << c << "] = " << trail[c] << " node "
+                      << d_proxy->getNode(
+                             MinisatSatSolver::toSatLiteral(trail[c]))
+                      << std::endl;
+          }
         }
       }
 
