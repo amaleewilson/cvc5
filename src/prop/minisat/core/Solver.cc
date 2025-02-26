@@ -199,7 +199,9 @@ Solver::Solver(Env& env,
       simpDB_props(0),
       order_heap(VarOrderLt(activity)),
       progress_estimate(0),
-      remove_satisfied(!enableIncremental)
+      remove_satisfied(!enableIncremental),
+      num_produced_partitions(0),
+      num_desired_partitions(5)
 
       // Resource constraints:
       //
@@ -704,10 +706,12 @@ void Solver::cancelUntil(int level)
         level_durations[level] = elapsed;
       }
 
-      if (elapsed > 1)
+      double cutoff = 0.5;
+      if (elapsed > cutoff)
       {
-        std::cout << "elapsed > 1 for decision level " << level << ": "
-                  << elapsed << "s" << std::endl;
+        num_produced_partitions++;
+        std::cout << "elapsed > " << cutoff << " for decision level " << level
+                  << ": " << elapsed << "s" << std::endl;
         int max_v = trail.size();
         for (int c = 0; c <= max_v; c++)
         {
@@ -719,7 +723,12 @@ void Solver::cancelUntil(int level)
                       << std::endl;
           }
         }
-        ok = false;
+        if (num_produced_partitions == num_desired_partitions)
+        {
+          std::cout << "Produced " << num_produced_partitions
+                    << " partitions, exiting" << std::endl;
+          ok = false;
+        }
       }
     }
     else
