@@ -695,7 +695,7 @@ void Solver::cancelUntil(int level)
     if (level != 0)
     {
       auto t = std::chrono::high_resolution_clock::now();
-      auto start_t = level_start_times.at(level);
+      auto start_t = level_start_times.at(level + 1);
 
       auto elapsed = std::chrono::duration<double>{t - start_t}.count();
 
@@ -721,23 +721,13 @@ void Solver::cancelUntil(int level)
         }
       }
     }
-
-    if (level == 0)
+    else
     {
       // reset the map
       level_start_times.clear();
     }
-    else
-    {
-      // auto t = std::chrono::high_resolution_clock::now();
-      // auto start_t = level_start_times.at(level);
-      // std::chrono::duration<double> elapsed_seconds{t - start_t};
-      // std::cout << "minisat::cancelUntil(" << level << "), "
-      //           << elapsed_seconds.count() << "s "
-      //           << "trail size " << trail.size() << " decision level "
-      //           << decisionLevel() << std::endl;
-    }
 
+    // This is all the normal stuff that happens in a backtrack
     // Pop the SMT context
     for (int l = trail_lim.size() - level; l > 0; --l)
     {
