@@ -719,6 +719,7 @@ void Solver::cancelUntil(int level)
                       << std::endl;
           }
         }
+        ok = false;
       }
     }
     else
