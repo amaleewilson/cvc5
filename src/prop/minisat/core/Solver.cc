@@ -680,36 +680,78 @@ bool Solver::satisfied(const Clause& c) const {
             return true;
     return false; }
 
+#include <chrono>
 
-// Revert to the state at given level (keeping all assignment at 'level' but not beyond).
+// Revert to the state at given level (keeping all assignment at 'level' but
+// not beyond).
 //
-void Solver::cancelUntil(int level) {
-    Trace("minisat") << "minisat::cancelUntil(" << level << ")" << std::endl;
+void Solver::cancelUntil(int level)
+{
+  Trace("minisat") << "minisat::cancelUntil(" << level << ")" << std::endl;
 
-    if (decisionLevel() > level)
+  if (decisionLevel() > level)
+  {
+    if (level == 0)
     {
-      // Pop the SMT context
-      for (int l = trail_lim.size() - level; l > 0; --l)
+      auto t = std::chrono::high_resolution_clock::now();
+      auto start_t = level_start_times.at(1);
+
+      auto elapsed = std::chrono::duration<double>{t - start_t}.count();
+      if (elapsed > 3)
       {
-        d_context->pop();
-      }
-        for (int c = trail.size()-1; c >= trail_lim[level]; c--){
-            Var      x  = var(trail[c]);
-            assigns [x] = l_Undef;
-            vardata[x].d_trail_index = -1;
-            if ((phase_saving > 1 ||
-                 ((phase_saving == 1) && c > trail_lim.last())
-                 ) && ((polarity[x] & 0x2) == 0)) {
-              polarity[x] = sign(trail[c]);
-            }
-            insertVarOrder(x);
+        std::cout << "pre-restart duration of decision level one " << elapsed
+                  << "s" << std::endl;
+        int max_v = trail_lim[1];
+        for (int c = 0; c <= max_v; c++)
+        {
+          std::cout << "trail[" << c << "] = " << trail[c] << " node "
+                    << d_proxy->getNode(
+                           MinisatSatSolver::toSatLiteral(trail[c]))
+                    << std::endl;
         }
-        qhead = trail_lim[level];
-        trail.shrink(trail.size() - trail_lim[level]);
-        trail_lim.shrink(trail_lim.size() - level);
-        flipped.shrink(flipped.size() - level);
-        d_proxy->notifyBacktrack();
+      }
+
+      // reset the map
+      level_start_times.clear();
     }
+    else
+    {
+      // auto t = std::chrono::high_resolution_clock::now();
+      // auto start_t = level_start_times.at(level);
+      // std::chrono::duration<double> elapsed_seconds{t - start_t};
+      // std::cout << "minisat::cancelUntil(" << level << "), "
+      //           << elapsed_seconds.count() << "s "
+      //           << "trail size " << trail.size() << " decision level "
+      //           << decisionLevel() << std::endl;
+    }
+
+    // Pop the SMT context
+    for (int l = trail_lim.size() - level; l > 0; --l)
+    {
+      d_context->pop();
+    }
+    for (int c = trail.size() - 1; c >= trail_lim[level]; c--)
+    {
+      Var x = var(trail[c]);
+      assigns[x] = l_Undef;
+      vardata[x].d_trail_index = -1;
+      if ((phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last()))
+          && ((polarity[x] & 0x2) == 0))
+      {
+        polarity[x] = sign(trail[c]);
+      }
+      insertVarOrder(x);
+    }
+    qhead = trail_lim[level];
+    trail.shrink(trail.size() - trail_lim[level]);
+    trail_lim.shrink(trail_lim.size() - level);
+    flipped.shrink(flipped.size() - level);
+    d_proxy->notifyBacktrack();
+
+    // std::cout << "POST minisat::cancelUntil(" << level << "), "
+    //           << "trail size " << trail.size() << " decision level "
+    //           << decisionLevel() << std::endl;
+  }
 }
 
 void Solver::resetTrail() { cancelUntil(0); }
