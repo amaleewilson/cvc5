@@ -201,7 +201,7 @@ Solver::Solver(Env& env,
       progress_estimate(0),
       remove_satisfied(!enableIncremental),
       num_produced_partitions(0),
-      num_desired_partitions(5)
+      num_desired_partitions(0)
 
       // Resource constraints:
       //
