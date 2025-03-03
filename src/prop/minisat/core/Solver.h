@@ -368,6 +368,7 @@ public:
 
  int learntsize_adjust_start_confl;
  double learntsize_adjust_inc;
+ int num_desired_partitions;
 
  // Statistics: (read-only member variable)
  //
@@ -454,7 +455,6 @@ protected:
     double              progress_estimate;  // Set by 'search()'.
     bool                remove_satisfied;   // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
     int num_produced_partitions;
-    int num_desired_partitions;
 
     ClauseAllocator     ca;
 

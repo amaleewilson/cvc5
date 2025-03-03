@@ -693,36 +693,42 @@ void Solver::cancelUntil(int level)
 
   if (decisionLevel() > level)
   {
-    // if nto a restart
+    // if not a restart
     if (level != 0)
     {
+      // Get current time
       auto t = std::chrono::high_resolution_clock::now();
-      auto start_t = level_start_times.at(level + 1);
+      // Get the start time of the level being backtracked
+      auto start_t = level_start_times.at(level);
 
       auto elapsed = std::chrono::duration<double>{t - start_t}.count();
 
-      for (int l = trail_lim.size() - 1; l > level; l--)
-      {
-        level_durations[level] = elapsed;
-      }
+      // I don't think this is necessary anymore.
+      // for (int l = trail_lim.size() - 1; l > level; l--)
+      // {
+      //   level_durations[level] = elapsed;
+      // }
 
       double cutoff = 0.5;
       if (elapsed > cutoff)
       {
         num_produced_partitions++;
-        std::cout << "elapsed > " << cutoff << " for decision level " << level
-                  << ": " << elapsed << "s" << std::endl;
+        // std::cout << "elapsed > " << cutoff << " for decision level " <<
+        // level
+        //           << ": " << elapsed << "s" << std::endl;
+        std::cout << "PARTITION START" << std::endl;
         int max_v = trail.size();
         for (int c = 0; c <= max_v; c++)
         {
           if (isDecision(var(trail[c])))
           {
-            std::cout << "trail[" << c << "] = " << trail[c] << " node "
-                      << d_proxy->getNode(
-                             MinisatSatSolver::toSatLiteral(trail[c]))
+            std::cout << d_proxy->getNode(
+                MinisatSatSolver::toSatLiteral(trail[c]))
                       << std::endl;
           }
         }
+        std::cout << "PARTITION END" << std::endl;
+
         if (num_produced_partitions == num_desired_partitions)
         {
           std::cout << "Produced " << num_produced_partitions

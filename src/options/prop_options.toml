@@ -34,6 +34,14 @@ name   = "SAT Layer"
   help       = "sets the random seed for the sat solver"
 
 [[option]]
+  name       = "numEasyPartitions"
+  category   = "expert"
+  long       = "num-easy-partitions=N"
+  type       = "uint64_t"
+  default    = "0"
+  help       = "sets the number of easy partitions to make"
+
+[[option]]
   name       = "satVarDecay"
   category   = "expert"
   type       = "double"

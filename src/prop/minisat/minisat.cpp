@@ -158,6 +158,11 @@ void MinisatSatSolver::setupOptions() {
     d_minisat->random_seed = double(options().prop.satRandomSeed);
   }
 
+  if (options().prop.numEasyPartitions > 1)
+  {
+    d_minisat->num_desired_partitions = options().prop.numEasyPartitions;
+  }
+
   // Give access to all possible options in the sat solver
   d_minisat->var_decay = options().prop.satVarDecay;
   d_minisat->clause_decay = options().prop.satClauseDecay;
