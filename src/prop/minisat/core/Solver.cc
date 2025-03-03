@@ -694,7 +694,7 @@ void Solver::cancelUntil(int level)
   if (decisionLevel() > level)
   {
     // if not a restart
-    if (level != 0)
+    if (level != 0 && num_desired_partitions > 1)
     {
       // Get current time
       auto t = std::chrono::high_resolution_clock::now();
