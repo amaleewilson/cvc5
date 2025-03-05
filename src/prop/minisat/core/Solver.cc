@@ -683,7 +683,8 @@ bool Solver::satisfied(const Clause& c) const {
     return false; }
 
 #include <chrono>
-
+const std::unordered_set<Kind, kind::KindHashFunction> unusableKinds = {
+    Kind::INST_CONSTANT, Kind::SKOLEM};
 // Revert to the state at given level (keeping all assignment at 'level' but
 // not beyond).
 //
@@ -701,6 +702,7 @@ void Solver::cancelUntil(int level)
       // Get the start time of the level being backtracked
       auto start_t = level_start_times.at(level);
 
+      /// Generating timestamp from making decision to backtracking it
       auto elapsed = std::chrono::duration<double>{t - start_t}.count();
 
       // I don't think this is necessary anymore.
@@ -712,28 +714,40 @@ void Solver::cancelUntil(int level)
       double cutoff = 0.5;
       if (elapsed > cutoff)
       {
-        num_produced_partitions++;
+        bool partition_dumped = false;
+
         // std::cout << "elapsed > " << cutoff << " for decision level " <<
         // level
         //           << ": " << elapsed << "s" << std::endl;
-        std::cout << "PARTITION START" << std::endl;
+
         int max_v = trail.size();
         for (int c = 0; c <= max_v; c++)
         {
           if (isDecision(var(trail[c])))
           {
-            std::cout << d_proxy->getNode(
-                MinisatSatSolver::toSatLiteral(trail[c]))
-                      << std::endl;
+            auto n = d_proxy->getNode(MinisatSatSolver::toSatLiteral(trail[c]));
+            if (!n.isConst() && !unusableKinds.count(n.getKind()))
+            {
+              if (!partition_dumped)
+              {
+                std::cout << "PARTITION START" << std::endl;
+              }
+              partition_dumped = true;
+              std::cout << n << std::endl;
+            }
           }
         }
-        std::cout << "PARTITION END" << std::endl;
+        if (partition_dumped)
+        {
+          std::cout << "PARTITION END" << std::endl;
+          num_produced_partitions++;
+        }
 
-        if (num_produced_partitions == num_desired_partitions)
+        if (num_produced_partitions >= num_desired_partitions)
         {
           std::cout << "Produced " << num_produced_partitions
                     << " partitions, exiting" << std::endl;
-          ok = false;
+          exit(0);
         }
       }
     }
