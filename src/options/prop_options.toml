@@ -60,6 +60,14 @@ name   = "SAT Layer"
   help       = "clause activity decay factor for Minisat"
 
 [[option]]
+  name       = "partitionThreshold"
+  category   = "expert"
+  long       = "partition-threshold=F"
+  type       = "double"
+  default    = "0.5"
+  help       = "minimum time between decision and backtracking for an easy partition"
+
+[[option]]
   name       = "satRestartFirst"
   category   = "expert"
   long       = "restart-int-base=N"

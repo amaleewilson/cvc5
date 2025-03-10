@@ -711,7 +711,7 @@ void Solver::cancelUntil(int level)
       //   level_durations[level] = elapsed;
       // }
 
-      double cutoff = 0.5;
+      double cutoff = options().prop.partitionThreshold;
       if (elapsed > cutoff)
       {
         bool partition_dumped = false;
