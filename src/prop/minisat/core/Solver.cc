@@ -684,7 +684,7 @@ bool Solver::satisfied(const Clause& c) const {
 
 #include <chrono>
 const std::unordered_set<Kind, kind::KindHashFunction> unusableKinds = {
-    Kind::INST_CONSTANT, Kind::SKOLEM};
+    Kind::INST_CONSTANT};
 // Revert to the state at given level (keeping all assignment at 'level' but
 // not beyond).
 //
@@ -721,7 +721,7 @@ void Solver::cancelUntil(int level)
         //           << ": " << elapsed << "s" << std::endl;
 
         int max_v = trail.size();
-        for (int c = 0; c <= max_v; c++)
+        for (int c = 0; c < max_v; c++)
         {
           if (isDecision(var(trail[c])))
           {
