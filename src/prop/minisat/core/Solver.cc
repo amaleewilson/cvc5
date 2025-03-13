@@ -712,7 +712,7 @@ void Solver::cancelUntil(int level)
       // }
 
       double cutoff = options().prop.partitionThreshold;
-      if (elapsed > cutoff)
+      if (elapsed > cutoff || elapsed <= cutoff)
       {
         // std::cout << "elapsed > " << cutoff << " for decision level " <<
         // level
@@ -733,10 +733,82 @@ void Solver::cancelUntil(int level)
         }
       }
     }
-    else
+
+    // This is all the normal stuff that happens in a backtrack
+    // Pop the SMT context
+    for (int l = trail_lim.size() - level; l > 0; --l)
     {
-      // reset the map
-      level_start_times.clear();
+      d_context->pop();
+    }
+    for (int c = trail.size() - 1; c >= trail_lim[level]; c--)
+    {
+      Var x = var(trail[c]);
+      assigns[x] = l_Undef;
+      vardata[x].d_trail_index = -1;
+      if ((phase_saving > 1 || ((phase_saving == 1) && c > trail_lim.last()))
+          && ((polarity[x] & 0x2) == 0))
+      {
+        polarity[x] = sign(trail[c]);
+      }
+      insertVarOrder(x);
+    }
+    qhead = trail_lim[level];
+    trail.shrink(trail.size() - trail_lim[level]);
+    trail_lim.shrink(trail_lim.size() - level);
+    flipped.shrink(flipped.size() - level);
+    d_proxy->notifyBacktrack();
+
+    // std::cout << "POST minisat::cancelUntil(" << level << "), "
+    //           << "trail size " << trail.size() << " decision level "
+    //           << decisionLevel() << std::endl;
+  }
+}
+
+void Solver::cancelUntilParti(int level)
+{
+  Trace("minisat") << "minisat::cancelUntilParti(" << level << ")" << std::endl;
+
+  if (decisionLevel() > level)
+  {
+    // if not a restart
+    if (num_desired_partitions > 0)
+    {
+      // Get current time
+      // auto t = std::chrono::high_resolution_clock::now();
+      // Get the start time of the level being backtracked
+      // auto start_t = level_start_times.at(level);
+
+      /// Generating timestamp from making decision to backtracking it
+      // auto elapsed = std::chrono::duration<double>{t - start_t}.count();
+
+      // I don't think this is necessary anymore.
+      // for (int l = trail_lim.size() - 1; l > level; l--)
+      // {
+      //   level_durations[level] = elapsed;
+      // }
+
+      double cutoff = options().prop.partitionThreshold;
+      // if (elapsed > cutoff)
+      if (true)
+      {
+        // std::cout << "elapsed > " << cutoff << " for decision level " <<
+        // level
+        //           << ": " << elapsed << "s" << std::endl;
+
+        bool partition_dumped = d_proxy->proxyDumpEasyPartitions();
+
+        if (partition_dumped)
+        {
+          num_produced_partitions++;
+        }
+
+        if (num_produced_partitions >= num_desired_partitions)
+        {
+          std::cout << "Produced " << num_produced_partitions
+                    << " partitions, exiting" << std::endl;
+          exit(0);
+        }
+      }
     }
 
     // This is all the normal stuff that happens in a backtrack
@@ -1579,7 +1651,15 @@ lbool Solver::search(int nof_conflicts)
       // Analyze the conflict
       learnt_clause.clear();
       int max_level = analyze(confl, learnt_clause, backtrack_level);
-      cancelUntil(backtrack_level);
+
+      if (options().prop.numEasyPartitions > 0)
+      {
+        cancelUntilParti(backtrack_level);
+      }
+      else
+      {
+        cancelUntil(backtrack_level);
+      }
 
       // Assert the conflict clause and the asserting literal
       if (learnt_clause.size() == 1)
