@@ -158,7 +158,7 @@ void MinisatSatSolver::setupOptions() {
     d_minisat->random_seed = double(options().prop.satRandomSeed);
   }
 
-  if (options().prop.numEasyPartitions > 1)
+  if (options().prop.numEasyPartitions > 0)
   {
     d_minisat->num_desired_partitions = options().prop.numEasyPartitions;
   }

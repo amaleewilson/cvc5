@@ -84,6 +84,8 @@ class TheoryEngineModule : protected EnvObj
   /** Get the theory identifier */
   TheoryId getId() const;
 
+  virtual bool isPartitioner() { return false; }
+
  protected:
   /** The output channel, for sending lemmas */
   OutputChannel d_out;

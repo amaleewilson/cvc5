@@ -42,6 +42,8 @@ class PartitionGenerator : public TheoryEngineModule
                      TheoryEngine* theoryEngine,
                      prop::PropEngine* propEngine);
 
+  bool dumpEasyPartitions();
+
   /**
    * postsolve, emits remaining partitions.
    */
@@ -53,6 +55,8 @@ class PartitionGenerator : public TheoryEngineModule
    * search.
    */
   void check(Theory::Effort e) override;
+
+  bool isPartitioner() override { return true; }
 
   /** Notify lemma, adds the literals from the Node n to our list of literals
    * from lemmas.

@@ -231,6 +231,24 @@ Node PartitionGenerator::stopPartitioning()
   return nodeManager()->mkConst(false);
 }
 
+bool PartitionGenerator::dumpEasyPartitions()
+{
+  // std::cout << "partition generator dump easy partitions" << std::endl;
+  std::vector<Node> literals = collectLiterals(DECISION);
+
+  if (literals.size() > 0)
+  {
+    std::cout << "PARTITION START" << std::endl;
+    for (const Node& l : literals)
+    {
+      std::cout << l << std::endl;
+    }
+    std::cout << "PARTITION END" << std::endl;
+    return true;
+  }
+  return false;
+}
+
 // For the scatter strategy, we make the following kinds of partitions:
 // P1 =              C1 = l1_{1} & ... & l1_{d_conflictSize}
 // P2 = !C1 &        C2 = l2_{1} & ... & l2_{d_conflictSize}

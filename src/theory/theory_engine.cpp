@@ -23,6 +23,7 @@
 #include "expr/node_builder.h"
 #include "expr/node_visitor.h"
 #include "options/parallel_options.h"
+#include "options/prop_options.h"
 #include "options/quantifiers_options.h"
 #include "options/smt_options.h"
 #include "options/theory_options.h"
@@ -192,7 +193,8 @@ void TheoryEngine::finishInit()
     t->finishInit();
   }
 
-  if (options().parallel.computePartitions > 1)
+  if (options().parallel.computePartitions > 1
+      || options().prop.numEasyPartitions > 0)
   {
     d_partitionGen =
         std::make_unique<PartitionGenerator>(d_env, this, getPropEngine());
@@ -664,6 +666,20 @@ bool TheoryEngine::properConflict(TNode conflict) const {
     }
   }
   return true;
+}
+
+bool TheoryEngine::engineDumpEasyPartitions()
+{
+  // std::cout << "engine dump easy partitions" << std::endl;
+  for (TheoryEngineModule* tem : d_modules)
+  {
+    if (tem->isPartitioner())
+    {
+      PartitionGenerator* pg = static_cast<PartitionGenerator*>(tem);
+      return pg->dumpEasyPartitions();
+    }
+  }
+  return false;
 }
 
 TheoryModel* TheoryEngine::getModel()

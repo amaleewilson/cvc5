@@ -126,6 +126,8 @@ class TheoryEngine : protected EnvObj
   /** "Spend" a resource during a search or preprocessing.*/
   void spendResource(Resource r);
 
+  bool engineDumpEasyPartitions();
+
   /**
    * Adds a theory. Only one theory per TheoryId can be present, so if
    * there is another theory it will be deleted.

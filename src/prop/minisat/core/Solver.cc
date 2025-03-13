@@ -695,7 +695,7 @@ void Solver::cancelUntil(int level)
   if (decisionLevel() > level)
   {
     // if not a restart
-    if (level != 0 && num_desired_partitions > 1)
+    if (level != 0 && num_desired_partitions > 0)
     {
       // Get current time
       auto t = std::chrono::high_resolution_clock::now();
@@ -714,32 +714,14 @@ void Solver::cancelUntil(int level)
       double cutoff = options().prop.partitionThreshold;
       if (elapsed > cutoff)
       {
-        bool partition_dumped = false;
-
         // std::cout << "elapsed > " << cutoff << " for decision level " <<
         // level
         //           << ": " << elapsed << "s" << std::endl;
 
-        int max_v = trail.size();
-        for (int c = 0; c < max_v; c++)
-        {
-          if (isDecision(var(trail[c])))
-          {
-            auto n = d_proxy->getNode(MinisatSatSolver::toSatLiteral(trail[c]));
-            if (!n.isConst() && !unusableKinds.count(n.getKind()))
-            {
-              if (!partition_dumped)
-              {
-                std::cout << "PARTITION START" << std::endl;
-              }
-              partition_dumped = true;
-              std::cout << n << std::endl;
-            }
-          }
-        }
+        bool partition_dumped = d_proxy->proxyDumpEasyPartitions();
+
         if (partition_dumped)
         {
-          std::cout << "PARTITION END" << std::endl;
           num_produced_partitions++;
         }
 

@@ -82,6 +82,9 @@ class TheoryProxy : protected EnvObj, public Registrar
    * @param rhs The right-hand side of the substitution
    */
   void notifyTopLevelSubstitution(const Node& lhs, const Node& rhs) const;
+
+  bool proxyDumpEasyPartitions();
+
   /**
    * Notifies this module of the input assertions.
    * @param assertion The preprocessed input assertions,

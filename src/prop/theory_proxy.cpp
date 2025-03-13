@@ -127,6 +127,12 @@ void TheoryProxy::postsolve(SatValue result)
   d_inSolve = false;
 }
 
+bool TheoryProxy::proxyDumpEasyPartitions()
+{
+  // std::cout << "proxyDumpEasyPartitions" << std::endl;
+  return d_theoryEngine->engineDumpEasyPartitions();
+}
+
 void TheoryProxy::notifyTopLevelSubstitution(const Node& lhs,
                                              const Node& rhs) const
 {
