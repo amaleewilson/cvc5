@@ -410,6 +410,9 @@ void TheoryEngine::check(Theory::Effort effort) {
     d_lemmasAdded = false;
 
     Trace("theory") << "TheoryEngine::check(" << effort << "): d_factsAsserted = " << (d_factsAsserted ? "true" : "false") << endl;
+    std::cout << "TheoryEngine::check(" << effort
+              << "): d_factsAsserted = " << (d_factsAsserted ? "true" : "false")
+              << endl;
 
     // If in full effort, we have a fake new assertion just to jumpstart the checking
     if (Theory::fullEffort(effort)) {
@@ -421,6 +424,7 @@ void TheoryEngine::check(Theory::Effort effort) {
     // check with the theory modules
     for (TheoryEngineModule* tem : d_modules)
     {
+      std::cout << "tem being called" << std::endl;
       tem->check(effort);
     }
 

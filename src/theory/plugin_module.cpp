@@ -30,18 +30,26 @@ PluginModule::PluginModule(Env& env, TheoryEngine* theoryEngine, Plugin* p)
 
 void PluginModule::check(Theory::Effort e)
 {
+  std::cout << "PluginModule::check() called with effort level: " << e
+            << std::endl;
   // ignore the effort level?
   std::vector<Node> lems = d_plugin->check();
   // returned vector is taken as lemmas
   for (const Node& lem : lems)
   {
+    std::cout << "PluginModule::check() returned lemma: " << lem << std::endl;
+    std::cout << "lem.getType().isBoolean() = " << lem.getType().isBoolean()
+              << std::endl;
     Assert(lem.getType().isBoolean());
+
     // must apply top level substitutions here, since if this lemma was
     // sent externally, it may not have taken into account the internal
     // substitutions.
     Node slem = d_env.getTopLevelSubstitutions().apply(lem);
+    std::cout << "slem = " << slem << std::endl;
     // send the lemma
     d_out.lemma(slem, InferenceId::PLUGIN_LEMMA);
+    // traces to turn on: ask someone, also -t theory::assertions
   }
 }
 

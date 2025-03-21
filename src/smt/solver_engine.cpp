@@ -121,6 +121,7 @@ SolverEngine::SolverEngine(const Options* optr)
       d_isInternalSubsolver(false),
       d_stats(nullptr)
 {
+  std::cout << "this is a test" << std::endl;
   // listen to resource out
   getResourceManager()->registerListener(d_routListener.get());
   // make statistics

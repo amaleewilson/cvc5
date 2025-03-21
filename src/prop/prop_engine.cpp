@@ -428,6 +428,7 @@ void PropEngine::outputIncompleteReason(UnknownExplanation uexp,
 Result PropEngine::checkSat() {
   Assert(!d_inCheckSat) << "Sat solver in solve()!";
   Trace("prop") << "PropEngine::checkSat()" << std::endl;
+  std::cout << "PropEngine::checkSat()" << std::endl;
 
   // Mark that we are in the checkSat
   ScopedBool scopedBool(d_inCheckSat);
