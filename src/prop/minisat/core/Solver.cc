@@ -201,7 +201,8 @@ Solver::Solver(Env& env,
       progress_estimate(0),
       remove_satisfied(!enableIncremental),
       num_produced_partitions(0),
-      num_desired_partitions(0)
+      num_desired_partitions(0),
+      time_to_wait(0)
 
       // Resource constraints:
       //
@@ -683,8 +684,6 @@ bool Solver::satisfied(const Clause& c) const {
     return false; }
 
 #include <chrono>
-const std::unordered_set<Kind, kind::KindHashFunction> unusableKinds = {
-    Kind::INST_CONSTANT};
 // Revert to the state at given level (keeping all assignment at 'level' but
 // not beyond).
 //
@@ -694,47 +693,6 @@ void Solver::cancelUntil(int level)
 
   if (decisionLevel() > level)
   {
-    // if not a restart
-    if (level != 0 && num_desired_partitions > 0)
-    {
-      // Get current time
-      auto t = std::chrono::high_resolution_clock::now();
-      // Get the start time of the level being backtracked
-      auto start_t = level_start_times.at(level);
-
-      /// Generating timestamp from making decision to backtracking it
-      auto elapsed = std::chrono::duration<double>{t - start_t}.count();
-
-      // I don't think this is necessary anymore.
-      // for (int l = trail_lim.size() - 1; l > level; l--)
-      // {
-      //   level_durations[level] = elapsed;
-      // }
-
-      double cutoff = options().prop.partitionThreshold;
-      if (elapsed > cutoff || elapsed <= cutoff)
-      {
-        // std::cout << "elapsed > " << cutoff << " for decision level " <<
-        // level
-        //           << ": " << elapsed << "s" << std::endl;
-
-        bool partition_dumped = d_proxy->proxyDumpEasyPartitions();
-
-        if (partition_dumped)
-        {
-          num_produced_partitions++;
-        }
-
-        if (num_produced_partitions >= num_desired_partitions)
-        {
-          std::cout << "Produced " << num_produced_partitions
-                    << " partitions, exiting" << std::endl;
-          exit(0);
-        }
-      }
-    }
-
-    // This is all the normal stuff that happens in a backtrack
     // Pop the SMT context
     for (int l = trail_lim.size() - level; l > 0; --l)
     {
@@ -757,21 +715,22 @@ void Solver::cancelUntil(int level)
     trail_lim.shrink(trail_lim.size() - level);
     flipped.shrink(flipped.size() - level);
     d_proxy->notifyBacktrack();
-
-    // std::cout << "POST minisat::cancelUntil(" << level << "), "
-    //           << "trail size " << trail.size() << " decision level "
-    //           << decisionLevel() << std::endl;
   }
 }
 
 void Solver::cancelUntilParti(int level)
 {
+  auto current_time = std::chrono::high_resolution_clock::now();
+  auto elapsed =
+      std::chrono::duration<double>{current_time - solver_start_time}.count();
+
+  std::cout << "cancelUntilParti" << std::endl;
   Trace("minisat") << "minisat::cancelUntilParti(" << level << ")" << std::endl;
 
   if (decisionLevel() > level)
   {
     // if not a restart
-    if (num_desired_partitions > 0)
+    if (num_desired_partitions > 0 && elapsed >= time_to_wait)
     {
       // Get current time
       // auto t = std::chrono::high_resolution_clock::now();
@@ -912,9 +871,9 @@ Lit Solver::pickBranchLit()
 
     // Random decision:
     if (drand(random_seed) < random_var_freq && !order_heap.empty()){
-        next = order_heap[irand(random_seed,order_heap.size())];
-        if (value(next) == l_Undef && decision[next])
-            rnd_decisions++; }
+      next = order_heap[irand(random_seed, order_heap.size())];
+      if (value(next) == l_Undef && decision[next]) rnd_decisions++;
+    }
 
     // Activity based decision:
     while (next >= nVars() || next == var_Undef || value(next) != l_Undef || !decision[next]) {
@@ -1866,18 +1825,20 @@ static double luby(double y, int x){
 // NOTE: assumptions passed in member-variable 'assumptions'.
 lbool Solver::solve_()
 {
-    Trace("minisat") << "nvars = " << nVars() << std::endl;
+  solver_start_time = std::chrono::high_resolution_clock::now();
+  Trace("minisat") << "nvars = " << nVars() << std::endl;
 
-    ScopedBool scoped_bool(minisat_busy, true);
+  ScopedBool scoped_bool(minisat_busy, true);
 
-    Assert(decisionLevel() == 0);
+  Assert(decisionLevel() == 0);
 
-    model.clear();
-    d_conflict.clear();
-    if (!ok){
-      minisat_busy = false;
-      return l_False;
-    }
+  model.clear();
+  d_conflict.clear();
+  if (!ok)
+  {
+    minisat_busy = false;
+    return l_False;
+  }
 
     solves++;
 

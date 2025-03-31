@@ -99,6 +99,8 @@ class Solver : protected EnvObj
       level_start_times;
   std::map<int, double> level_durations;
 
+  std::chrono::time_point<std::chrono::high_resolution_clock> solver_start_time;
+
  protected:
   /** Do we allow incremental solving */
   bool d_enable_incremental;
@@ -369,6 +371,7 @@ public:
  int learntsize_adjust_start_confl;
  double learntsize_adjust_inc;
  int num_desired_partitions;
+ int time_to_wait;
 
  // Statistics: (read-only member variable)
  //

@@ -42,6 +42,14 @@ name   = "SAT Layer"
   help       = "sets the number of easy partitions to make"
 
 [[option]]
+  name       = "timeToWait"
+  category   = "expert"
+  long       = "time-to-wait=N"
+  type       = "double"
+  default    = "0"
+  help       = "sets the time to wait until making easy partitions"
+
+[[option]]
   name       = "satVarDecay"
   category   = "expert"
   type       = "double"

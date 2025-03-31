@@ -163,6 +163,11 @@ void MinisatSatSolver::setupOptions() {
     d_minisat->num_desired_partitions = options().prop.numEasyPartitions;
   }
 
+  if (options().prop.timeToWait > 0)
+  {
+    d_minisat->time_to_wait = options().prop.timeToWait;
+  }
+
   // Give access to all possible options in the sat solver
   d_minisat->var_decay = options().prop.satVarDecay;
   d_minisat->clause_decay = options().prop.satClauseDecay;
