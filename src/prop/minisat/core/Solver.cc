@@ -741,7 +741,7 @@ void Solver::cancelUntilParti(int level)
       {
         std::cout << "Produced " << num_produced_partitions
                   << " partitions, exiting" << std::endl;
-        exit(0);
+        abort();
       }
     }
 
