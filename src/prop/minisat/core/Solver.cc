@@ -724,49 +724,24 @@ void Solver::cancelUntilParti(int level)
   auto elapsed =
       std::chrono::duration<double>{current_time - solver_start_time}.count();
 
-  std::cout << "cancelUntilParti" << std::endl;
   Trace("minisat") << "minisat::cancelUntilParti(" << level << ")" << std::endl;
 
   if (decisionLevel() > level)
   {
-    // if not a restart
     if (num_desired_partitions > 0 && elapsed >= time_to_wait)
     {
-      // Get current time
-      // auto t = std::chrono::high_resolution_clock::now();
-      // Get the start time of the level being backtracked
-      // auto start_t = level_start_times.at(level);
+      bool partition_dumped = d_proxy->proxyDumpEasyPartitions();
 
-      /// Generating timestamp from making decision to backtracking it
-      // auto elapsed = std::chrono::duration<double>{t - start_t}.count();
-
-      // I don't think this is necessary anymore.
-      // for (int l = trail_lim.size() - 1; l > level; l--)
-      // {
-      //   level_durations[level] = elapsed;
-      // }
-
-      double cutoff = options().prop.partitionThreshold;
-      // if (elapsed > cutoff)
-      if (true)
+      if (partition_dumped)
       {
-        // std::cout << "elapsed > " << cutoff << " for decision level " <<
-        // level
-        //           << ": " << elapsed << "s" << std::endl;
+        num_produced_partitions++;
+      }
 
-        bool partition_dumped = d_proxy->proxyDumpEasyPartitions();
-
-        if (partition_dumped)
-        {
-          num_produced_partitions++;
-        }
-
-        if (num_produced_partitions >= num_desired_partitions)
-        {
-          std::cout << "Produced " << num_produced_partitions
-                    << " partitions, exiting" << std::endl;
-          exit(0);
-        }
+      if (num_produced_partitions >= num_desired_partitions)
+      {
+        std::cout << "Produced " << num_produced_partitions
+                  << " partitions, exiting" << std::endl;
+        exit(0);
       }
     }
 

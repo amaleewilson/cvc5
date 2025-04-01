@@ -94,11 +94,6 @@ class Solver : protected EnvObj
   /** Returns the current user assertion level */
   int getAssertionLevel() const { return assertionLevel; }
 
-#include <chrono>
-  std::map<int, std::chrono::time_point<std::chrono::high_resolution_clock>>
-      level_start_times;
-  std::map<int, double> level_durations;
-
   std::chrono::time_point<std::chrono::high_resolution_clock> solver_start_time;
 
  protected:
@@ -674,8 +669,6 @@ inline void Solver::newDecisionLevel()
   trail_lim.push(trail.size());
   flipped.push(false);
   d_context->push();
-  level_start_times[trail_lim.size()] =
-      std::chrono::high_resolution_clock::now();
 }
 
 inline int      Solver::decisionLevel ()      const   { return trail_lim.size(); }
