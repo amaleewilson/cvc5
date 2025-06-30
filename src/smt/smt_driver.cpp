@@ -119,6 +119,87 @@ Result SmtDriver::checkSat(const std::vector<Node>& assumptions)
   return result;
 }
 
+Result SmtDriver::checkSatFFD(const std::vector<int>& ffds)
+{
+  // std::cout << "SmtDriver::checkSatFFD" << std::endl;
+  bool hasFFDs = !ffds.empty();
+  if (d_ctx)
+  {
+    // TODO: this is following same path as assumptions, so fix it
+    d_ctx->notifyCheckSat(hasFFDs);
+  }
+  Assertions& as = d_smt.getAssertions();
+  Result result;
+  try
+  {
+    // then, initialize the assertions
+    as.setAssumptions({});
+
+    // the assertions are now finalized, we call the illegal checker to
+    // verify that any new assertions are legal
+    d_illegalChecker.checkAssertions(as);
+
+    // make the check, where notice smt engine should be fully inited by now
+
+    Trace("smt") << "SmtSolver::check()" << std::endl;
+
+    ResourceManager* rm = d_env.getResourceManager();
+    // if we are already out of (cumulative) resources
+    if (rm->out())
+    {
+      UnknownExplanation why = rm->outOfResources()
+                                   ? UnknownExplanation::RESOURCEOUT
+                                   : UnknownExplanation::TIMEOUT;
+      result = Result(Result::UNKNOWN, why);
+    }
+    else
+    {
+      bool checkAgain = true;
+      do
+      {
+        // get the next assertions, store in d_ap
+        getNextAssertionsInternal(d_ap);
+        // check sat based on the driver strategy
+        result = checkSatNextFFD(d_ap, ffds);
+        // if we were asked to check again
+        if (result.getStatus() == Result::UNKNOWN
+            && result.getUnknownExplanation()
+                   == UnknownExplanation::REQUIRES_CHECK_AGAIN)
+        {
+          // finish init to construct new theory/prop engine
+          d_smt.finishInit();
+        }
+        else
+        {
+          checkAgain = false;
+        }
+      } while (checkAgain);
+    }
+  }
+  catch (const LogicException& e)
+  {
+    // The exception may have been throw during solving, backtrack to reset the
+    // decision level to the level expected after this method finishes
+    d_smt.getPropEngine()->resetTrail();
+    throw;
+  }
+  catch (const TypeCheckingExceptionPrivate& e)
+  {
+    // The exception has been throw during solving, backtrack to reset the
+    // decision level to the level expected after this method finishes. Note
+    // that we do not expect type checking exceptions to occur during solving.
+    // However, if they occur due to a bug, we don't want to additionally cause
+    // an assertion failure.
+    d_smt.getPropEngine()->resetTrail();
+    throw;
+  }
+  if (d_ctx)
+  {
+    d_ctx->notifyCheckSatResult(hasFFDs);
+  }
+  return result;
+}
+
 void SmtDriver::getNextAssertionsInternal(preprocessing::AssertionPipeline& ap)
 {
   ap.clear();
@@ -160,6 +241,9 @@ SmtDriverSingleCall::SmtDriverSingleCall(Env& env,
 
 Result SmtDriverSingleCall::checkSatNext(preprocessing::AssertionPipeline& ap)
 {
+  // std::cout << "SmtDriverSingleCall::checkSatNext(preprocessing::"
+  //              "AssertionPipeline& ap)"
+  //           << std::endl;
   // preprocess
   d_smt.preprocess(ap);
 
@@ -172,6 +256,55 @@ Result SmtDriverSingleCall::checkSatNext(preprocessing::AssertionPipeline& ap)
   d_smt.assertToInternal(ap);
   // get result
   Result result = d_smt.checkSatInternal();
+  // handle preprocessing-specific modifications to result
+  if (ap.isNegated())
+  {
+    Trace("smt") << "SmtSolver::process global negate " << result << std::endl;
+    if (result.getStatus() == Result::UNSAT)
+    {
+      result = Result(Result::SAT);
+    }
+    else if (result.getStatus() == Result::SAT)
+    {
+      // Only can answer unsat if the theory is satisfaction complete. In
+      // other words, a "sat" result for a closed formula indicates that the
+      // formula is true in *all* models.
+      // This includes linear arithmetic and bitvectors, which are the primary
+      // targets for the global negate option. Other logics are possible
+      // here but not considered.
+      LogicInfo logic = logicInfo();
+      if ((logic.isPure(theory::THEORY_ARITH) && logic.isLinear())
+          || logic.isPure(theory::THEORY_BV))
+      {
+        result = Result(Result::UNSAT);
+      }
+      else
+      {
+        result = Result(Result::UNKNOWN, UnknownExplanation::UNKNOWN_REASON);
+      }
+    }
+    Trace("smt") << "SmtSolver::global negate returned " << result << std::endl;
+  }
+  return result;
+}
+Result SmtDriverSingleCall::checkSatNextFFD(
+    preprocessing::AssertionPipeline& ap, std::vector<int> ffds)
+{
+  // std::cout << "SmtDriverSingleCall::checkSatNextFFD(preprocessing::"
+  //              "AssertionPipeline& ap)"
+  //           << std::endl;
+  // preprocess
+  d_smt.preprocess(ap);
+
+  if (options().base.preprocessOnly)
+  {
+    return Result(Result::UNKNOWN, UnknownExplanation::REQUIRES_FULL_CHECK);
+  }
+
+  // assert to internal
+  d_smt.assertToInternal(ap);
+  // get result
+  Result result = d_smt.checkSatInternalFFD(ffds);
   // handle preprocessing-specific modifications to result
   if (ap.isNegated())
   {

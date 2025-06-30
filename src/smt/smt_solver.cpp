@@ -133,6 +133,15 @@ void SmtSolver::interrupt()
 
 Result SmtSolver::checkSatInternal()
 {
+  // std::cout << "SmtSolver::checkSatInternal()" << std::endl;
+  // call the prop engine to check sat
+  return d_propEngine->checkSat();
+}
+
+Result SmtSolver::checkSatInternalFFD(const std::vector<int>& ffds)
+{
+  d_propEngine->setFFDs(ffds);
+  // std::cout << "SmtSolver::checkSatInternalFFD()" << std::endl;
   // call the prop engine to check sat
   return d_propEngine->checkSat();
 }
@@ -151,6 +160,7 @@ void SmtSolver::preprocess(preprocessing::AssertionPipeline& ap)
 
 void SmtSolver::assertToInternal(preprocessing::AssertionPipeline& ap)
 {
+  // std::cout << "SmtSolver::assertToInternal" << std::endl;
   // carry information about soundness to the theory engine we are sending to
   if (ap.isRefutationUnsound())
   {

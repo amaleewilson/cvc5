@@ -448,6 +448,8 @@ protected:
     Heap<VarOrderLt>    order_heap;         // A priority queue of variables ordered with respect to the variable activity.
     double              progress_estimate;  // Set by 'search()'.
     bool                remove_satisfied;   // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
+    bool tried_first_decision;
+    int decisions_dumped;
 
     ClauseAllocator     ca;
 

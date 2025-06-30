@@ -279,6 +279,7 @@ void PropEngine::assertInternal(theory::InferenceId id,
   }
   if (addAssumption)
   {
+    // std::cout << "PropEngine::assertInternal adding assumption" << std::endl;
     if (negated)
     {
       d_assumptions.push_back(node.notNode());
@@ -426,6 +427,7 @@ void PropEngine::outputIncompleteReason(UnknownExplanation uexp,
 }
 
 Result PropEngine::checkSat() {
+  // std::cout << "PropEngine::checkSat" << std::endl;
   Assert(!d_inCheckSat) << "Sat solver in solve()!";
   Trace("prop") << "PropEngine::checkSat()" << std::endl;
 
@@ -452,6 +454,7 @@ Result PropEngine::checkSat() {
   std::vector<SatLiteral> assumptions;
   for (const Node& node : d_assumptions)
   {
+    // std::cout << "PropEngine::checkSat pushing assumptions" << std::endl;
     assumptions.push_back(d_cnfStream->getLiteral(node));
   }
 

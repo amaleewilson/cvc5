@@ -131,6 +131,7 @@ class SmtSolver : protected EnvObj
    * processes the results based on the options.
    */
   Result checkSatInternal();
+  Result checkSatInternalFFD(const std::vector<int>& ffds);
 
  private:
   /** Whether we track information necessary for deep restarts */

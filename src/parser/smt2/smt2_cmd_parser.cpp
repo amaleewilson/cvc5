@@ -29,6 +29,7 @@ Smt2CmdParser::Smt2CmdParser(Smt2Lexer& lex,
 {
   // initialize the command tokens
   d_table["assert"] = Token::ASSERT_TOK;
+  d_table["check-sat-ffd"] = Token::CHECK_SAT_FFD_TOK;
   d_table["check-sat-assuming"] = Token::CHECK_SAT_ASSUMING_TOK;
   d_table["check-sat"] = Token::CHECK_SAT_TOK;
   d_table["declare-codatatypes"] = Token::DECLARE_CODATATYPES_TOK;
@@ -190,6 +191,43 @@ std::unique_ptr<Cmd> Smt2CmdParser::parseNextCommand()
       d_state.checkThatLogicIsSet();
       std::vector<Term> terms = d_tparser.parseTermList();
       cmd.reset(new CheckSatAssumingCommand(terms));
+    }
+    break;
+    // (check-sat-ffd (<term>*))
+    case Token::CHECK_SAT_FFD_TOK:
+    {
+      // std::cout << "parsing check-sat-ffd" << std::endl;
+      d_state.checkThatLogicIsSet();
+
+      Token nu_tok = d_lex.nextToken();
+
+      d_lex.eatToken(Token::LPAREN_TOK);
+      std::vector<int> ffds;
+      while (nu_tok != Token::RPAREN_TOK)
+      {
+        if (nu_tok == Token::LPAREN_TOK)
+        {
+          nu_tok = d_lex.nextToken();
+          continue;
+        }
+        // std::cout << "token " << nu_tok << " " << d_lex.tokenStr() <<
+        // std::endl;
+        std::string tstr = d_lex.tokenStr();
+        if (tstr.find("~") == std::string::npos)
+        {
+          // std::cout << "tstr " << tstr << std::endl;
+          ffds.push_back(std::stoi(tstr));
+        }
+        else
+        {
+          // std::cout << "tstr " << tstr << std::endl;
+          ffds.push_back(std::stoi("-" + tstr.substr(1)));
+        }
+        nu_tok = d_lex.nextToken();
+      }
+      // std::vector<Term> terms = d_tparser.parseTermList();
+      d_lex.eatToken(Token::RPAREN_TOK);
+      cmd.reset(new CheckSatFFDCommand(ffds));
     }
     break;
     // (check-synth)

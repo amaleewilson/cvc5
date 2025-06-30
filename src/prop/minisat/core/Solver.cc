@@ -199,7 +199,9 @@ Solver::Solver(Env& env,
       simpDB_props(0),
       order_heap(VarOrderLt(activity)),
       progress_estimate(0),
-      remove_satisfied(!enableIncremental)
+      remove_satisfied(!enableIncremental),
+      tried_first_decision(false),
+      decisions_dumped(0)
 
       // Resource constraints:
       //
@@ -803,8 +805,74 @@ Lit Solver::pickBranchLit()
       return lit_Undef;
     } else {
       decisions++;
-      Lit decisionLit = mkLit(
-          next, rnd_pol ? drand(random_seed) < 0.5 : (polarity[next] & 0x1));
+      Lit decisionLit;
+      // // testing hard coding decision
+      // // How to get lit from a node?
+      // // getNode() takes a sat literal and returns the node, can you go
+      // opposite
+      // // direction?
+      // // cnf_stream has internal::prop::SatLiteral getLiteral(TNode node);
+
+      // // Var alt_next = var(toLit(dec_int));
+
+      if (options().prop.forceFirstDecision)
+      {
+        if (decisionLevel() == 0 && !tried_first_decision)
+        {
+          auto test_ffds = d_proxy->getFFDs();
+          // for (auto n : test_ffds)
+          // {
+          //   std::cout << "n " << n << std::endl;
+          // }
+
+          int ffd = test_ffds[0];
+          if (ffd < 0)
+          {
+            Var alt_next = ffd * (-1);
+            if (value(alt_next) == l_Undef && decision[alt_next])
+            {
+              auto alt_lit = mkLit(alt_next, true);
+              std::cout << "forcing decision " << alt_lit << std::endl;
+              decisionLit = alt_lit;
+              tried_first_decision = true;
+            }
+            else
+            {
+              decisionLit = mkLit(
+                  next,
+                  rnd_pol ? drand(random_seed) < 0.5 : (polarity[next] & 0x1));
+            }
+          }
+          else
+          {
+            Var alt_next = ffd;
+            if (value(alt_next) == l_Undef && decision[alt_next])
+            {
+              auto alt_lit = mkLit(alt_next, false);
+              std::cout << "forcing decision " << alt_lit << std::endl;
+              decisionLit = alt_lit;
+              tried_first_decision = true;
+            }
+            else
+            {
+              decisionLit = mkLit(
+                  next,
+                  rnd_pol ? drand(random_seed) < 0.5 : (polarity[next] & 0x1));
+            }
+          }
+        }
+        else
+        {
+          decisionLit = mkLit(
+              next,
+              rnd_pol ? drand(random_seed) < 0.5 : (polarity[next] & 0x1));
+        }
+      }
+      else
+      {
+        decisionLit = mkLit(
+            next, rnd_pol ? drand(random_seed) < 0.5 : (polarity[next] & 0x1));
+      }
 
       // org-mode tracing -- decision engine decision
       if (TraceIsOn("dtview"))
@@ -822,6 +890,21 @@ Lit Solver::pickBranchLit()
                                       options().base.incrementalSolving);
       }
 
+      if (options().prop.dumpDecisions && decisions_dumped < 10)
+      {
+        if (Minisat::sign(decisionLit))
+        {
+          decisions_dumped += 1;
+          std::cout << "dlevel " << decisionLevel() << " dlit -"
+                    << var(decisionLit) << std::endl;
+        }
+        else
+        {
+          decisions_dumped += 1;
+          std::cout << "dlevel " << decisionLevel() << " dlit "
+                    << var(decisionLit) << std::endl;
+        }
+      }
       return decisionLit;
     }
 }

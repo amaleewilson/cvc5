@@ -214,6 +214,7 @@ SatValue MinisatSatSolver::solve() {
 
 SatValue MinisatSatSolver::solve(const std::vector<SatLiteral>& assumptions)
 {
+  // std::cout << "MinisatSatSolver::solve" << std::endl;
   setupOptions();
   d_minisat->budgetOff();
 

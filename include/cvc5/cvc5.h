@@ -5709,6 +5709,8 @@ class CVC5_EXPORT Solver
    */
   Result checkSatAssuming(const std::vector<Term>& assumptions) const;
 
+  Result checkSatFFD(const std::vector<int>& ffds) const;
+
   /**
    * Create datatype sort.
    *

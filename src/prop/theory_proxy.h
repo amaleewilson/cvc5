@@ -149,6 +149,10 @@ class TheoryProxy : protected EnvObj, public Registrar
 
   TNode getNode(SatLiteral lit);
 
+  SatLiteral getLit(TNode node);
+
+  std::vector<int> getFFDs();
+
   void notifyRestart();
 
   void spendResource(Resource r);

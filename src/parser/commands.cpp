@@ -449,6 +449,54 @@ void CheckSatAssumingCommand::toStream(std::ostream& out) const
 }
 
 /* -------------------------------------------------------------------------- */
+/* class CheckSatFFDCommand                                              */
+/* -------------------------------------------------------------------------- */
+
+CheckSatFFDCommand::CheckSatFFDCommand(const std::vector<int>& ffds)
+    : d_ffds(ffds)
+{
+}
+
+const std::vector<int>& CheckSatFFDCommand::getTerms() const { return d_ffds; }
+
+void CheckSatFFDCommand::invoke(cvc5::Solver* solver, SymManager* sm)
+{
+  Trace("dtview::command") << "* ~COMMAND: (check-sat-ffd ( TODO )~"
+                           << std::endl;
+  try
+  {
+    d_result = solver->checkSatFFD(d_ffds);
+    d_commandStatus = CommandSuccess::instance();
+  }
+  catch (exception& e)
+  {
+    d_commandStatus = new CommandFailure(e.what());
+  }
+}
+
+cvc5::Result CheckSatFFDCommand::getResult() const
+{
+  Trace("dtview::command") << "* ~RESULT: " << d_result << "~" << std::endl;
+  return d_result;
+}
+
+void CheckSatFFDCommand::printResult(cvc5::Solver* solver,
+                                     std::ostream& out) const
+{
+  out << d_result << endl;
+}
+
+std::string CheckSatFFDCommand::getCommandName() const
+{
+  return "check-sat-ffd";
+}
+
+void CheckSatFFDCommand::toStream(std::ostream& out) const
+{
+  internal::Printer::getPrinter(out)->toStreamCmdCheckSatFFD(out, d_ffds);
+}
+
+/* -------------------------------------------------------------------------- */
 /* class DeclareSygusVarCommand */
 /* -------------------------------------------------------------------------- */
 

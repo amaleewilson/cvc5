@@ -46,6 +46,8 @@ class SmtDriverDeepRestarts : public SmtDriver
 
  protected:
   Result checkSatNext(preprocessing::AssertionPipeline& ap) override;
+  Result checkSatNextFFD(preprocessing::AssertionPipeline& ap,
+                         std::vector<int> ffds) override;
   void getNextAssertions(preprocessing::AssertionPipeline& ap) override;
 
  private:

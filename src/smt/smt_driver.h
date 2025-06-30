@@ -54,6 +54,7 @@ class SmtDriver : protected EnvObj
    * temporary assertions.
    */
   Result checkSat(const std::vector<Node>& assumptions);
+  Result checkSatFFD(const std::vector<int>& ffds);
 
   /**
    * Refresh the assertions that have been asserted to the underlying SMT
@@ -104,6 +105,8 @@ class SmtDriver : protected EnvObj
    * checkSatisfiability method above.
    */
   virtual Result checkSatNext(preprocessing::AssertionPipeline& ap) = 0;
+  virtual Result checkSatNextFFD(preprocessing::AssertionPipeline& ap,
+                                 std::vector<int> ffds) = 0;
   /**
    * Get the next assertions. This is called:
    * (1) immediately before calls to checkSatNext, where we populate ap with
@@ -143,6 +146,8 @@ class SmtDriverSingleCall : public SmtDriver
  protected:
   /** Check sat next, takes result of underlying SMT solver only */
   Result checkSatNext(preprocessing::AssertionPipeline& ap) override;
+  Result checkSatNextFFD(preprocessing::AssertionPipeline& ap,
+                         std::vector<int> ffds) override;
   /** Gets all the assertions we have yet to process */
   void getNextAssertions(preprocessing::AssertionPipeline& ap) override;
   /**

@@ -464,6 +464,13 @@ TNode TheoryProxy::getNode(SatLiteral lit) {
   return d_cnfStream->getNode(lit);
 }
 
+SatLiteral TheoryProxy::getLit(TNode node)
+{
+  return d_cnfStream->getLiteral(node);
+}
+
+std::vector<int> TheoryProxy::getFFDs() { return d_propEngine->getFFDs(); }
+
 void TheoryProxy::notifyRestart() {
   d_propEngine->spendResource(Resource::RestartStep);
   d_theoryEngine->notifyRestart();

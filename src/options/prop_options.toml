@@ -95,6 +95,22 @@ name   = "SAT Layer"
   help       = "instead of solving minisat dumps the asserted clauses in Dimacs format"
 
 [[option]]
+  name       = "dumpDecisions"
+  category   = "expert"
+  long       = "dump-decisions"
+  type       = "bool"
+  default    = "false"
+  help       = "dumps decisions"
+  
+[[option]]
+  name       = "forceFirstDecision"
+  category   = "expert"
+  long       = "ffd"
+  type       = "bool"
+  default    = "false"
+  help       = "force the first decision"
+
+[[option]]
   name       = "preRegisterMode"
   category   = "regular"
   long       = "preregister-mode=MODE"

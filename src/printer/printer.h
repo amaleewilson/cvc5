@@ -119,6 +119,9 @@ class CVC5_EXPORT Printer
   /** Print assert command */
   virtual void toStreamCmdAssert(std::ostream& out, Node n) const;
 
+  /** Print assert command */
+  virtual void toStreamCmdFFD(std::ostream& out, Node n) const;
+
   /** Print push command */
   virtual void toStreamCmdPush(std::ostream& out, uint32_t nscopes) const;
 
@@ -189,6 +192,10 @@ class CVC5_EXPORT Printer
   /** Print check-sat-assuming command */
   virtual void toStreamCmdCheckSatAssuming(
       std::ostream& out, const std::vector<Node>& nodes) const;
+
+  /** Print check-sat-assuming command */
+  virtual void toStreamCmdCheckSatFFD(std::ostream& out,
+                                      const std::vector<int>& nodes) const;
 
   /** Print query command */
   virtual void toStreamCmdQuery(std::ostream& out, Node n) const;

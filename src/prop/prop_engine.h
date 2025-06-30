@@ -361,6 +361,18 @@ class PropEngine : protected EnvObj
   /** Get the literal type through the ZLL utilities */
   modes::LearnedLitType getLiteralType(const Node& lit) const;
 
+  void setFFDs(const std::vector<int>& ffds)
+  {
+    // std::cout << "setting ffds" << std::endl;
+    for (auto n : ffds)
+    {
+      // std::cout << "ffd: " << n << std::endl;
+      d_ffds.push_back(n);
+    }
+  }
+
+  std::vector<int>& getFFDs() { return d_ffds; }
+
  private:
   /** Dump out the satisfying assignment (after SAT result) */
   void printSatisfyingAssignment();
@@ -442,6 +454,8 @@ class PropEngine : protected EnvObj
 
   /** Whether we were just interrupted (or not) */
   bool d_interrupted;
+
+  std::vector<int> d_ffds;
 
   /**
    * Stores assumptions added via assertInternal() if assumption-based unsat

@@ -801,6 +801,70 @@ Result SolverEngine::checkSat(const std::vector<Node>& assumptions)
   return res;
 }
 
+Result SolverEngine::checkSatFFD(const std::vector<int>& ffds)
+{
+  beginCall(true);
+  // TODO : checkSatInternalFFD
+  // std::cout << "SolverEngine::checkSatFFDs" << std::endl;
+  Result res = checkSatInternalFFD(ffds);
+  endCall();
+  return res;
+}
+
+Result SolverEngine::checkSatInternalFFD(const std::vector<int>& ffds)
+{
+  // std::cout << "SolverEngine::checkSatInternalFFD" << std::endl;
+  // ensureWellFormedTerms(ffds, "checkSat");
+
+  Trace("smt") << "SolverEngine::checkSatFFD( TODO )" << endl;
+  // update the state to indicate we are about to run a check-sat
+  d_state->notifyCheckSat();
+
+  // Call the SMT solver driver to check for satisfiability. Note that in the
+  // case of options like e.g. deep restarts, this may invokve multiple calls
+  // to check satisfiability in the underlying SMT solver
+  Result r = d_smtDriver->checkSatFFD(ffds);
+
+  Trace("smt") << "SolverEngine::checkSat(TODO) => " << r << endl;
+  // notify our state of the check-sat result
+  d_state->notifyCheckSatResult(r);
+
+  // Check that SAT results generate a model correctly.
+  if (d_env->getOptions().smt.checkModels)
+  {
+    if (r.getStatus() == Result::SAT)
+    {
+      checkModel();
+    }
+  }
+  // Check that UNSAT results generate a proof correctly.
+  if (d_env->getOptions().smt.checkProofs)
+  {
+    if (r.getStatus() == Result::UNSAT)
+    {
+      checkProof();
+    }
+  }
+  // Check that UNSAT results generate an unsat core correctly.
+  if (d_env->getOptions().smt.checkUnsatCores)
+  {
+    if (r.getStatus() == Result::UNSAT)
+    {
+      TimerStat::CodeTimer checkUnsatCoreTimer(d_stats->d_checkUnsatCoreTime);
+      checkUnsatCore();
+    }
+  }
+
+  if (d_env->getOptions().base.statisticsEveryQuery)
+  {
+    printStatisticsDiff();
+  }
+
+  // set the filename on the result
+  const std::string& filename = d_env->getOptions().driver.filename;
+  return Result(r, filename);
+}
+
 Result SolverEngine::checkSatInternal(const std::vector<Node>& assumptions)
 {
   ensureWellFormedTerms(assumptions, "checkSat");

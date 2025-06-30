@@ -342,6 +342,7 @@ class CVC5_EXPORT SolverEngine
   Result checkSat();
   Result checkSat(const Node& assumption);
   Result checkSat(const std::vector<Node>& assumptions);
+  Result checkSatFFD(const std::vector<int>& ffds);
 
   /**
    * Get a timeout core, which computes a subset of the current assertions that
@@ -998,6 +999,7 @@ class CVC5_EXPORT SolverEngine
    * Check satisfiability (used to check satisfiability and entailment).
    */
   Result checkSatInternal(const std::vector<Node>& assumptions);
+  Result checkSatInternalFFD(const std::vector<int>& ffds);
 
   /**
    * Check that all Expr in formals are of BOUND_VARIABLE kind, where func is

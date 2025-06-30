@@ -62,11 +62,14 @@ void Assertions::refresh()
 
 void Assertions::setAssumptions(const std::vector<Node>& assumptions)
 {
+  // std::cout << "Assertions::setAssumptions" << std::endl;
   d_assumptions.clear();
   d_assumptions = assumptions;
 
   for (const Node& n : d_assumptions)
   {
+    // std::cout << "Assertions::setAssumptions adding assumption " << n
+    //           << std::endl;
     // Ensure expr is type-checked at this point.
     ensureBoolean(n);
     addFormula(n, false, false);
@@ -80,7 +83,11 @@ void Assertions::assertFormula(const Node& n)
   addFormula(n, false, maybeHasFv);
 }
 
-std::vector<Node>& Assertions::getAssumptions() { return d_assumptions; }
+std::vector<Node>& Assertions::getAssumptions()
+{
+  // std::cout << "Assertions::getAssumptions()" << std::endl;
+  return d_assumptions;
+}
 
 const context::CDList<Node>& Assertions::getAssertionList() const
 {

@@ -52,6 +52,27 @@ Result SmtDriverDeepRestarts::checkSatNext(preprocessing::AssertionPipeline& ap)
   return result;
 }
 
+Result SmtDriverDeepRestarts::checkSatNextFFD(
+    preprocessing::AssertionPipeline& ap, std::vector<int> ffds)
+{
+  d_zll.clear();
+  d_smt.preprocess(ap);
+  d_smt.assertToInternal(ap);
+  Result result = d_smt.checkSatInternal();
+  // check again if we didn't solve and there are learned literals
+  if (result.getStatus() == Result::UNKNOWN)
+  {
+    // get the learned literals immediately
+    d_zll = d_smt.getPropEngine()->getLearnedZeroLevelLiteralsForRestart();
+    // check again if there are any
+    if (!d_zll.empty())
+    {
+      return Result(Result::UNKNOWN, UnknownExplanation::REQUIRES_CHECK_AGAIN);
+    }
+  }
+  return result;
+}
+
 void SmtDriverDeepRestarts::getNextAssertions(
     preprocessing::AssertionPipeline& ap)
 {
