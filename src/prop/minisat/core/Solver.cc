@@ -905,6 +905,9 @@ Lit Solver::pickBranchLit()
                     << var(decisionLit) << std::endl;
         }
       }
+      else if (options().prop.dumpDecisions && decisions_dumped >= 10)
+      {
+      }
       return decisionLit;
     }
 }
