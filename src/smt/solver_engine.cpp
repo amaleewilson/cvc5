@@ -806,6 +806,14 @@ Result SolverEngine::checkSatFFD(const std::vector<int>& ffds)
   beginCall(true);
   // TODO : checkSatInternalFFD
   // std::cout << "SolverEngine::checkSatFFDs" << std::endl;
+
+  // andy says stop here, set up the strategy on the theory engine.
+  // decision strategy lives in solver engine, ie unique pointer.
+  // strat local solve
+  // STRAT_SCOPE_LOCAL_SOLVE
+  // register strategy
+  // look at fmf
+
   Result res = checkSatInternalFFD(ffds);
   endCall();
   return res;

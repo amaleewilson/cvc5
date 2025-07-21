@@ -201,6 +201,7 @@ Solver::Solver(Env& env,
       progress_estimate(0),
       remove_satisfied(!enableIncremental),
       tried_first_decision(false),
+      num_decisions_forced(0),
       decisions_dumped(0)
 
       // Resource constraints:
@@ -817,15 +818,15 @@ Lit Solver::pickBranchLit()
 
       if (options().prop.forceFirstDecision)
       {
-        if (decisionLevel() == 0 && !tried_first_decision)
+        auto test_ffds = d_proxy->getFFDs();
+        if (decisionLevel() == 0 && num_decisions_forced < test_ffds.size())
         {
-          auto test_ffds = d_proxy->getFFDs();
           // for (auto n : test_ffds)
           // {
           //   std::cout << "n " << n << std::endl;
           // }
 
-          int ffd = test_ffds[0];
+          int ffd = test_ffds[num_decisions_forced];
           if (ffd < 0)
           {
             Var alt_next = ffd * (-1);
@@ -860,6 +861,7 @@ Lit Solver::pickBranchLit()
                   rnd_pol ? drand(random_seed) < 0.5 : (polarity[next] & 0x1));
             }
           }
+          num_decisions_forced += 1;
         }
         else
         {
@@ -907,6 +909,8 @@ Lit Solver::pickBranchLit()
       }
       else if (options().prop.dumpDecisions && decisions_dumped >= 10)
       {
+        // std::cout << "Done dumping decisions, exiting" << std::endl;
+        exit(0);
       }
       return decisionLit;
     }

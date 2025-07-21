@@ -449,6 +449,7 @@ protected:
     double              progress_estimate;  // Set by 'search()'.
     bool                remove_satisfied;   // Indicates whether possibly inefficient linear scan for satisfied clauses should be performed in 'simplify'.
     bool tried_first_decision;
+    int num_decisions_forced;
     int decisions_dumped;
 
     ClauseAllocator     ca;
