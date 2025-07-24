@@ -16,12 +16,64 @@
 
 #include "theory/decision_strategy.h"
 
+#include "options/parallel_options.h"
 #include "theory/rewriter.h"
 
 using namespace cvc5::internal::kind;
 
 namespace cvc5::internal {
 namespace theory {
+
+DecisionStrategyFFD::DecisionStrategyFFD(Env& env, Valuation valuation)
+    : DecisionStrategy(env),
+      d_valuation(valuation),
+      d_name("decisionStrategyFFD"),
+      d_forced_count(0)
+{
+}
+
+void DecisionStrategyFFD::initialize() {}
+
+void DecisionStrategyFFD::addLiteral(Node n)
+{
+  Node lit = rewrite(n);
+  d_literals.push_back(d_valuation.ensureLiteral(lit));
+}
+
+Node DecisionStrategyFFD::getNextDecisionRequest()
+{
+  Trace("dec-strategy-debug")
+      << "Get next decision request " << identify() << "... " << std::endl;
+
+  if (options().parallel.forceFirstDecisionsOnce)
+  {
+    if (d_forced_count < d_literals.size())
+    {
+      for (auto n : d_literals)
+      {
+        bool value;
+        if (!d_valuation.hasSatValue(n, value))
+        {
+          d_forced_count += 1;
+          return n;
+        }
+      }
+    }
+  }
+  else
+  {
+    for (auto n : d_literals)
+    {
+      bool value;
+      if (!d_valuation.hasSatValue(n, value))
+      {
+        return n;
+      }
+    }
+  }
+
+  return Node::null();
+}
 
 DecisionStrategyFmf::DecisionStrategyFmf(Env& env, Valuation valuation)
     : DecisionStrategy(env),

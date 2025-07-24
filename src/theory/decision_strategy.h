@@ -50,6 +50,37 @@ class DecisionStrategy : protected EnvObj
   virtual std::string identify() const = 0;
 };
 
+class DecisionStrategyFFD : public DecisionStrategy
+{
+ public:
+  DecisionStrategyFFD(Env& env, Valuation valuation);
+  virtual ~DecisionStrategyFFD() {}
+  /** initialize */
+  void initialize() override;
+  /** get next decision request */
+  Node getNextDecisionRequest() override;
+
+  void addLiteral(Node n);
+
+  std::string identify() const override { return d_name; }
+
+ protected:
+  /**
+   * The valuation of this class, used for knowing what literals are asserted,
+   * and with what polarity.
+   */
+  Valuation d_valuation;
+
+  /** The list of literals for this strategy. */
+  std::vector<Node> d_literals;
+
+  /** The name of this strategy. */
+  std::string d_name;
+
+  /** The number of times a decision has been made using this strategy. */
+  int d_forced_count;
+};
+
 /**
  * Decision strategy finite model finding.
  *

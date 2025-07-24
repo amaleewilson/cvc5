@@ -5734,6 +5734,22 @@ class CVC5_EXPORT Solver
   Result checkSatAssuming(const std::vector<Term>& assumptions) const;
 
   /**
+   * Check satisfiability forcing a decision on the given formulas.
+   *
+   * SMT-LIB:
+   *
+   * \verbatim embed:rst:leading-asterisk
+   * .. code:: smtlib
+   *
+   *     (check-sat-ffd ( <prop_literal>+ ))
+   * \endverbatim
+   *
+   * @param ffds The decisions to force.
+   * @return The result of the satisfiability check.
+   */
+  Result checkSatFFD(const std::vector<Term>& ffds) const;
+
+  /**
    * Create datatype sort.
    *
    * SMT-LIB:

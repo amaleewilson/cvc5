@@ -119,11 +119,17 @@ class PartitionGenerator : public TheoryEngineModule
    */
   Node makeCubePartitions(LiteralListType litType,
                           bool emitZLL,
-                          bool randomize);
+                          bool randomize,
+                          bool ffd);
 
   /**
-   * Generate a lemma that is the negation of toBlock which ultimately blocks
-   * that path in the search.
+   * Generate the list of decisions for forcing the first decision(s).
+   */
+  Node makeFFDList(bool randomize);
+
+  /**
+   * Generate a lemma that is the negation of toBlock which ultimately
+   * blocks that path in the search.
    */
   Node blockPath(TNode toBlock);
 

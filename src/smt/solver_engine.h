@@ -83,6 +83,7 @@ class UnsatCoreManager;
 namespace theory {
 class TheoryModel;
 class QuantifiersEngine;
+class DecisionStrategyFFD;
 }  // namespace theory
 
 /* -------------------------------------------------------------------------- */
@@ -342,6 +343,7 @@ class CVC5_EXPORT SolverEngine
   Result checkSat();
   Result checkSat(const Node& assumption);
   Result checkSat(const std::vector<Node>& assumptions);
+  Result checkSatFFD(const std::vector<Node>& ffds);
 
   /**
    * Get a timeout core, which computes a subset of the current assertions that
@@ -1118,6 +1120,8 @@ class CVC5_EXPORT SolverEngine
   std::unique_ptr<smt::InterpolationSolver> d_interpolSolver;
   /** The solver for quantifier elimination queries */
   std::unique_ptr<smt::QuantElimSolver> d_quantElimSolver;
+  /** The decision strategy for forcing first decisions */
+  std::unique_ptr<theory::DecisionStrategyFFD> d_ffdDecisionStrat;
 
   /**
    * The logic set by the user. The actual logic, which may extend the user's

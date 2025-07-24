@@ -7364,6 +7364,27 @@ Result Solver::checkSatAssuming(const std::vector<Term>& assumptions) const
   CVC5_API_TRY_CATCH_END;
 }
 
+Result Solver::checkSatFFD(const std::vector<Term>& ffds) const
+{
+  CVC5_API_TRY_CATCH_BEGIN;
+  CVC5_API_CHECK(!d_slv->isQueryMade() || ffds.size() == 0
+                 || d_slv->getOptions().base.incrementalSolving)
+      << "cannot make multiple queries unless incremental solving is enabled "
+         "(try --"
+      << internal::options::base::longName::incrementalSolving << ")";
+  CVC5_API_SOLVER_CHECK_TERMS_WITH_SORT(ffds, getBooleanSort());
+  ensureWellFormedTerms(ffds);
+  //////// all checks before this line
+  for (const Term& term : ffds)
+  {
+    CVC5_API_SOLVER_CHECK_TERM(term);
+  }
+  std::vector<internal::Node> nodeFFDs = Term::termVectorToNodes(ffds);
+  return d_slv->checkSatFFD(nodeFFDs);
+  ////////
+  CVC5_API_TRY_CATCH_END;
+}
+
 Sort Solver::declareDatatype(
     const std::string& symbol,
     const std::vector<DatatypeConstructorDecl>& ctors) const

@@ -372,6 +372,12 @@ void Printer::toStreamCmdCheckSatAssuming(std::ostream& out,
   printUnknownCommand(out, "check-sat-assuming");
 }
 
+void Printer::toStreamCmdCheckSatFFD(std::ostream& out,
+                                     const std::vector<Node>& nodes) const
+{
+  printUnknownCommand(out, "check-sat-ffd");
+}
+
 void Printer::toStreamCmdQuery(std::ostream& out, Node n) const
 {
   printUnknownCommand(out, "query");
