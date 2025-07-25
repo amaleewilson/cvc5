@@ -72,6 +72,16 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
     }
   }
 
+  // DEBUGGING, remove this later!
+  for (auto n : d_literals)
+  {
+    bool value;
+    if (d_valuation.hasSatValue(n, value))
+    {
+      std::cout << "value: " << value << " n: " << n << std::endl;
+    }
+  }
+
   return Node::null();
 }
 
