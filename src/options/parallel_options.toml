@@ -155,3 +155,11 @@ name   = "Parallel"
   type       = "bool"
   default    = "false"
   help       = "Force first decisions only once"
+
+[[option]]
+  name       = "ffdPartitionMode"
+  category   = "expert"
+  long       = "ffd-partition-mode"
+  type       = "bool"
+  default    = "false"
+  help       = "Terminate early with ffd"

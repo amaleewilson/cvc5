@@ -17,6 +17,7 @@
 #include "theory/decision_strategy.h"
 
 #include "options/parallel_options.h"
+#include "theory/output_channel.h"
 #include "theory/rewriter.h"
 
 using namespace cvc5::internal::kind;
@@ -72,14 +73,28 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
     }
   }
 
-  // DEBUGGING, remove this later!
+  bool allFalse = true;
   for (auto n : d_literals)
   {
     bool value;
     if (d_valuation.hasSatValue(n, value))
     {
-      std::cout << "value: " << value << " n: " << n << std::endl;
+      if (value)
+      {
+        allFalse = false;
+      }
     }
+  }
+  if (allFalse && options().parallel.ffdPartitionMode)
+  {
+    std::cout << "all false, returning unsat node" << std::endl;
+    auto unsatNode = nodeManager()->mkConst(false);
+    return unsatNode;
+    // // d_out(statisticsRegistry(), engine, name, d_idCounter)
+    // OutputChannel d_out(statisticsRegistry(), d_valuation.d_engine, "ffd",
+    // 42);
+
+    // d_out.lem(unsatNode, InferenceId::PARTITION_GENERATOR_PARTITION);
   }
 
   return Node::null();
