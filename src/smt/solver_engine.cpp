@@ -812,6 +812,8 @@ Result SolverEngine::checkSatFFD(const std::vector<Node>& ffds)
   d_ffdDecisionStrat.reset(
       new theory::DecisionStrategyFFD(*d_env.get(), theory::Valuation(te)));
 
+  d_ffdDecisionStrat->setOutputChannel(te);
+
   for (auto n : ffds)
   {
     d_ffdDecisionStrat->addLiteral(n);

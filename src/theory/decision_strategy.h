@@ -22,6 +22,7 @@
 #include "context/cdo.h"
 #include "expr/node.h"
 #include "smt/env_obj.h"
+#include "theory/output_channel.h"
 #include "theory/valuation.h"
 
 namespace cvc5::internal {
@@ -64,6 +65,8 @@ class DecisionStrategyFFD : public DecisionStrategy
 
   std::string identify() const override { return d_name; }
 
+  void setOutputChannel(TheoryEngine* te);
+
  protected:
   /**
    * The valuation of this class, used for knowing what literals are asserted,
@@ -79,6 +82,8 @@ class DecisionStrategyFFD : public DecisionStrategy
 
   /** The number of times a decision has been made using this strategy. */
   int d_forced_count;
+
+  OutputChannel* d_out;
 };
 
 /**
