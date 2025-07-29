@@ -83,7 +83,7 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
     }
     if (allFalse && options().parallel.ffdPartitionMode)
     {
-      std::cout << "all false, returning unsat node" << std::endl;
+      // std::cout << "all false, returning unsat node" << std::endl;
       auto unsatNode = nodeManager()->mkConst(false);
       // return unsatNode;
       // // d_out(statisticsRegistry(), engine, name, d_idCounter)
