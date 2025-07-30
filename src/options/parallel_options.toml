@@ -163,3 +163,11 @@ name   = "Parallel"
   type       = "bool"
   default    = "false"
   help       = "Terminate early with ffd"
+
+[[option]]
+  name       = "ffdFastPartitionMode"
+  category   = "expert"
+  long       = "ffd-fast-partition-mode"
+  type       = "bool"
+  default    = "false"
+  help       = "Terminate extra early with ffd"
