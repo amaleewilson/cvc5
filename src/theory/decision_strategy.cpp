@@ -69,7 +69,7 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
   else
   {
     bool allFalse = true;
-    bool firstFalse = false;
+    bool anyFalse = false;
     // for (auto n : d_literals)
     for (int i = 0; i < d_literals.size(); ++i)
     {
@@ -83,9 +83,9 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
       {
         allFalse = false;
       }
-      else if (i == 0)
+      else
       {
-        firstFalse = true;
+        anyFalse = true;
       }
     }
     if (allFalse && options().parallel.ffdPartitionMode)
@@ -99,7 +99,7 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
 
       d_out->lemma(unsatNode, InferenceId::PARTITION_GENERATOR_PARTITION);
     }
-    else if (firstFalse && options().parallel.ffdFastPartitionMode)
+    else if (anyFalse && options().parallel.ffdFastPartitionMode)
     {
       // std::cout << "first false, returning unsat node" << std::endl;
       auto unsatNode = nodeManager()->mkConst(false);
