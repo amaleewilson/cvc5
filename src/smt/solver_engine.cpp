@@ -33,6 +33,7 @@
 #include "options/main_options.h"
 #include "options/option_exception.h"
 #include "options/options_public.h"
+#include "options/parallel_options.h"
 #include "options/parser_options.h"
 #include "options/printer_options.h"
 #include "options/proof_options.h"
@@ -814,9 +815,18 @@ Result SolverEngine::checkSatFFD(const std::vector<Node>& ffds)
 
   d_ffdDecisionStrat->setOutputChannel(te);
 
-  for (auto n : ffds)
+  if (options().parallel.ffdFastPartitionMode)
   {
-    d_ffdDecisionStrat->addLiteral(n);
+    NodeManager* nm = d_env->getNodeManager();
+    auto bigLit = nm->mkAnd(ffds);
+    d_ffdDecisionStrat->addLiteral(bigLit);
+  }
+  else
+  {
+    for (auto n : ffds)
+    {
+      d_ffdDecisionStrat->addLiteral(n);
+    }
   }
 
   te->getDecisionManager()->registerStrategy(theory::DecisionManager::STRAT_FFD,
