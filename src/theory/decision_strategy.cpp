@@ -16,7 +16,9 @@
 
 #include "theory/decision_strategy.h"
 
+#include "expr/plugin.h"
 #include "options/parallel_options.h"
+#include "smt/env.h"
 #include "theory/output_channel.h"
 #include "theory/rewriter.h"
 
@@ -29,7 +31,8 @@ DecisionStrategyFFD::DecisionStrategyFFD(Env& env, Valuation valuation)
     : DecisionStrategy(env),
       d_valuation(valuation),
       d_name("decisionStrategyFFD"),
-      d_forced_count(0)
+      d_forced_count(0),
+      d_notifiedPlugin(false)
 {
 }
 
@@ -66,7 +69,7 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
       }
     }
   }
-  else
+  else if (!d_notifiedPlugin)
   {
     bool allFalse = true;
     bool anyFalse = false;
@@ -101,14 +104,25 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
     }
     else if (anyFalse && options().parallel.ffdFastPartitionMode)
     {
+      std::vector<Plugin*> plugins = d_env.getPlugins();
+      std::cout << "num plugins " << plugins.size() << std::endl;
+      for (auto p : plugins)
+      {
+        std::cout << "plugin name " << p->getName() << std::endl;
+        if (p->getName() == "LemmaTransceiver")
+        {
+          p->handlePartitionSolved();
+          d_notifiedPlugin = true;
+        }
+      }
       // std::cout << "first false, returning unsat node" << std::endl;
-      auto unsatNode = nodeManager()->mkConst(false);
+      // auto unsatNode = nodeManager()->mkConst(false);
       // return unsatNode;
       // // d_out(statisticsRegistry(), engine, name, d_idCounter)
       // OutputChannel d_out(statisticsRegistry(), d_valuation.d_engine, "ffd",
       // 42);
 
-      d_out->lemma(unsatNode, InferenceId::PARTITION_GENERATOR_PARTITION);
+      // d_out->lemma(unsatNode, InferenceId::PARTITION_GENERATOR_PARTITION);
     }
   }
 

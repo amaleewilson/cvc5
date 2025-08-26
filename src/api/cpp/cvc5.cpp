@@ -1129,6 +1129,11 @@ class PluginInternal : public internal::Plugin
   /** Get name */
   std::string getName() override { return d_external.getName(); }
 
+  void handlePartitionSolved() override
+  {
+    return d_external.handlePartitionSolved();
+  }
+
  private:
   /** Reference to the term manager */
   cvc5::TermManager& d_tm;

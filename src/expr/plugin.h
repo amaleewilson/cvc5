@@ -63,6 +63,8 @@ class Plugin
    */
   virtual std::string getName() = 0;
 
+  virtual void handlePartitionSolved() = 0;
+
  private:
   /** Pointer to node manager */
   NodeManager* d_nm;

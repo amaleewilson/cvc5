@@ -3713,6 +3713,8 @@ struct Cvc5Plugin
    */
   const char* (*get_name)();
 
+  void (*handle_partition_solved)();
+
   /** The state to pass into `check`. */
   void* d_check_state;
   /** The state to pass into `notify_sat_clause`. */

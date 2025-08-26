@@ -3675,6 +3675,8 @@ class CVC5_EXPORT Plugin
    */
   virtual std::string getName() = 0;
 
+  virtual void handlePartitionSolved() = 0;
+
  private:
   /** Converter to external */
   std::shared_ptr<cvc5::PluginInternal> d_pExtToInt;

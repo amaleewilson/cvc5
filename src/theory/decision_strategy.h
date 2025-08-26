@@ -83,6 +83,8 @@ class DecisionStrategyFFD : public DecisionStrategy
   /** The number of times a decision has been made using this strategy. */
   int d_forced_count;
 
+  bool d_notifiedPlugin;
+
   OutputChannel* d_out;
 };
 
