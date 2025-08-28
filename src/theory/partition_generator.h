@@ -103,7 +103,8 @@ class PartitionGenerator : public TheoryEngineModule
   Node makeScatterPartitions(LiteralListType litType,
                              bool emitZLL,
                              bool timedOut,
-                             bool randomize);
+                             bool randomize,
+                             bool ffd);
 
   /**
    * Partition by taking a list of literals and emitting mutually exclusive

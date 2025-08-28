@@ -102,8 +102,11 @@ name   = "Parallel"
 [[option.mode.FFD_LIST]]
   name = "ffd-list"
   help = "Creates a list of literals that can be used for check-sat-ffd."
-[[option.mode.FFD_CUBES]]
+[[option.mode.FFD_CUBE]]
   name = "ffd-cube"
+  help = "Creates a cube-style formulas for check-sat-ffd."
+[[option.mode.FFD_SCATTER]]
+  name = "ffd-scatter"
   help = "Creates a cube-style formulas for check-sat-ffd."
 
 [[option]]

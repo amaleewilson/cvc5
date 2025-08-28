@@ -241,7 +241,8 @@ Node PartitionGenerator::stopPartitioning()
 Node PartitionGenerator::makeScatterPartitions(LiteralListType litType,
                                                bool emitZLL,
                                                bool timedOut,
-                                               bool randomize)
+                                               bool randomize,
+                                               bool ffd = false)
 {
   // If we're not at the last cube
   if (d_numPartitionsSoFar < d_numPartitions - 1)
@@ -598,9 +599,17 @@ void PartitionGenerator::check(Theory::Effort e)
           /*litType=*/LEMMA, emitZLL, timeOutExceeded, randomize);
       break;
     case options::PartitionMode::FFD_LIST: lem = makeFFDList(randomize); break;
-    case options::PartitionMode::FFD_CUBES:
+    case options::PartitionMode::FFD_CUBE:
       lem = makeCubePartitions(
           /*litType=*/DECISION, emitZLL, randomize, /*ffd=*/true);
+      break;
+    case options::PartitionMode::FFD_SCATTER:
+      lem = makeScatterPartitions(
+          /*litType=*/DECISION,
+          emitZLL,
+          timeOutExceeded,
+          randomize,
+          /*ffd=*/true);
       break;
     default: return;
   }
