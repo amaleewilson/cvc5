@@ -105,24 +105,20 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
     else if (anyFalse && options().parallel.ffdFastPartitionMode)
     {
       std::vector<Plugin*> plugins = d_env.getPlugins();
-      std::cout << "num plugins " << plugins.size() << std::endl;
       for (auto p : plugins)
       {
-        std::cout << "plugin name " << p->getName() << std::endl;
         if (p->getName() == "LemmaTransceiver")
         {
           p->handlePartitionSolved();
           d_notifiedPlugin = true;
         }
       }
-      // std::cout << "first false, returning unsat node" << std::endl;
-      // auto unsatNode = nodeManager()->mkConst(false);
-      // return unsatNode;
-      // // d_out(statisticsRegistry(), engine, name, d_idCounter)
-      // OutputChannel d_out(statisticsRegistry(), d_valuation.d_engine, "ffd",
-      // 42);
-
-      // d_out->lemma(unsatNode, InferenceId::PARTITION_GENERATOR_PARTITION);
+      // If not sharing, want to stop trying to solve
+      if (!d_notifiedPlugin)
+      {
+        auto unsatNode = nodeManager()->mkConst(false);
+        d_out->lemma(unsatNode, InferenceId::PARTITION_GENERATOR_PARTITION);
+      }
     }
   }
 
