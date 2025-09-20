@@ -91,7 +91,7 @@ Node DecisionStrategyFFD::getNextDecisionRequest()
         anyFalse = true;
       }
     }
-    if (allFalse && options().parallel.ffdPartitionMode)
+    if (anyFalse && options().parallel.ffdPartitionMode)
     {
       // std::cout << "all false, returning unsat node" << std::endl;
       auto unsatNode = nodeManager()->mkConst(false);
